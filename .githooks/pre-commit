@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Pre-commit hook: detect secrets before they are committed
+
+set -euo pipefail
+
+# Patterns to detect common secret formats
+PATTERNS=(
+    'ghp_[A-Za-z0-9]{36}'           # GitHub personal access tokens
+    'github_pat_[A-Za-z0-9_]{82}'   # GitHub fine-grained PATs
+    'ghs_[A-Za-z0-9]{36}'           # GitHub app tokens
+    'AKIA[0-9A-Z]{16}'              # AWS access key IDs
+    'sk-[A-Za-z0-9]{48}'            # OpenAI API keys
+    'xox[baprs]-[A-Za-z0-9-]+'      # Slack tokens
+    'AIza[0-9A-Za-z_-]{35}'         # Google API keys
+    'ya29\.[A-Za-z0-9_-]+'          # Google OAuth tokens
+    'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' # JWTs
+    'BEGIN (RSA|EC|DSA|OPENSSH) PRIVATE KEY' # Private keys
+    'password\s*=\s*["\x27][^\s"]{8,}' # Hardcoded passwords
+    'secret\s*=\s*["\x27][^\s"]{8,}'   # Hardcoded secrets
+    'token\s*=\s*["\x27][^\s"]{8,}'    # Hardcoded tokens
+)
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [[ -z "$STAGED_FILES" ]]; then
+    exit 0
+fi
+
+FOUND=0
+for PATTERN in "${PATTERNS[@]}"; do
+    MATCHES=$(git diff --cached -U0 | grep '^+' | grep -v '^+++' | grep -iE "$PATTERN" || true)
+    if [[ -n "$MATCHES" ]]; then
+        echo "ERROR: Potential secret detected matching pattern: $PATTERN"
+        echo "$MATCHES"
+        FOUND=1
+    fi
+done
+
+if [[ "$FOUND" -eq 1 ]]; then
+    echo ""
+    echo "Commit blocked. If this is a false positive, use:"
+    echo "  git commit --no-verify"
+    exit 1
+fi
+
+exit 0
