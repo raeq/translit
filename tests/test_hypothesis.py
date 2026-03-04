@@ -79,9 +79,7 @@ class TestTransliterateProperties:
     def test_transliterate_ignore_produces_ascii(self, text: str) -> None:
         """With errors='ignore', output contains only ASCII characters."""
         result = transliterate(text, errors="ignore")
-        assert is_ascii(result), (
-            f"Non-ASCII in result: {[c for c in result if ord(c) > 127]!r}"
-        )
+        assert is_ascii(result), f"Non-ASCII in result: {[c for c in result if ord(c) > 127]!r}"
 
     @given(text=unicode_text)
     @settings(max_examples=200)
@@ -306,6 +304,4 @@ class TestUniqueSlugifierProperties:
         # Filter out empty slugs (input may transliterate to nothing)
         non_empty = [s for s in slugs if s]
         if non_empty:
-            assert len(set(non_empty)) == len(non_empty), (
-                f"Duplicate slugs: {non_empty}"
-            )
+            assert len(set(non_empty)) == len(non_empty), f"Duplicate slugs: {non_empty}"

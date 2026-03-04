@@ -128,9 +128,7 @@ class TestTextPipelineCombinations:
         assert pipe("hello\u200bworld") == "helloworld"
 
     def test_collapse_whitespace_preserves_control_when_disabled(self) -> None:
-        pipe = TextPipeline(
-            collapse_whitespace=True, strip_control=False, strip_zero_width=False
-        )
+        pipe = TextPipeline(collapse_whitespace=True, strip_control=False, strip_zero_width=False)
         result = pipe("hello\u200bworld")
         assert "\u200b" in result
 

@@ -136,9 +136,7 @@ class TestEncodingFuzz:
         ),
     )
     @settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
-    def test_decode_with_encoding_never_panics(
-        self, data: bytes, encoding: str
-    ) -> None:
+    def test_decode_with_encoding_never_panics(self, data: bytes, encoding: str) -> None:
         text, had_errors = translit.decode_to_utf8(data, encoding=encoding)
         assert isinstance(text, str)
         assert isinstance(had_errors, bool)

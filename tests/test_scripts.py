@@ -27,10 +27,7 @@ class TestPerScriptDetection:
 
     @pytest.mark.parametrize(
         "script,sample",
-        [
-            pytest.param(script, sample, id=script.name)
-            for script, sample in SCRIPT_SAMPLES.items()
-        ],
+        [pytest.param(script, sample, id=script.name) for script, sample in SCRIPT_SAMPLES.items()],
     )
     def test_detects_single_script(self, script: Script, sample: str) -> None:
         """detect_scripts(sample) must return exactly [script]."""
@@ -284,10 +281,7 @@ class TestScriptEnumValues:
 
     @pytest.mark.parametrize(
         "script,sample",
-        [
-            pytest.param(script, sample, id=script.name)
-            for script, sample in SCRIPT_SAMPLES.items()
-        ],
+        [pytest.param(script, sample, id=script.name) for script, sample in SCRIPT_SAMPLES.items()],
     )
     def test_enum_value_matches_rust_string(self, script: Script, sample: str) -> None:
         """The Script enum's .value must match the string returned by Rust.

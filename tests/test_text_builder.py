@@ -124,13 +124,7 @@ class TestChaining:
         assert result == "cafe"
 
     def test_three_step_chain(self) -> None:
-        result = (
-            Text("  Héllo   Wörld  ")
-            .transliterate()
-            .fold_case()
-            .collapse_whitespace()
-            .value
-        )
+        result = Text("  Héllo   Wörld  ").transliterate().fold_case().collapse_whitespace().value
         assert result == "hello world"
 
     def test_full_pipeline_chain(self) -> None:

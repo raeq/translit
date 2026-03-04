@@ -11,7 +11,6 @@ def unidecode(text: str) -> str: ...
 # Elasticsearch/Solr alias for strip_accents
 def ascii_fold(text: str) -> str: ...
 
-
 class Slugify:
     """awesome-slugify-compatible Slugify class."""
 
@@ -26,7 +25,6 @@ class Slugify:
     def __call__(self, text: str, **kwargs: Any) -> str: ...
     def __repr__(self) -> str: ...
 
-
 class UniqueSlugify(Slugify):
     """awesome-slugify-compatible UniqueSlugify class."""
 
@@ -34,7 +32,6 @@ class UniqueSlugify(Slugify):
     def __call__(self, text: str, **kwargs: Any) -> str: ...
     def reset(self) -> None: ...
     def __repr__(self) -> str: ...
-
 
 slugify_url: Slugify
 slugify_filename: Slugify

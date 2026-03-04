@@ -9,7 +9,6 @@ ErrorMode = Literal["replace", "ignore", "preserve"]
 Platform = Literal["universal", "windows", "posix"]
 NormalizationForm = Literal["NFC", "NFD", "NFKC", "NFKD"]
 
-
 class NF(enum.Enum):
     """Unicode normalization form constants."""
 
@@ -17,7 +16,6 @@ class NF(enum.Enum):
     D = "NFD"
     KC = "NFKC"
     KD = "NFKD"
-
 
 @runtime_checkable
 class EmojiProvider(Protocol):

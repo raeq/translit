@@ -73,9 +73,7 @@ def _resolve_awesome_params(
         if key == "to_lower":
             result["lowercase"] = value
         elif key == "stop_words":
-            result["stopwords"] = (
-                tuple(value) if not isinstance(value, tuple) else value
-            )
+            result["stopwords"] = tuple(value) if not isinstance(value, tuple) else value
         elif key == "safe_chars":
             if value:
                 # safe_chars='.-' means those chars should survive slugification.
@@ -237,9 +235,7 @@ class Slugify:
         return result
 
     def __repr__(self) -> str:
-        return (
-            f"Slugify(separator={self._separator_val!r}, to_lower={self._to_lower!r})"
-        )
+        return f"Slugify(separator={self._separator_val!r}, to_lower={self._to_lower!r})"
 
 
 class UniqueSlugify(Slugify):
@@ -302,9 +298,7 @@ class UniqueSlugify(Slugify):
         result: str = str(self._unique_inner.slugify(text))
 
         if self._safe_chars:
-            result = _restore_safe_chars(
-                text, result, self._safe_chars, self._separator_val
-            )
+            result = _restore_safe_chars(text, result, self._safe_chars, self._separator_val)
 
         if self._capitalize and result:
             result = result[0].upper() + result[1:]
@@ -319,9 +313,7 @@ class UniqueSlugify(Slugify):
         return "UniqueSlugify()"
 
 
-def _restore_safe_chars(
-    original: str, slug: str, safe_chars: str, separator: str
-) -> str:
+def _restore_safe_chars(original: str, slug: str, safe_chars: str, separator: str) -> str:
     """Best-effort restoration of safe_chars that were stripped during slugification.
 
     awesome-slugify preserves characters listed in safe_chars through the
@@ -351,9 +343,7 @@ def _restore_safe_chars(
 # Preconfigured instances (awesome-slugify compatibility)
 # ---------------------------------------------------------------------------
 
-slugify_url: Slugify = Slugify(
-    to_lower=True, stop_words=("a", "an", "the"), max_length=200
-)
+slugify_url: Slugify = Slugify(to_lower=True, stop_words=("a", "an", "the"), max_length=200)
 """URL-optimized slugifier: lowercase, strips articles, 200-char limit."""
 
 slugify_filename: Slugify = Slugify(separator="_", safe_chars="-.", max_length=255)

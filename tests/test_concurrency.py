@@ -17,9 +17,7 @@ def _transliterate_many(lang: str | None, texts: list[str], results: list[str]) 
         results.append(translit.transliterate(text, lang=lang))
 
 
-def _register_and_lookup(
-    code: str, mapping: dict[str, str], char: str, out: list[str]
-) -> None:
+def _register_and_lookup(code: str, mapping: dict[str, str], char: str, out: list[str]) -> None:
     translit.register_lang(code, mapping)
     result = translit.transliterate(char, lang=code)
     out.append(result)
@@ -32,9 +30,7 @@ class TestConcurrentTransliteration:
         texts = ["北京", "서울", "東京", "Москва", "café"]
         all_results: list[list[str]] = [[] for _ in range(8)]
         threads = [
-            threading.Thread(
-                target=_transliterate_many, args=(None, texts, all_results[i])
-            )
+            threading.Thread(target=_transliterate_many, args=(None, texts, all_results[i]))
             for i in range(8)
         ]
         for t in threads:
@@ -43,9 +39,7 @@ class TestConcurrentTransliteration:
             t.join()
 
         # All threads should produce identical results
-        assert all(r == all_results[0] for r in all_results), (
-            "Inconsistent results across threads"
-        )
+        assert all(r == all_results[0] for r in all_results), "Inconsistent results across threads"
         # Each thread should have processed all texts
         assert all(len(r) == len(texts) for r in all_results)
 
@@ -59,9 +53,7 @@ class TestConcurrentTransliteration:
         hangul_texts = ["한국어", "서울특별시", "가나다라마바사"]
         results: list[list[str]] = [[] for _ in range(16)]
         threads = [
-            threading.Thread(
-                target=_transliterate_many, args=(None, hangul_texts, results[i])
-            )
+            threading.Thread(target=_transliterate_many, args=(None, hangul_texts, results[i]))
             for i in range(16)
         ]
         for t in threads:
@@ -139,13 +131,13 @@ class TestMalformedUnicodeInput:
 
     def test_zero_width_characters(self) -> None:
         # Zero-width non-joiner, zero-width joiner, zero-width space
-        for zwc in ["\u200C", "\u200D", "\u200B"]:
+        for zwc in ["\u200c", "\u200d", "\u200b"]:
             result = translit.transliterate(zwc)
             assert isinstance(result, str)
 
     def test_bidi_override_characters(self) -> None:
         # Right-to-left override, left-to-right override
-        for bidi in ["\u202E", "\u202D"]:
+        for bidi in ["\u202e", "\u202d"]:
             result = translit.transliterate(bidi)
             assert isinstance(result, str)
 
@@ -155,18 +147,18 @@ class TestMalformedUnicodeInput:
 
     def test_private_use_area(self) -> None:
         # Private Use Area codepoints have no defined transliteration
-        result = translit.transliterate("\uE000\uF8FF", errors="ignore")
+        result = translit.transliterate("\ue000\uf8ff", errors="ignore")
         assert isinstance(result, str)
 
     def test_surrogate_range_as_replacement(self) -> None:
         # Python str cannot contain lone surrogates; test near-surrogate edge
-        near_surrogate = "\uD7FF"  # just below surrogate range
+        near_surrogate = "\ud7ff"  # just below surrogate range
         result = translit.transliterate(near_surrogate, errors="replace")
         assert isinstance(result, str)
 
     def test_noncharacters(self) -> None:
         # Unicode noncharacters (U+FFFE, U+FFFF)
-        for nc in ["\uFFFE", "\uFFFF"]:
+        for nc in ["\ufffe", "\uffff"]:
             result = translit.transliterate(nc, errors="preserve")
             assert isinstance(result, str)
 

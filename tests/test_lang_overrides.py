@@ -227,9 +227,7 @@ class TestLangAliases:
         "alias,target,char,expected",
         _build_alias_params(),
     )
-    def test_alias_matches_target(
-        self, alias: str, target: str, char: str, expected: str
-    ) -> None:
+    def test_alias_matches_target(self, alias: str, target: str, char: str, expected: str) -> None:
         alias_result = transliterate(char, lang=alias)
         target_result = transliterate(char, lang=target)
         assert alias_result == target_result, (
@@ -237,8 +235,7 @@ class TestLangAliases:
             f"alias={alias_result!r}, target={target_result!r}"
         )
         assert alias_result == expected, (
-            f"Alias {alias!r}: transliterate({char!r}) = {alias_result!r}, "
-            f"expected {expected!r}"
+            f"Alias {alias!r}: transliterate({char!r}) = {alias_result!r}, expected {expected!r}"
         )
 
 
@@ -275,8 +272,7 @@ class TestOverridesDivergeFromDefault:
         [
             pytest.param(lang, mappings, id=lang)
             for lang, mappings in LANG_OVERRIDES.items()
-            if lang
-            in {"de", "no", "sv", "is", "et", "es", "bg", "uk", "ca", "pt", "it"}
+            if lang in {"de", "no", "sv", "is", "et", "es", "bg", "uk", "ca", "pt", "it"}
         ],
     )
     def test_divergent_overrides_actually_diverge(

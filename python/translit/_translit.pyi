@@ -8,9 +8,7 @@ ErrorMode = Literal["replace", "ignore", "preserve"]
 Platform = Literal["universal", "windows", "posix"]
 NormalizationForm = Literal["NFC", "NFD", "NFKC", "NFKD"]
 
-
 class TranslitError(Exception): ...
-
 
 class SafeHostnameDetails:
     safe: bool
@@ -18,7 +16,6 @@ class SafeHostnameDetails:
     mixed_script: bool
     has_confusables: bool
     canonical: str
-
 
 class _Slugifier:
     separator: str
@@ -43,7 +40,6 @@ class _Slugifier:
     ) -> None: ...
     def slugify(self, text: str) -> str: ...
 
-
 class _UniqueSlugifier:
     def __init__(
         self,
@@ -66,7 +62,6 @@ class _UniqueSlugifier:
     def slugify(self, text: str) -> str: ...
     def reset(self) -> None: ...
 
-
 class _TextPipeline:
     def __init__(
         self,
@@ -85,7 +80,6 @@ class _TextPipeline:
     ) -> None: ...
     def process(self, text: str) -> str: ...
 
-
 def _transliterate(
     text: str,
     *,
@@ -94,8 +88,6 @@ def _transliterate(
     replace_with: str,
     strict_iso9: bool,
 ) -> str: ...
-
-
 def _slugify(
     text: str,
     *,
@@ -113,12 +105,8 @@ def _slugify(
     decimal: bool,
     hexadecimal: bool,
 ) -> str: ...
-
-
 def _normalize(text: str, form: NormalizationForm) -> str: ...
 def _normalize_confusables(text: str, *, target_script: str) -> str: ...
-
-
 def _sanitize_filename(
     text: str,
     *,
@@ -128,20 +116,14 @@ def _sanitize_filename(
     lang: str | None,
     preserve_extension: bool,
 ) -> str: ...
-
-
 def _strip_accents(text: str) -> str: ...
 def _fold_case(text: str) -> str: ...
-
-
 def _collapse_whitespace(
     text: str,
     *,
     strip_control: bool,
     strip_zero_width: bool,
 ) -> str: ...
-
-
 def _demojize(
     text: str,
     *,
@@ -150,27 +132,19 @@ def _demojize(
     replace_with: str,
     provider: object | None,
 ) -> str: ...
-
-
 def _security_clean(text: str) -> str: ...
-
-
 def _ml_normalize(
     text: str,
     *,
     lang: str | None,
     emoji_style: str,
 ) -> str: ...
-
-
 def _catalog_key(
     text: str,
     *,
     lang: str | None,
     strict_iso9: bool,
 ) -> str: ...
-
-
 def _display_clean(text: str) -> str: ...
 def _strip_bidi(text: str) -> str: ...
 def _grapheme_len(text: str) -> int: ...
@@ -189,8 +163,6 @@ def _register_lang(code: str, mappings: dict[str, str]) -> None: ...
 def _register_replacements(replacements: dict[str, str]) -> None: ...
 def _remove_replacement(key: str) -> bool: ...
 def _clear_replacements() -> None: ...
-
-
 def _transliterate_batch(
     texts: list[str],
     *,
@@ -199,8 +171,6 @@ def _transliterate_batch(
     replace_with: str,
     strict_iso9: bool,
 ) -> list[str]: ...
-
-
 def _slugify_batch(
     texts: list[str],
     *,
@@ -218,8 +188,6 @@ def _slugify_batch(
     decimal: bool,
     hexadecimal: bool,
 ) -> list[str]: ...
-
-
 def _normalize_batch(texts: list[str], *, form: NormalizationForm) -> list[str]: ...
 def _strip_accents_batch(texts: list[str]) -> list[str]: ...
 def _set_emoji_provider(provider: object | None) -> None: ...

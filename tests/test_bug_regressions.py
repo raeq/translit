@@ -131,9 +131,7 @@ class TestVulgarFractions:
     def test_no_trailing_whitespace(self, char: str) -> None:
         """Upstream bug: fractions had trailing spaces in output."""
         result = transliterate(char, errors="preserve")
-        assert result == result.strip(), (
-            f"Trailing whitespace in {char!r} -> {result!r}"
-        )
+        assert result == result.strip(), f"Trailing whitespace in {char!r} -> {result!r}"
 
 
 # ---------------------------------------------------------------------------

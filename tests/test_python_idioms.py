@@ -302,9 +302,7 @@ class TestDictComprehensions:
         """Dict of dicts: multiple languages × multiple words."""
         words = ["Ärger", "Ørsted"]
         langs = ["de", "no", "sv"]
-        matrix = {
-            lang: {w: transliterate(w, lang=lang) for w in words} for lang in langs
-        }
+        matrix = {lang: {w: transliterate(w, lang=lang) for w in words} for lang in langs}
         assert matrix["de"]["Ärger"] == "Aerger"
         assert matrix["no"]["Ørsted"] == "Oersted"
 
@@ -367,9 +365,7 @@ class TestStatefulObjectIdioms:
 
     def test_text_pipeline_in_comprehension(self) -> None:
         """TextPipeline in a list comprehension with filter."""
-        pipe = TextPipeline(
-            transliterate=True, fold_case=True, collapse_whitespace=True
-        )
+        pipe = TextPipeline(transliterate=True, fold_case=True, collapse_whitespace=True)
         texts = ["  Héllo  ", "  ", "  Wörld  "]
         cleaned = [pipe(t) for t in texts if t.strip()]
         assert cleaned == ["hello", "world"]
@@ -377,9 +373,7 @@ class TestStatefulObjectIdioms:
     def test_text_builder_in_sorted_key(self) -> None:
         """Text builder as a sort key."""
         names = ["Ørsted", "Åland", "Épée", "Ångström"]
-        by_ascii = sorted(
-            names, key=lambda n: Text(n).transliterate().fold_case().value
-        )
+        by_ascii = sorted(names, key=lambda n: Text(n).transliterate().fold_case().value)
         assert by_ascii[0] == "Åland"
 
 
