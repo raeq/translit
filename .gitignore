@@ -136,3 +136,6 @@ site/
 
 # ── Maturin / PyO3 ───────────────────────────────────
 *.d
+
+CLAUDE.md
+.claude/
