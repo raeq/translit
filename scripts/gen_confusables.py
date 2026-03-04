@@ -25,25 +25,25 @@ CONFUSABLES_URL = "https://www.unicode.org/Public/security/latest/confusables.tx
 def is_latin_or_common(cp: int) -> bool:
     """True if codepoint is Latin script or ASCII Common."""
     return (
-        (0x0000 <= cp <= 0x007F)      # Basic Latin (ASCII)
-        or (0x00C0 <= cp <= 0x024F)   # Latin Extended-A/B
-        or (0x1E00 <= cp <= 0x1EFF)   # Latin Extended Additional
-        or (0x2C60 <= cp <= 0x2C7F)   # Latin Extended-C
-        or (0xA720 <= cp <= 0xA7FF)   # Latin Extended-D
-        or (0xAB30 <= cp <= 0xAB6F)   # Latin Extended-E
+        (0x0000 <= cp <= 0x007F)  # Basic Latin (ASCII)
+        or (0x00C0 <= cp <= 0x024F)  # Latin Extended-A/B
+        or (0x1E00 <= cp <= 0x1EFF)  # Latin Extended Additional
+        or (0x2C60 <= cp <= 0x2C7F)  # Latin Extended-C
+        or (0xA720 <= cp <= 0xA7FF)  # Latin Extended-D
+        or (0xAB30 <= cp <= 0xAB6F)  # Latin Extended-E
     )
 
 
 def is_latin_source(cp: int) -> bool:
     """True if codepoint is in a Latin block (exclude from source)."""
     return (
-        (0x0041 <= cp <= 0x005A)      # A-Z
-        or (0x0061 <= cp <= 0x007A)   # a-z
-        or (0x00C0 <= cp <= 0x024F)   # Latin Extended-A/B
-        or (0x1E00 <= cp <= 0x1EFF)   # Latin Extended Additional
-        or (0x2C60 <= cp <= 0x2C7F)   # Latin Extended-C
-        or (0xA720 <= cp <= 0xA7FF)   # Latin Extended-D
-        or (0xAB30 <= cp <= 0xAB6F)   # Latin Extended-E
+        (0x0041 <= cp <= 0x005A)  # A-Z
+        or (0x0061 <= cp <= 0x007A)  # a-z
+        or (0x00C0 <= cp <= 0x024F)  # Latin Extended-A/B
+        or (0x1E00 <= cp <= 0x1EFF)  # Latin Extended Additional
+        or (0x2C60 <= cp <= 0x2C7F)  # Latin Extended-C
+        or (0xA720 <= cp <= 0xA7FF)  # Latin Extended-D
+        or (0xAB30 <= cp <= 0xAB6F)  # Latin Extended-E
     )
 
 
@@ -111,25 +111,37 @@ def generate_rust(mappings: list[tuple[int, str]], version_line: str) -> str:
     lines = []
     lines.append(f"//! Unicode TR39 confusable character mappings (non-Latin → Latin).")
     lines.append(f"//!")
-    lines.append(f"//! Auto-generated from confusables.txt by scripts/gen_confusables.py.")
+    lines.append(
+        f"//! Auto-generated from confusables.txt by scripts/gen_confusables.py."
+    )
     lines.append(f"//! {version_line}")
     lines.append(f"//!")
-    lines.append(f"//! Contains {len(mappings)} mappings from non-Latin scripts to Latin")
-    lines.append(f"//! equivalents. Uses compile-time perfect hash maps (`phf`) for O(1)")
-    lines.append(f"//! lookups. Covers Cyrillic, Greek, Armenian, Georgian, CJK compatibility,")
-    lines.append(f"//! mathematical symbols, fullwidth forms, and other confusable characters.")
+    lines.append(
+        f"//! Contains {len(mappings)} mappings from non-Latin scripts to Latin"
+    )
+    lines.append(
+        f"//! equivalents. Uses compile-time perfect hash maps (`phf`) for O(1)"
+    )
+    lines.append(
+        f"//! lookups. Covers Cyrillic, Greek, Armenian, Georgian, CJK compatibility,"
+    )
+    lines.append(
+        f"//! mathematical symbols, fullwidth forms, and other confusable characters."
+    )
     lines.append(f"//!")
-    lines.append(f"//! DO NOT EDIT — regenerate with: python scripts/gen_confusables.py")
+    lines.append(
+        f"//! DO NOT EDIT — regenerate with: python scripts/gen_confusables.py"
+    )
     lines.append(f"")
     lines.append(f"use phf::phf_map;")
     lines.append(f"")
     lines.append(f"/// Non-Latin → Latin confusable mappings (O(1) PHF lookup).")
     lines.append(f"///")
-    lines.append(f"/// Maps visually similar non-Latin characters to their Latin prototypes")
-    lines.append(f"/// per Unicode Technical Report #39.")
     lines.append(
-        f"static TO_LATIN: phf::Map<char, &'static str> = phf_map! {{"
+        f"/// Maps visually similar non-Latin characters to their Latin prototypes"
     )
+    lines.append(f"/// per Unicode Technical Report #39.")
+    lines.append(f"static TO_LATIN: phf::Map<char, &'static str> = phf_map! {{")
 
     for source_cp, target_str in mappings:
         source_char = rust_char_literal(source_cp)
@@ -139,17 +151,21 @@ def generate_rust(mappings: list[tuple[int, str]], version_line: str) -> str:
         if len(target_str) == 1:
             comment = f"// {source_name} → {target_str}"
         else:
-            comment = f"// {source_name} → \"{target_str}\""
-        lines.append(f"    {source_char} => \"{target_escaped}\", {comment}")
+            comment = f'// {source_name} → "{target_str}"'
+        lines.append(f'    {source_char} => "{target_escaped}", {comment}')
 
     lines.append(f"}};")
     lines.append(f"")
-    lines.append(f"/// Look up a confusable mapping for a character to the target script.")
+    lines.append(
+        f"/// Look up a confusable mapping for a character to the target script."
+    )
     lines.append(f"///")
     lines.append(f"/// Returns the Latin prototype string if the character is a known")
     lines.append(f"/// confusable, or None if it is not.")
     lines.append(f"#[inline]")
-    lines.append(f"pub fn lookup(ch: char, target_script: &str) -> Option<&'static str> {{")
+    lines.append(
+        f"pub fn lookup(ch: char, target_script: &str) -> Option<&'static str> {{"
+    )
     lines.append(f'    if target_script != "latin" {{')
     lines.append(f"        return None;")
     lines.append(f"    }}")

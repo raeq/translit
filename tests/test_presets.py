@@ -1,6 +1,12 @@
 """Tests for precompiled pipeline functions."""
 
-from translit import security_clean, ml_normalize, catalog_key, display_clean, strip_bidi
+from translit import (
+    security_clean,
+    ml_normalize,
+    catalog_key,
+    display_clean,
+    strip_bidi,
+)
 
 
 # ===== security_clean =====

@@ -123,10 +123,18 @@ class TestEncodingFuzz:
 
     @given(
         data=random_bytes,
-        encoding=st.sampled_from([
-            "utf-8", "windows-1252", "iso-8859-1", "shift_jis",
-            "euc-jp", "euc-kr", "big5", "gb18030",
-        ]),
+        encoding=st.sampled_from(
+            [
+                "utf-8",
+                "windows-1252",
+                "iso-8859-1",
+                "shift_jis",
+                "euc-jp",
+                "euc-kr",
+                "big5",
+                "gb18030",
+            ]
+        ),
     )
     @settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
     def test_decode_with_encoding_never_panics(

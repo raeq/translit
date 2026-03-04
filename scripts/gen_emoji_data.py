@@ -57,9 +57,15 @@ def generate(entries: dict[tuple[int, ...], str]) -> str:
     lines.append("};")
     lines.append("")
 
-    lines.append(f"/// Multi-codepoint emoji sequences to short name ({len(multi)} entries).")
-    lines.append("/// Key format: codepoints as uppercase hex separated by underscores.")
-    lines.append("pub static EMOJI_MULTI: phf::Map<&'static str, &'static str> = phf_map! {")
+    lines.append(
+        f"/// Multi-codepoint emoji sequences to short name ({len(multi)} entries)."
+    )
+    lines.append(
+        "/// Key format: codepoints as uppercase hex separated by underscores."
+    )
+    lines.append(
+        "pub static EMOJI_MULTI: phf::Map<&'static str, &'static str> = phf_map! {"
+    )
     for cps in sorted(multi):
         key = "_".join(f"{c:04X}" for c in cps)
         lines.append(f'    "{key}" => "{escape_rust_str(multi[cps])}",')
@@ -67,7 +73,9 @@ def generate(entries: dict[tuple[int, ...], str]) -> str:
     lines.append("")
 
     starters = sorted({cps[0] for cps in multi})
-    lines.append(f"/// Codepoints that can begin a multi-codepoint emoji sequence ({len(starters)} entries).")
+    lines.append(
+        f"/// Codepoints that can begin a multi-codepoint emoji sequence ({len(starters)} entries)."
+    )
     lines.append("pub static EMOJI_MULTI_STARTERS: phf::Set<char> = phf::phf_set! {")
     for cp in starters:
         lines.append(f"    '\\u{{{cp:04X}}}',")

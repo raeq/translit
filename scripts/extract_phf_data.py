@@ -47,7 +47,7 @@ def extract_char_map(content, map_name):
             i += 1
             continue
 
-        if char == '\\':
+        if char == "\\":
             escape_next = True
             i += 1
             continue
@@ -66,9 +66,9 @@ def extract_char_map(content, map_name):
             i += 1
             continue
 
-        if char == '{':
+        if char == "{":
             brace_count += 1
-        elif char == '}':
+        elif char == "}":
             brace_count -= 1
             if brace_count == 0:
                 block_end = i
@@ -76,7 +76,7 @@ def extract_char_map(content, map_name):
 
         i += 1
 
-    block_content = content[brace_open_pos + 1:block_end]
+    block_content = content[brace_open_pos + 1 : block_end]
 
     # Parse char -> string entries: '\u{XXXX}' => "value",
     # Need to handle values that may contain escape sequences like \u{XXXX}
@@ -130,7 +130,7 @@ def extract_str_map(content, map_name):
             i += 1
             continue
 
-        if char == '\\':
+        if char == "\\":
             escape_next = True
             i += 1
             continue
@@ -149,9 +149,9 @@ def extract_str_map(content, map_name):
             i += 1
             continue
 
-        if char == '{':
+        if char == "{":
             brace_count += 1
-        elif char == '}':
+        elif char == "}":
             brace_count -= 1
             if brace_count == 0:
                 block_end = i
@@ -159,7 +159,7 @@ def extract_str_map(content, map_name):
 
         i += 1
 
-    block_content = content[brace_open_pos + 1:block_end]
+    block_content = content[brace_open_pos + 1 : block_end]
 
     # Parse string -> string entries: "key" => "value",
     pattern = r'"([^"]*?)"\s*=>\s*"([^"]*?)"'
@@ -212,7 +212,7 @@ def extract_char_set(content, set_name):
             i += 1
             continue
 
-        if char == '\\':
+        if char == "\\":
             escape_next = True
             i += 1
             continue
@@ -231,9 +231,9 @@ def extract_char_set(content, set_name):
             i += 1
             continue
 
-        if char == '{':
+        if char == "{":
             brace_count += 1
-        elif char == '}':
+        elif char == "}":
             brace_count -= 1
             if brace_count == 0:
                 block_end = i
@@ -241,7 +241,7 @@ def extract_char_set(content, set_name):
 
         i += 1
 
-    block_content = content[brace_open_pos + 1:block_end]
+    block_content = content[brace_open_pos + 1 : block_end]
 
     # Parse char entries: '\u{XXXX}',
     pattern = r"'\\u\{([0-9A-Fa-f]+)\}'"
@@ -255,21 +255,21 @@ def extract_char_set(content, set_name):
 
 def write_tsv_char_map(filepath, entries):
     """Write char->str entries to TSV file."""
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         for hex_code, value in entries:
             f.write(f"{hex_code}\t{value}\n")
 
 
 def write_tsv_str_map(filepath, entries):
     """Write str->str entries to TSV file."""
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         for key, value in entries:
             f.write(f"{key}\t{value}\n")
 
 
 def write_tsv_set(filepath, entries):
     """Write set entries to TSV file (one per line)."""
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         for hex_code in entries:
             f.write(f"{hex_code}\n")
 

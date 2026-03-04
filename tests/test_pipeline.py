@@ -236,14 +236,9 @@ class TestTextPipelinePairwise:
     @pytest.mark.parametrize(
         "flag_a,flag_b,flag_c",
         list(itertools.combinations(FLAGS, 3)),
-        ids=[
-            f"{a}+{b}+{c}"
-            for a, b, c in itertools.combinations(FLAGS, 3)
-        ],
+        ids=[f"{a}+{b}+{c}" for a, b, c in itertools.combinations(FLAGS, 3)],
     )
-    def test_triplewise_no_panic(
-        self, flag_a: str, flag_b: str, flag_c: str
-    ) -> None:
+    def test_triplewise_no_panic(self, flag_a: str, flag_b: str, flag_c: str) -> None:
         """Every triple of flags should produce a non-None string result."""
         kwargs = {flag_a: True, flag_b: True, flag_c: True}
         pipe = TextPipeline(**kwargs)
