@@ -3,9 +3,18 @@ use pyo3::prelude::*;
 use crate::tables;
 
 /// Replace Unicode confusable homoglyphs with target-script equivalents.
+///
+/// # Valid `target_script` values
+/// Currently only `"latin"` is supported. Any other value raises `TranslitError`.
 #[pyfunction]
 #[pyo3(signature = (text, *, target_script="latin"))]
 pub fn _normalize_confusables(text: &str, target_script: &str) -> PyResult<String> {
+    if target_script != "latin" {
+        return Err(crate::TranslitError::new_err(format!(
+            "target_script must be 'latin', got '{target_script}'"
+        )));
+    }
+
     let mut result = String::with_capacity(text.len());
 
     for ch in text.chars() {
@@ -19,9 +28,18 @@ pub fn _normalize_confusables(text: &str, target_script: &str) -> PyResult<Strin
 }
 
 /// True if text contains any characters confusable with target-script characters.
+///
+/// # Valid `target_script` values
+/// Currently only `"latin"` is supported. Any other value raises `TranslitError`.
 #[pyfunction]
 #[pyo3(signature = (text, *, target_script="latin"))]
 pub fn _is_confusable(text: &str, target_script: &str) -> PyResult<bool> {
+    if target_script != "latin" {
+        return Err(crate::TranslitError::new_err(format!(
+            "target_script must be 'latin', got '{target_script}'"
+        )));
+    }
+
     for ch in text.chars() {
         if tables::lookup_confusable(ch, target_script).is_some() {
             return Ok(true);

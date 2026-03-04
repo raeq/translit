@@ -25,6 +25,22 @@ pub fn _is_safe_hostname(hostname: &str) -> PyResult<(bool, SafeHostnameDetails)
     // 1. NFKC normalize
     let normalized: String = hostname.nfkc().collect();
 
+    // IPv6 literals (e.g. "[::1]", "[2001:db8::1]") are not IDN hostnames and
+    // cannot be visually spoofed via homoglyph attacks. Return them as safe
+    // without running the script/confusable analysis.
+    if normalized.starts_with('[') && normalized.contains(':') {
+        return Ok((
+            true,
+            SafeHostnameDetails {
+                safe: true,
+                scripts: Vec::new(),
+                mixed_script: false,
+                has_confusables: false,
+                canonical: normalized,
+            },
+        ));
+    }
+
     // 2. Split on dots to check each label
     let mut overall_safe = true;
     let mut all_scripts: Vec<&str> = Vec::new();
@@ -142,5 +158,20 @@ mod tests {
         // Pure ASCII punycode is safe
         let (safe, _) = _is_safe_hostname("xn--n3h.com").unwrap();
         assert!(safe);
+    }
+
+    #[test]
+    fn test_ipv6_loopback_safe() {
+        let (safe, details) = _is_safe_hostname("[::1]").unwrap();
+        assert!(safe);
+        assert!(!details.mixed_script);
+        assert!(!details.has_confusables);
+    }
+
+    #[test]
+    fn test_ipv6_full_safe() {
+        let (safe, details) = _is_safe_hostname("[2001:db8::1]").unwrap();
+        assert!(safe);
+        assert!(details.scripts.is_empty());
     }
 }

@@ -78,9 +78,20 @@ pub fn _security_clean(text: &str) -> PyResult<String> {
 /// Produces clean, accent-free, lowercased text suitable for tokenizers,
 /// embeddings, and feature extraction. Emoji are expanded to their CLDR
 /// short-name descriptions before transliteration.
+///
+/// # Parameters
+/// - `emoji_style`: `"cldr"` — expand emoji to CLDR short names (default).
+///                  `"none"` — leave emoji characters as-is.
+///                  Any other value raises `TranslitError`.
 #[pyfunction]
 #[pyo3(signature = (text, *, lang=None, emoji_style="cldr"))]
 pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyResult<String> {
+    // Validate emoji_style — only two modes are supported.
+    if !matches!(emoji_style, "cldr" | "none") {
+        return Err(crate::TranslitError::new_err(format!(
+            "emoji_style must be 'cldr' or 'none', got '{emoji_style}'"
+        )));
+    }
     // 1. NFKC normalization
     let mut buf: String = text.nfkc().collect();
     // 2. Emoji → text (CLDR short names)

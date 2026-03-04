@@ -296,11 +296,13 @@ fn decode_numeric_entities(text: &str) -> String {
                 } else {
                     num_str.parse::<u32>().ok()
                 };
-                if let Some(cp) = parsed.and_then(char::from_u32) {
+                // filter(|c| !c.is_control()) excludes NUL (U+0000) and other
+                // control characters — they are never valid slug content.
+                if let Some(cp) = parsed.and_then(char::from_u32).filter(|c| !c.is_control()) {
                     result.push(cp);
                 } else {
-                    // Malformed entity — pass through literally, including
-                    // the semicolon if it was consumed during parsing.
+                    // Malformed entity (or decoded to control char) — pass through
+                    // literally, including the semicolon if it was consumed.
                     result.push('&');
                     result.push('#');
                     if is_hex {

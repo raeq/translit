@@ -103,7 +103,13 @@ fn match_emoji_at(chars: &[char], pos: usize) -> Option<(&'static str, usize)> {
 }
 
 /// Try a Python provider's lookup method.
-/// Returns Some(name) if the provider knows this sequence.
+///
+/// Returns `Some((name, chars_consumed))` if the provider recognises the
+/// sequence starting at `chars[pos]`, `None` otherwise.
+///
+/// Any Python exception raised by `provider.lookup()` is caught via `.ok()?`
+/// and treated as `None` (fall through to built-in CLDR tables). This is
+/// intentional: a misbehaving provider should not crash the whole pipeline.
 fn try_python_provider(
     py: Python<'_>,
     provider: &PyObject,
@@ -281,6 +287,22 @@ pub fn _demojize(
 }
 
 /// Set or reset the global emoji provider for all demojize calls.
+///
+/// The provider must implement the `EmojiProvider` protocol:
+///
+/// ```python
+/// class EmojiProvider(Protocol):
+///     def lookup(self, sequence: list[int]) -> str | None: ...
+/// ```
+///
+/// `sequence` is a list of Unicode codepoints (e.g. `[0x1F600]` for 😀, or
+/// `[0x1F468, 0x200D, 0x1F469]` for a ZWJ family sequence).
+/// Return the emoji's text description, or `None` to fall through to the
+/// built-in CLDR tables.
+///
+/// **Exception safety**: any exception raised by the provider's `lookup` method
+/// is silently suppressed. The provider is treated as returning `None` for
+/// that sequence, and the built-in CLDR tables are consulted instead.
 ///
 /// Pass `None` to reset to the built-in default (latest English CLDR).
 #[pyfunction]

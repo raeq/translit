@@ -19,6 +19,17 @@ const WINDOWS_RESERVED: &[&str] = &[
 const UNIVERSAL_ILLEGAL: &[char] = &['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\0'];
 const POSIX_ILLEGAL: &[char] = &['/', '\0'];
 
+/// Returns the largest byte index ≤ `max` that is a valid UTF-8 char boundary
+/// in `s`. Used for safe truncation when the string may contain multi-byte chars.
+fn char_boundary_floor(s: &str, max: usize) -> usize {
+    let max = max.min(s.len());
+    let mut i = max;
+    while i > 0 && !s.is_char_boundary(i) {
+        i -= 1;
+    }
+    i
+}
+
 /// Collapse consecutive `.` sequences of length >= 2 to a single `.`.
 /// This neutralizes `..` path traversal while preserving single dots
 /// (which delimit file extensions).
@@ -46,6 +57,22 @@ fn collapse_dot_sequences(text: &str) -> String {
 }
 
 /// Sanitize a string into a safe filename.
+///
+/// # `max_length` semantics
+/// `max_length` is measured in **bytes** (UTF-8 encoded), not Unicode
+/// characters. This matches the unit used by all major OS filesystem limits
+/// (ext4, APFS, NTFS: 255 bytes). The helper `char_boundary_floor` ensures
+/// that truncation never splits a multi-byte character.
+///
+/// # `preserve_extension` edge cases
+/// When `preserve_extension = true`:
+/// - If the extension alone (including the leading `.`) is ≥ `max_length`,
+///   the extension is dropped and the whole result is truncated to `max_length`.
+/// - Otherwise the stem is truncated to `max_length − extension_len` bytes
+///   and the full extension is appended.
+///
+/// When `preserve_extension = false`, the entire string (stem + extension)
+/// is truncated to `max_length` bytes as a unit.
 #[pyfunction]
 #[pyo3(signature = (text, *, separator="_", max_length=255, platform="universal", lang=None, preserve_extension=true))]
 pub fn _sanitize_filename(
@@ -156,9 +183,11 @@ pub fn _sanitize_filename(
             if let Some(ref ext) = sanitized_ext {
                 final_name.push_str(ext);
             }
-            // Truncate if needed
+            // Truncate if needed — walk to a char boundary to avoid splitting
+            // multi-byte sequences (e.g. after prefixing with '_').
             if max_length > 0 && final_name.len() > max_length {
-                final_name.truncate(max_length);
+                let safe = char_boundary_floor(&final_name, max_length);
+                final_name.truncate(safe);
             }
             return Ok(final_name);
         }
@@ -176,23 +205,25 @@ pub fn _sanitize_filename(
             if let Some(ref ext) = sanitized_ext {
                 let ext_len = ext.len();
                 if ext_len >= max_length {
-                    // Extension alone exceeds limit — truncate the whole thing
-                    final_name.truncate(max_length);
+                    // Extension alone exceeds limit — truncate the whole thing.
+                    let safe = char_boundary_floor(&final_name, max_length);
+                    final_name.truncate(safe);
                 } else {
                     // Truncate stem to fit stem + extension within max_length.
-                    // Clamp stem_budget to final_name length to prevent panic
-                    // if earlier processing shortened the name below expectations.
-                    let stem_budget = (max_length - ext_len).min(final_name.len());
-                    let truncated_stem = &final_name[..stem_budget];
-                    let mut new_name = truncated_stem.to_owned();
+                    // char_boundary_floor ensures we never split a multi-byte char.
+                    let stem_budget = max_length - ext_len;
+                    let safe = char_boundary_floor(&final_name, stem_budget);
+                    let mut new_name = final_name[..safe].to_owned();
                     new_name.push_str(ext);
                     final_name = new_name;
                 }
             } else {
-                final_name.truncate(max_length);
+                let safe = char_boundary_floor(&final_name, max_length);
+                final_name.truncate(safe);
             }
         } else {
-            final_name.truncate(max_length);
+            let safe = char_boundary_floor(&final_name, max_length);
+            final_name.truncate(safe);
         }
     }
 
@@ -208,13 +239,9 @@ pub fn _sanitize_filename(
         if WINDOWS_RESERVED.iter().any(|r| upper == *r) {
             final_name.insert(0, '_');
             // Re-truncate if the underscore pushed us over max_length.
-            // Walk backwards from max_length to find a char boundary.
             if max_length > 0 && final_name.len() > max_length {
-                let mut i = max_length;
-                while i > 0 && !final_name.is_char_boundary(i) {
-                    i -= 1;
-                }
-                final_name.truncate(i);
+                let safe = char_boundary_floor(&final_name, max_length);
+                final_name.truncate(safe);
             }
         }
     }

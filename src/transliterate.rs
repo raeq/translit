@@ -118,6 +118,10 @@ pub fn transliterate_impl<'a>(
             None => {
                 match error_mode {
                     ErrorMode::Replace => {
+                        // An empty replace_with is intentionally equivalent to
+                        // ErrorMode::Ignore — the char is silently dropped.
+                        // This matches Unidecode's default behaviour and is
+                        // used by the unidecode() compat shim.
                         result.push_str(replace_with);
                         last_appended = replace_with.chars().next_back();
                     }
