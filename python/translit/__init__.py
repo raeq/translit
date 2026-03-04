@@ -121,10 +121,13 @@ def transliterate(
               e.g. "de" (ü→ue), "ja" (kanji→romaji), "zh" (hanzi→pinyin).
               None uses best-effort default tables.
         errors: How to handle untransliterable characters.
-                "replace" — substitute with replace_with.
+                "replace" — substitute with *replace_with*.
                 "ignore" — silently drop.
                 "preserve" — keep the original character.
-        replace_with: Replacement string when errors="replace".
+        replace_with: Replacement string when errors="replace". An empty string
+                      (``""``) is equivalent to ``errors="ignore"`` — the
+                      character is silently dropped. This matches the behaviour
+                      of the Unidecode library.
         strict_iso9: Use ISO 9:1995 scholarly transliteration for Cyrillic.
                      When True, overrides both default and lang-specific
                      mappings with the international standard used in
@@ -289,13 +292,15 @@ def normalize_confusables(
 
     Args:
         text: Input string potentially containing homoglyphs.
-        target_script: Script to normalize toward (default "latin").
+        target_script: Script to normalize toward. Currently only ``"latin"``
+            is supported; any other value raises ``TranslitError``.
 
     Returns:
         String with confusable characters replaced by target-script equivalents.
 
     Raises:
-        TranslitError: If an internal Rust error occurs.
+        TranslitError: If *target_script* is not ``"latin"``, or if an
+            internal Rust error occurs.
 
     Examples:
         >>> normalize_confusables("Ηello")  # Greek Η looks like Latin H
@@ -323,10 +328,19 @@ def sanitize_filename(
     Args:
         text: Input string (title, user input, etc.).
         separator: Replacement for spaces and stripped characters.
-        max_length: Maximum filename length in bytes (default 255).
-        platform: Target platform — "universal", "windows", or "posix".
-        lang: Language code for transliteration (e.g. "de", "ja").
-        preserve_extension: Keep the file extension within max_length.
+        max_length: Maximum filename length measured in **bytes** (UTF-8
+            encoded), not characters. Default 255 matches the ext4/APFS/NTFS
+            filesystem limit. Truncation always lands on a character boundary
+            to avoid splitting multi-byte sequences.
+        platform: Target platform — ``"universal"``, ``"windows"``, or
+            ``"posix"``.
+        lang: Language code for transliteration (e.g. ``"de"``, ``"ja"``).
+        preserve_extension: When ``True`` (default), the file extension is
+            kept intact within *max_length*. If the extension alone (including
+            the leading ``.``) is ≥ *max_length*, the extension is dropped and
+            the whole result is truncated to *max_length* bytes. When
+            ``False``, the entire string is truncated to *max_length* bytes
+            without special treatment of the extension.
 
     Returns:
         Safe filename string.
@@ -705,14 +719,16 @@ def ml_normalize(
     Args:
         text: Input Unicode string.
         lang: Optional language code for transliteration (e.g. "de", "ja").
-        emoji: Emoji handling — "cldr" expands to CLDR short names,
-               "none" leaves emoji as-is.
+        emoji: Emoji handling mode.
+               ``"cldr"`` — expand emoji to CLDR short names (default).
+               ``"none"`` — leave emoji characters unchanged.
 
     Returns:
         Clean, accent-free, lowercased text.
 
     Raises:
-        TranslitError: If an internal Rust error occurs.
+        TranslitError: If *emoji* is not ``"cldr"`` or ``"none"``,
+            or if an internal Rust error occurs.
 
     Examples:
         >>> ml_normalize("Café RÉSUMÉ")
@@ -1028,10 +1044,14 @@ def is_confusable(
 
     Args:
         text: Input string.
-        target_script: Script to check confusability against (default "latin").
+        target_script: Script to check confusability against. Currently only
+            ``"latin"`` is supported; any other value raises ``TranslitError``.
 
     Returns:
         True if any confusable homoglyphs are present.
+
+    Raises:
+        TranslitError: If *target_script* is not ``"latin"``.
 
     Examples:
         >>> is_confusable("pаypal")  # Cyrillic а looks like Latin a
@@ -1132,9 +1152,7 @@ class Slugifier:
         return self._inner.slugify(text)
 
     def __repr__(self) -> str:
-        return (
-            f"Slugifier(separator={self._inner.separator!r}, lang={self._inner.lang!r})"
-        )
+        return f"Slugifier(separator={self._inner.separator!r}, lang={self._inner.lang!r})"
 
 
 class UniqueSlugifier:
