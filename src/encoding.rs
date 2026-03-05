@@ -18,6 +18,16 @@ pub fn detect_encoding_impl(bytes: &[u8]) -> (String, f64) {
 ///
 /// Returns `Ok((decoded_text, had_errors))` or `Err(message)`.
 ///
+/// `had_errors` reflects encoding_rs's WHATWG-defined error flag: it is
+/// `true` only when a U+FFFD REPLACEMENT CHARACTER was inserted because a
+/// byte sequence could not be decoded.  It is **not** a general fidelity
+/// guarantee — some encodings (e.g. Windows-1252) remap every byte to a
+/// valid Unicode codepoint without inserting U+FFFD, so `had_errors` will
+/// be `false` even if the result differs from what another encoding would
+/// produce.  Callers that require lossless round-trip guarantees should
+/// compare the re-encoded output against the original bytes rather than
+/// relying solely on this flag.
+///
 /// When `encoding` is `None` the encoding is auto-detected. If the
 /// detection confidence is below `min_confidence` an error is returned
 /// so the caller can require a minimum quality threshold.
@@ -67,7 +77,14 @@ pub fn _detect_encoding(data: &Bound<'_, PyBytes>) -> (String, f64) {
 /// Decode a byte sequence to UTF-8 using the specified encoding.
 ///
 /// Returns a tuple of (decoded_text, had_errors) where had_errors is True
-/// if any characters were replaced during decoding (lossy conversion).
+/// if U+FFFD REPLACEMENT CHARACTERs were inserted during decoding.
+///
+/// Important: had_errors=False does NOT guarantee lossless conversion.
+/// Encodings such as Windows-1252 map every byte to a valid codepoint
+/// without inserting U+FFFD, so had_errors will be False even if the
+/// decoded text differs from what another encoding would produce.
+/// For strict fidelity checks, re-encode the result and compare against
+/// the original bytes.
 ///
 /// If encoding is None, uses detect_encoding to guess the encoding.
 /// min_confidence (0.0–1.0) sets the minimum acceptable detection confidence

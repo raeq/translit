@@ -146,20 +146,26 @@ pub fn transliterate_impl<'a>(
 /// For Latin/Cyrillic/Arabic, a 1:1 ratio is typical.
 /// For CJK, each ideograph expands to a multi-letter pinyin/romaji syllable
 /// plus a space separator — typically 3–5× the UTF-8 byte length.
-/// We sample the first non-ASCII codepoint to pick a multiplier, avoiding
-/// reallocations for CJK-heavy input without scanning the whole string.
+/// We sample the first 5 non-ASCII codepoints and use the maximum multiplier
+/// seen, so mixed-script strings like "Hello 北京" pick up the CJK 4×
+/// multiplier rather than defaulting to 1× from the leading Latin characters.
 fn estimate_capacity(text: &str) -> usize {
-    let multiplier = text.chars().find(|c| !c.is_ascii()).map_or(1, |c| {
-        let cp = c as u32;
-        if ur::CJK_CAPACITY_RANGE.contains(&cp)
-            || ur::HANGUL_SYLLABLES.contains(&cp)
-            || ur::CJK_COMPAT.contains(&cp)
-        {
-            4
-        } else {
-            1
-        }
-    });
+    let multiplier = text
+        .chars()
+        .filter(|c| !c.is_ascii())
+        .take(5)
+        .fold(1usize, |max_m, c| {
+            let cp = c as u32;
+            let m = if ur::CJK_CAPACITY_RANGE.contains(&cp)
+                || ur::HANGUL_SYLLABLES.contains(&cp)
+                || ur::CJK_COMPAT.contains(&cp)
+            {
+                4
+            } else {
+                1
+            };
+            max_m.max(m)
+        });
     text.len().saturating_mul(multiplier)
 }
 

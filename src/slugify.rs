@@ -165,6 +165,19 @@ pub fn _slugify(
 
 /// Core slugification pipeline.
 pub fn slugify_impl(text: &str, config: &SlugConfig) -> String {
+    slugify_impl_with_stopset(text, config, None)
+}
+
+/// Internal implementation shared by the free function and `_Slugifier`.
+///
+/// `prebuilt_stopset` lets `_Slugifier` supply its cached `HashSet<String>`
+/// so it is not reconstructed on every call.  Passing `None` causes a
+/// temporary set to be built from `config.stopwords` as before.
+pub(crate) fn slugify_impl_with_stopset(
+    text: &str,
+    config: &SlugConfig,
+    prebuilt_stopset: Option<&HashSet<String>>,
+) -> String {
     if text.is_empty() {
         return String::new();
     }
@@ -228,10 +241,19 @@ pub fn slugify_impl(text: &str, config: &SlugConfig) -> String {
     // string.  This is intentional — callers that need a non-empty fallback
     // should check `slug.is_empty()` and supply one (e.g. a hash of the input).
     if !config.stopwords.is_empty() {
-        let stopset: HashSet<&str> = config.stopwords.iter().map(String::as_str).collect();
+        // Use the caller-supplied set when available (e.g. _Slugifier caches it
+        // at construction), otherwise build a temporary one from config.
+        let temp;
+        let stopset: &HashSet<String> = match prebuilt_stopset {
+            Some(s) => s,
+            None => {
+                temp = config.stopwords.iter().cloned().collect::<HashSet<String>>();
+                &temp
+            }
+        };
         let filtered: Vec<&str> = slug
             .split(separator.as_str())
-            .filter(|w| !stopset.contains(w))
+            .filter(|w| !stopset.contains(*w))
             .collect();
         slug = filtered.join(separator);
     }
@@ -335,19 +357,12 @@ fn decode_numeric_entities(text: &str) -> String {
                 // control characters — they are never valid slug content.
                 if let Some(cp) = parsed.and_then(char::from_u32).filter(|c| !c.is_control()) {
                     result.push(cp);
-                } else {
-                    // Malformed entity (or decoded to control char) — pass through
-                    // literally, including the semicolon if it was consumed.
-                    result.push('&');
-                    result.push('#');
-                    if is_hex {
-                        result.push('x');
-                    }
-                    result.push_str(&num_str);
-                    if saw_semicolon {
-                        result.push(';');
-                    }
                 }
+                // Malformed or control-char entities are silently dropped.
+                // Reconstructing the raw fragment (&#xGGG;, &#<tag>, etc.) could
+                // pass attacker-controlled sequences into the slug pipeline and
+                // produces surprising output. Dropping is safe: the slug pipeline
+                // already strips all non-alphanumeric characters anyway.
             } else {
                 result.push(ch);
             }
@@ -427,6 +442,9 @@ pub fn _slugify_batch(
 #[pyo3(name = "_Slugifier")]
 pub struct _Slugifier {
     config: SlugConfig,
+    /// Pre-built stopword set so `slugify()` calls pay O(1) per word
+    /// rather than O(stopwords) for HashSet construction on every call.
+    stopset: HashSet<String>,
 }
 
 #[pymethods]
@@ -468,6 +486,7 @@ impl _Slugifier {
             .transpose()
             .map_err(|e| crate::TranslitError::new_err(format!("Invalid regex: {e}")))?;
 
+        let stopset: HashSet<String> = stopwords.iter().cloned().collect();
         Ok(Self {
             config: SlugConfig {
                 separator: separator.to_owned(),
@@ -484,11 +503,12 @@ impl _Slugifier {
                 decimal,
                 hexadecimal,
             },
+            stopset,
         })
     }
 
     fn slugify(&self, text: &str) -> String {
-        slugify_impl(text, &self.config)
+        slugify_impl_with_stopset(text, &self.config, Some(&self.stopset))
     }
 
     #[getter]
@@ -724,33 +744,35 @@ mod tests {
 
     #[test]
     fn test_decode_malformed_entity() {
-        // Malformed entities pass through literally
-        // "&#xyz;" — 'x' triggers hex mode, then 'y' and 'z' are not hex digits
-        // so we get "&#x" then "yz;" handled as normal chars
-        assert_eq!(decode_numeric_entities("&#xyz;"), "&#xyz;");
+        // Malformed entities are silently dropped (not reconstructed).
+        // "&#xyz;" — 'x' triggers hex mode, then 'y' is not a hex digit,
+        // so the entire &#x fragment is dropped; "yz;" are emitted as-is.
+        assert_eq!(decode_numeric_entities("&#xyz;"), "yz;");
     }
 
     #[test]
     fn test_decode_malformed_entity_semicolon_preserved() {
-        // Empty decimal entity: &#; should pass through as &#;
-        assert_eq!(decode_numeric_entities("&#;"), "&#;");
-        // Empty hex entity: &#x; should pass through as &#x;
-        assert_eq!(decode_numeric_entities("&#x;"), "&#x;");
-        // Invalid codepoint (too large for Unicode) with semicolon
-        assert_eq!(decode_numeric_entities("&#xFFFFFFFF;"), "&#xFFFFFFFF;");
-        // Valid format but zero codepoint (U+0000): NUL is a control character,
-        // so it is filtered out and the entity is passed through literally.
+        // Empty decimal entity &#; — no digits, malformed, dropped silently.
+        // The semicolon is consumed by the digit-collection loop and also dropped.
+        assert_eq!(decode_numeric_entities("&#;"), "");
+        // Empty hex entity &#x; — no hex digits, malformed, dropped silently.
+        assert_eq!(decode_numeric_entities("&#x;"), "");
+        // Invalid codepoint (too large for Unicode): malformed, dropped silently.
+        assert_eq!(decode_numeric_entities("&#xFFFFFFFF;"), "");
+        // U+0000 is a control character and is filtered; entity dropped silently.
         let result = decode_numeric_entities("&#0;");
-        assert_eq!(result, "&#0;");
+        assert_eq!(result, "");
     }
 
     #[test]
     fn test_decode_entity_digit_limit() {
-        // Extremely long digit sequence should be capped at MAX_ENTITY_DIGITS
+        // Extremely long digit sequence should be capped at MAX_ENTITY_DIGITS.
+        // The entity fails to parse (truncated number is out of Unicode range)
+        // and is silently dropped — the result should be empty.
         let long = format!("&#{}1;", "9".repeat(100));
         let result = decode_numeric_entities(&long);
-        // Should not accumulate 100 digits — capped and fails to parse
-        assert!(result.contains("&#"));
+        // No reconstruction: the malformed entity is dropped entirely.
+        assert!(!result.contains("&#"));
     }
 
     #[test]
