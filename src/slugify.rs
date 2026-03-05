@@ -11,6 +11,28 @@ const MAX_UNIQUE_ATTEMPTS: u64 = 10_000;
 /// Prevents unbounded string accumulation on malformed input.
 const MAX_ENTITY_DIGITS: usize = 10;
 
+/// Maximum byte length of a caller-supplied regex pattern.
+/// Prevents adversarial patterns from consuming excessive compile time or
+/// memory. The regex crate guards against catastrophic backtracking at
+/// match time, but compilation of an enormous pattern is also bounded here.
+const MAX_REGEX_PATTERN_BYTES: usize = 512;
+
+/// Validate and compile a caller-supplied regex pattern after enforcing a size cap.
+///
+/// Returns `Err(String)` if the pattern exceeds `MAX_REGEX_PATTERN_BYTES` or
+/// if `regex::Regex::new` rejects it. Callers at the PyO3 boundary convert the
+/// `String` error to a `TranslitError` with `.map_err(|e| TranslitError::new_err(e))`.
+fn compile_regex(pattern: &str) -> Result<regex::Regex, String> {
+    if pattern.len() > MAX_REGEX_PATTERN_BYTES {
+        return Err(format!(
+            "regex_pattern is too long ({} bytes); maximum is {} bytes",
+            pattern.len(),
+            MAX_REGEX_PATTERN_BYTES
+        ));
+    }
+    regex::Regex::new(pattern).map_err(|e| format!("Invalid regex: {e}"))
+}
+
 /// Find the largest byte index `<= index` that lies on a UTF-8 char boundary.
 ///
 /// Equivalent to the nightly-only `str::floor_char_boundary()`.
@@ -105,9 +127,9 @@ pub fn _slugify(
     hexadecimal: bool,
 ) -> PyResult<String> {
     let compiled_regex = regex_pattern
-        .map(regex::Regex::new)
+        .map(compile_regex)
         .transpose()
-        .map_err(|e| crate::TranslitError::new_err(format!("Invalid regex: {e}")))?;
+        .map_err(|e| crate::TranslitError::new_err(e))?;
 
     let config = SlugConfig {
         separator: separator.to_owned(),
@@ -360,9 +382,9 @@ pub fn _slugify_batch(
     hexadecimal: bool,
 ) -> PyResult<Vec<String>> {
     let compiled_regex = regex_pattern
-        .map(regex::Regex::new)
+        .map(compile_regex)
         .transpose()
-        .map_err(|e| crate::TranslitError::new_err(format!("Invalid regex: {e}")))?;
+        .map_err(|e| crate::TranslitError::new_err(e))?;
 
     let config = SlugConfig {
         separator: separator.to_owned(),
@@ -826,6 +848,32 @@ mod tests {
         let mut config = default_config();
         config.regex_pattern = Some(regex::Regex::new(r"\d").unwrap());
         assert_eq!(slugify_impl("abc123def", &config), "abcdef");
+    }
+
+    #[test]
+    fn test_compile_regex_valid() {
+        assert!(compile_regex(r"\d+").is_ok());
+    }
+
+    #[test]
+    fn test_compile_regex_too_long() {
+        let long_pattern = "a".repeat(MAX_REGEX_PATTERN_BYTES + 1);
+        let err = compile_regex(&long_pattern).unwrap_err();
+        assert!(err.contains("too long"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn test_compile_regex_at_limit() {
+        // Exactly at the limit must succeed (valid pattern of that length).
+        let pattern = "a".repeat(MAX_REGEX_PATTERN_BYTES);
+        assert!(compile_regex(&pattern).is_ok());
+    }
+
+    #[test]
+    fn test_compile_regex_invalid() {
+        // Syntactically invalid pattern must return an error regardless of length.
+        let err = compile_regex(r"[unclosed").unwrap_err();
+        assert!(err.contains("Invalid regex"), "unexpected error: {err}");
     }
 
     mod proptest_properties {
