@@ -14,6 +14,7 @@ mod hangul;
 mod hanzi_pinyin;
 mod transliteration;
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::RwLock;
 
@@ -48,18 +49,6 @@ fn hangul_romanizations() -> &'static Vec<String> {
 /// Reads (lookups) take a read lock — zero contention.
 /// Writes (registration) take a write lock — rare, only during setup.
 static LANG_TABLES: Lazy<RwLock<HashMap<String, HashMap<char, String>>>> =
-    Lazy::new(|| RwLock::new(HashMap::new()));
-
-/// Cache for user-registered language table lookups.  Without this cache,
-/// every call to `lookup_lang` for a user-registered mapping would
-/// `Box::leak` a fresh clone — an unbounded memory leak for long-running
-/// servers that call `transliterate(lang=...)` in a loop.
-///
-/// Two-level structure: lang_code → (char → leaked &'static str).
-/// The outer HashMap is keyed by String so lookups can borrow via `&str`
-/// without allocating on the read path.
-/// Invalidated on `register_lang` calls by removing the language entry.
-static LANG_LEAK_CACHE: Lazy<RwLock<HashMap<String, HashMap<char, &'static str>>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
 static GLOBAL_REPLACEMENTS: Lazy<RwLock<HashMap<String, String>>> =
@@ -127,51 +116,31 @@ pub fn lookup_iso9(ch: char) -> Option<&'static str> {
 }
 
 /// Look up a character in a language-specific table.
-/// Checks built-in PHF maps first, then user-registered runtime tables.
-/// Returns None if no override exists for this language + character,
-/// in which case the caller should fall through to the default table.
-pub fn lookup_lang(lang: &str, ch: char) -> Option<&'static str> {
-    // Check built-in PHF language maps first (O(1) per map)
+///
+/// Returns `Cow::Borrowed` for built-in PHF language maps (zero allocation),
+/// and `Cow::Owned` for user-registered runtime tables (clones the stored
+/// `String` under a read lock).
+///
+/// Returning `Cow` instead of a leaked `&'static str` keeps heap usage fully
+/// bounded: previously the caller-supplied mapping required a `Box::leak` per
+/// unique `(lang, char)` pair, which grew forever in long-running processes.
+///
+/// Returns `None` if no override exists for this language + character; the
+/// caller should fall through to the default table.
+pub fn lookup_lang(lang: &str, ch: char) -> Option<Cow<'static, str>> {
+    // Check built-in PHF language maps first (O(1) per map, zero allocation).
     if let Some(result) = transliteration::lookup_lang(lang, ch) {
-        return Some(result);
+        return Some(Cow::Borrowed(result));
     }
 
-    // Fast path: check the leak cache (read lock, no allocation).
-    // Two-level lookup: first by &str (no allocation), then by char.
-    {
-        let cache = crate::recover_lock(LANG_LEAK_CACHE.read());
-        if let Some(char_cache) = cache.get(lang) {
-            if let Some(&cached) = char_cache.get(&ch) {
-                return Some(cached);
-            }
-        }
-    }
-
-    // Slow path: check user-registered language tables and cache the leak.
-    // Clone the replacement string under a read lock, then acquire the
-    // cache write lock to check-then-leak atomically (prevents duplicate
-    // leaks under concurrent access).
-    let replacement_clone: Option<String> = {
-        let table = crate::recover_lock(LANG_TABLES.read());
-        table
-            .get(lang)
-            .and_then(|char_map| char_map.get(&ch).cloned())
-    };
-
-    if let Some(replacement) = replacement_clone {
-        // Acquire cache write lock *before* leaking to ensure at most one
-        // thread leaks per (lang, char) pair.
-        let mut cache = crate::recover_lock(LANG_LEAK_CACHE.write());
-        // Double-check: another thread may have inserted while we waited
-        if let Some(&existing) = cache.get(lang).and_then(|m| m.get(&ch)) {
-            return Some(existing);
-        }
-        let leaked: &'static str = Box::leak(replacement.into_boxed_str());
-        cache.entry(lang.to_owned()).or_default().insert(ch, leaked);
-        return Some(leaked);
-    }
-
-    None
+    // Check user-registered language tables under a read lock.
+    // We clone the replacement string rather than leaking it, so memory usage
+    // is bounded regardless of how many distinct characters are looked up.
+    let table = crate::recover_lock(LANG_TABLES.read());
+    table
+        .get(lang)
+        .and_then(|char_map| char_map.get(&ch).cloned())
+        .map(Cow::Owned)
 }
 
 /// Look up a confusable character mapping (O(1) PHF).
@@ -202,21 +171,13 @@ pub fn list_langs() -> Vec<String> {
 ///
 /// # Thread Safety
 ///
-/// This function is safe to call from multiple threads.  Internally it
-/// acquires write locks on both `LANG_LEAK_CACHE` and `LANG_TABLES`
-/// atomically (in that order) to prevent TOCTOU races.  Reads via
-/// `lookup_lang()` use separate read locks and are wait-free when the
-/// write lock is not held.
+/// This function is safe to call from multiple threads.  It acquires a write
+/// lock on `LANG_TABLES` for the duration of the insert.  Reads via
+/// `lookup_lang()` acquire a separate read lock and are wait-free when no
+/// write is in progress.
 ///
-/// After this call returns, all subsequent `lookup_lang()` calls for
-/// the given language code will see the new mappings.
-///
-/// # Memory
-///
-/// Invalidates the leak cache for the given language code so that
-/// subsequent lookups see the new mappings.  Previously leaked strings
-/// for overwritten entries remain allocated (they are `&'static str`),
-/// but no *new* leaks will occur for already-cached pairs.
+/// After this call returns, all subsequent `lookup_lang()` calls for the
+/// given language code will see the new mappings.
 pub fn register_lang(code: &str, mappings: HashMap<String, String>) {
     let mut char_map = HashMap::new();
     for (key, value) in mappings {
@@ -224,24 +185,8 @@ pub fn register_lang(code: &str, mappings: HashMap<String, String>) {
             char_map.insert(ch, value);
         }
     }
-    // Acquire both locks together to close the TOCTOU window:
-    // without this, a reader could see the new LANG_TABLES entry
-    // but still find stale LANG_LEAK_CACHE entries between the
-    // two separate lock acquisitions.
-    //
-    // Lock order: LANG_LEAK_CACHE first, then LANG_TABLES.
-    // This is the only place both locks are held simultaneously,
-    // so deadlock is impossible as long as the order is consistent.
-    {
-        let mut cache = crate::recover_lock(LANG_LEAK_CACHE.write());
-        let mut table = crate::recover_lock(LANG_TABLES.write());
-        table.insert(code.to_owned(), char_map);
-        // Invalidate cached leaks for this language so lookups pick up
-        // the new mappings.  The old leaked strings are unreclaimable
-        // (they are 'static), but this bounds future leaks to one per
-        // unique (lang, char) pair per registration cycle.
-        cache.remove(code);
-    }
+    let mut table = crate::recover_lock(LANG_TABLES.write());
+    table.insert(code.to_owned(), char_map);
 }
 
 /// Register global pre-transliteration replacements.
@@ -335,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_hangul_cache_consistency() {
-        // Calling twice should return the same value (from cache)
+        // Calling twice should return the same value (from pre-computed table)
         let first = lookup_hangul_static('가');
         let second = lookup_hangul_static('가');
         assert_eq!(first, second);
@@ -416,37 +361,59 @@ mod tests {
     }
 
     #[test]
-    fn test_register_lang_lookup_cached() {
-        // Register a custom language and look up twice — second call
-        // should return the same pointer from the cache, not leak again.
+    fn test_register_lang_lookup() {
+        // Register a custom language and verify the mapping is returned.
         let mut mappings = HashMap::new();
         mappings.insert("Ü".to_owned(), "Ue".to_owned());
-        register_lang("_test_cache", mappings);
+        register_lang("_test_cow_lookup", mappings);
 
-        let first = lookup_lang("_test_cache", 'Ü');
-        let second = lookup_lang("_test_cache", 'Ü');
-        assert_eq!(first, Some("Ue"));
-        assert_eq!(second, Some("Ue"));
-        // Both should be the same pointer (from cache)
-        assert!(std::ptr::eq(first.unwrap(), second.unwrap()));
+        let first = lookup_lang("_test_cow_lookup", 'Ü');
+        let second = lookup_lang("_test_cow_lookup", 'Ü');
+        // Both calls must return the correct value (Cow::Owned clone each time).
+        assert_eq!(first.as_deref(), Some("Ue"));
+        assert_eq!(second.as_deref(), Some("Ue"));
     }
 
     #[test]
-    fn test_register_lang_invalidates_cache() {
-        // Register, look up (populates cache), re-register with new value,
-        // look up again — should see the new value.
+    fn test_register_lang_invalidates_on_reregister() {
+        // Register, look up, re-register with new value, look up again —
+        // should see the new value immediately.
         let mut m1 = HashMap::new();
         m1.insert("Ö".to_owned(), "Oe".to_owned());
-        register_lang("_test_inval", m1);
+        register_lang("_test_inval2", m1);
 
-        let first = lookup_lang("_test_inval", 'Ö');
-        assert_eq!(first, Some("Oe"));
+        let first = lookup_lang("_test_inval2", 'Ö');
+        assert_eq!(first.as_deref(), Some("Oe"));
 
         let mut m2 = HashMap::new();
         m2.insert("Ö".to_owned(), "O".to_owned());
-        register_lang("_test_inval", m2);
+        register_lang("_test_inval2", m2);
 
-        let second = lookup_lang("_test_inval", 'Ö');
-        assert_eq!(second, Some("O"));
+        let second = lookup_lang("_test_inval2", 'Ö');
+        assert_eq!(second.as_deref(), Some("O"));
+    }
+
+    #[test]
+    fn test_lookup_lang_builtin_is_borrowed() {
+        // Built-in PHF results should come back as Cow::Borrowed.
+        let result = lookup_lang("de", 'ü');
+        if let Some(cow) = result {
+            assert!(matches!(cow, Cow::Borrowed(_)), "built-in PHF result should be Cow::Borrowed");
+        }
+    }
+
+    #[test]
+    fn test_lookup_lang_user_registered_is_owned() {
+        // User-registered results should come back as Cow::Owned (cloned string).
+        let mut m = HashMap::new();
+        m.insert("X".to_owned(), "ex".to_owned());
+        register_lang("_test_owned", m);
+
+        let result = lookup_lang("_test_owned", 'X');
+        if let Some(cow) = result {
+            assert!(matches!(cow, Cow::Owned(_)), "user-registered result should be Cow::Owned");
+        } else {
+            panic!("expected Some from registered lang");
+        }
     }
 }

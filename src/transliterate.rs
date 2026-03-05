@@ -87,14 +87,16 @@ pub fn transliterate_impl<'a>(
         // Lookup priority:
         // 1. If strict_iso9: ISO 9 table → default table (lang overrides ignored)
         // 2. Otherwise: lang override → default table
-        let mapped = if strict_iso9 {
-            tables::lookup_iso9(ch).or_else(|| tables::lookup_default(ch))
+        let mapped: Option<Cow<'static, str>> = if strict_iso9 {
+            tables::lookup_iso9(ch)
+                .map(Cow::Borrowed)
+                .or_else(|| tables::lookup_default(ch).map(Cow::Borrowed))
         } else {
             lang.and_then(|l| tables::lookup_lang(l, ch))
-                .or_else(|| tables::lookup_default(ch))
+                .or_else(|| tables::lookup_default(ch).map(Cow::Borrowed))
         };
 
-        match mapped {
+        match mapped.as_deref() {
             Some(s) => {
                 if is_cjk
                     && !s.is_empty()
