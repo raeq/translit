@@ -167,3 +167,27 @@ class TestDecodeToUtf8:
         text, had_errors = decode_to_utf8(data, "windows-1252")
         assert isinstance(text, str)
         assert len(text) > 0
+
+    def test_min_confidence_explicit_encoding_ignores_threshold(self) -> None:
+        # Explicit encoding always succeeds regardless of min_confidence.
+        text, had_errors = decode_to_utf8(b"hello", "UTF-8", min_confidence=1.0)
+        assert text == "hello"
+        assert not had_errors
+
+    def test_min_confidence_low_threshold_accepts(self) -> None:
+        # Default threshold (0.0) never rejects auto-detection.
+        text, _ = decode_to_utf8(b"hello world")
+        assert "hello world" in text
+
+    def test_min_confidence_high_threshold_rejects(self) -> None:
+        # detect_encoding returns at most 0.95; threshold of 1.0 always rejects.
+        import pytest
+        from translit import TranslitError
+
+        with pytest.raises(TranslitError, match="below the required minimum"):
+            decode_to_utf8(b"hi", min_confidence=1.0)
+
+    def test_min_confidence_high_threshold_explicit_encoding_ok(self) -> None:
+        # Explicit encoding is never affected by min_confidence.
+        text, _ = decode_to_utf8(b"hi", "UTF-8", min_confidence=0.9)
+        assert text == "hi"

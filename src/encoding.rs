@@ -17,15 +17,29 @@ pub fn detect_encoding_impl(bytes: &[u8]) -> (String, f64) {
 /// Pure Rust byte-to-UTF-8 decoding — no Python dependency.
 ///
 /// Returns `Ok((decoded_text, had_errors))` or `Err(message)`.
-pub fn decode_to_utf8_impl(bytes: &[u8], encoding: Option<&str>) -> Result<(String, bool), String> {
+///
+/// When `encoding` is `None` the encoding is auto-detected. If the
+/// detection confidence is below `min_confidence` an error is returned
+/// so the caller can require a minimum quality threshold.
+pub fn decode_to_utf8_impl(
+    bytes: &[u8],
+    encoding: Option<&str>,
+    min_confidence: f64,
+) -> Result<(String, bool), String> {
     let enc = match encoding {
         Some(name) => encoding_rs::Encoding::for_label(name.as_bytes())
             .ok_or_else(|| format!("Unknown encoding: '{name}'"))?,
         None => {
-            let mut detector = chardetng::EncodingDetector::new();
-            detector.feed(bytes, true);
-            let (detected, _) = detector.guess_assess(None, true);
-            detected
+            let (name, confidence) = detect_encoding_impl(bytes);
+            if confidence < min_confidence {
+                return Err(format!(
+                    "Encoding detection confidence {confidence:.2} is below the required \
+                     minimum {min_confidence:.2} (best guess: '{name}'). \
+                     Provide an explicit encoding instead."
+                ));
+            }
+            encoding_rs::Encoding::for_label(name.as_bytes())
+                .ok_or_else(|| format!("Auto-detected encoding '{name}' is not supported"))?
         }
     };
 
@@ -56,16 +70,20 @@ pub fn _detect_encoding(data: &Bound<'_, PyBytes>) -> (String, f64) {
 /// if any characters were replaced during decoding (lossy conversion).
 ///
 /// If encoding is None, uses detect_encoding to guess the encoding.
+/// min_confidence (0.0–1.0) sets the minimum acceptable detection confidence
+/// when auto-detecting; raises TranslitError if the threshold is not met.
 ///
 /// Supported encodings: all WHATWG encodings (UTF-8, windows-1252,
 /// ISO-8859-1, Shift_JIS, EUC-JP, EUC-KR, Big5, GB18030, etc.).
 #[pyfunction]
-#[pyo3(signature = (data, encoding=None))]
+#[pyo3(signature = (data, encoding=None, min_confidence=0.0))]
 pub fn _decode_to_utf8(
     data: &Bound<'_, PyBytes>,
     encoding: Option<&str>,
+    min_confidence: f64,
 ) -> PyResult<(String, bool)> {
-    decode_to_utf8_impl(data.as_bytes(), encoding).map_err(|e| crate::TranslitError::new_err(e))
+    decode_to_utf8_impl(data.as_bytes(), encoding, min_confidence)
+        .map_err(|e| crate::TranslitError::new_err(e))
 }
 
 #[cfg(test)]
@@ -87,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_decode_utf8() {
-        let (decoded, had_errors) = decode_to_utf8_impl("café".as_bytes(), Some("UTF-8")).unwrap();
+        let (decoded, had_errors) = decode_to_utf8_impl("café".as_bytes(), Some("UTF-8"), 0.0).unwrap();
         assert_eq!(decoded, "café");
         assert!(!had_errors);
     }
@@ -96,14 +114,14 @@ mod tests {
     fn test_decode_latin1() {
         // "café" in ISO-8859-1: 63 61 66 E9
         let (decoded, had_errors) =
-            decode_to_utf8_impl(&[0x63, 0x61, 0x66, 0xE9], Some("ISO-8859-1")).unwrap();
+            decode_to_utf8_impl(&[0x63, 0x61, 0x66, 0xE9], Some("ISO-8859-1"), 0.0).unwrap();
         assert_eq!(decoded, "café");
         assert!(!had_errors);
     }
 
     #[test]
     fn test_decode_unknown_encoding_errors() {
-        let result = decode_to_utf8_impl(b"hello", Some("FAKE-999"));
+        let result = decode_to_utf8_impl(b"hello", Some("FAKE-999"), 0.0);
         assert!(result.is_err());
     }
 
@@ -116,8 +134,25 @@ mod tests {
 
     #[test]
     fn test_decode_auto_detect() {
-        let (decoded, had_errors) = decode_to_utf8_impl(b"hello world", None).unwrap();
+        let (decoded, had_errors) = decode_to_utf8_impl(b"hello world", None, 0.0).unwrap();
         assert_eq!(decoded, "hello world");
         assert!(!had_errors);
+    }
+
+    #[test]
+    fn test_decode_min_confidence_rejected() {
+        // detect_encoding_impl returns at most 0.95 (confident) or 0.5 (not).
+        // A threshold of 1.0 always rejects auto-detection.
+        let result = decode_to_utf8_impl(b"hi", None, 1.0);
+        assert!(result.is_err());
+        let msg = result.unwrap_err();
+        assert!(msg.contains("below the required minimum"), "unexpected: {msg}");
+    }
+
+    #[test]
+    fn test_decode_min_confidence_accepted() {
+        // Explicit encoding ignores min_confidence entirely.
+        let result = decode_to_utf8_impl(b"hi", Some("UTF-8"), 1.0);
+        assert!(result.is_ok());
     }
 }

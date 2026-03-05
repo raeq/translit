@@ -490,8 +490,12 @@ def demojize(
         Text with emoji replaced by their descriptions.
 
     Raises:
-        TranslitError: If an internal Rust error occurs or the provider
-            raises an exception.
+        TranslitError: If an internal Rust error occurs.
+
+    Warns:
+        UserWarning: If the provider raises an exception or returns a
+            non-string value. The built-in CLDR tables are used as a
+            fallback for that sequence.
 
     Examples:
         >>> demojize("I ❤️ Python 🐍")
@@ -952,26 +956,40 @@ def detect_encoding(data: bytes) -> tuple[str, float]:
     return _detect_encoding(data)
 
 
-def decode_to_utf8(data: bytes, encoding: str | None = None) -> tuple[str, bool]:
+def decode_to_utf8(
+    data: bytes,
+    encoding: str | None = None,
+    *,
+    min_confidence: float = 0.0,
+) -> tuple[str, bool]:
     """Decode a byte sequence to UTF-8.
 
     Returns (decoded_text, had_errors) where had_errors is True if any
     characters were replaced during decoding (lossy conversion).
 
-    If encoding is None, auto-detects the encoding.
+    If encoding is None, auto-detects the encoding using the chardetng
+    algorithm. Use min_confidence to require a minimum detection quality
+    and avoid silently decoding with a low-confidence guess.
+
     Supports all WHATWG encodings (UTF-8, windows-1252, ISO-8859-1,
     Shift_JIS, EUC-JP, EUC-KR, Big5, GB18030, etc.).
 
     Args:
         data: Raw byte sequence to decode.
         encoding: Encoding name (e.g. "windows-1252"). None to auto-detect.
+        min_confidence: Minimum acceptable detection confidence (0.0–1.0)
+            when auto-detecting. Raises TranslitError if the detected
+            confidence is below this threshold. Has no effect when
+            ``encoding`` is provided explicitly. Defaults to 0.0 (accept
+            any guess).
 
     Returns:
         Tuple of (decoded_text, had_errors) where had_errors is True if
         any characters were replaced during lossy conversion.
 
     Raises:
-        TranslitError: If the encoding name is unknown or decoding fails.
+        TranslitError: If the encoding name is unknown, decoding fails,
+            or auto-detection confidence is below min_confidence.
 
     Examples:
         >>> text, had_errors = decode_to_utf8(b"caf\\xe9", "windows-1252")
@@ -980,7 +998,7 @@ def decode_to_utf8(data: bytes, encoding: str | None = None) -> tuple[str, bool]
         >>> had_errors
         False
     """
-    return _decode_to_utf8(data, encoding=encoding)
+    return _decode_to_utf8(data, encoding=encoding, min_confidence=min_confidence)
 
 
 # --- Predicates ---

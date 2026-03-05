@@ -107,9 +107,9 @@ fn match_emoji_at(chars: &[char], pos: usize) -> Option<(&'static str, usize)> {
 /// Returns `Some((name, chars_consumed))` if the provider recognises the
 /// sequence starting at `chars[pos]`, `None` otherwise.
 ///
-/// Any Python exception raised by `provider.lookup()` is caught via `.ok()?`
-/// and treated as `None` (fall through to built-in CLDR tables). This is
-/// intentional: a misbehaving provider should not crash the whole pipeline.
+/// If the provider raises an exception or returns a non-string value, a
+/// Python `UserWarning` is issued via `warnings.warn` and the call falls
+/// through to the built-in CLDR tables.
 fn try_python_provider(
     py: Python<'_>,
     provider: &PyObject,
@@ -124,10 +124,34 @@ fn try_python_provider(
     for len in (1..=try_len).rev() {
         let seq: Vec<u32> = chars[pos..pos + len].iter().map(|c| *c as u32).collect();
         let py_seq = PyList::new(py, &seq).ok()?;
-        let result = provider.call_method1(py, "lookup", (py_seq,)).ok()?;
+
+        let result = match provider.call_method1(py, "lookup", (py_seq,)) {
+            Ok(r) => r,
+            Err(e) => {
+                let msg = format!(
+                    "EmojiProvider.lookup() raised an exception and will be ignored: {e}"
+                );
+                let _ = py
+                    .import("warnings")
+                    .and_then(|w| w.call_method1("warn", (msg,)));
+                return None;
+            }
+        };
+
         if !result.is_none(py) {
-            let name: String = result.extract(py).ok()?;
-            return Some((name, len));
+            match result.extract::<String>(py) {
+                Ok(name) => return Some((name, len)),
+                Err(e) => {
+                    let msg = format!(
+                        "EmojiProvider.lookup() returned a non-string value \
+                         and will be ignored: {e}"
+                    );
+                    let _ = py
+                        .import("warnings")
+                        .and_then(|w| w.call_method1("warn", (msg,)));
+                    return None;
+                }
+            }
         }
     }
     None
@@ -300,9 +324,9 @@ pub fn _demojize(
 /// Return the emoji's text description, or `None` to fall through to the
 /// built-in CLDR tables.
 ///
-/// **Exception safety**: any exception raised by the provider's `lookup` method
-/// is silently suppressed. The provider is treated as returning `None` for
-/// that sequence, and the built-in CLDR tables are consulted instead.
+/// **Exception safety**: if the provider's `lookup` method raises an exception
+/// or returns a non-string value, a Python `UserWarning` is issued and the
+/// built-in CLDR tables are consulted as a fallback.
 ///
 /// Pass `None` to reset to the built-in default (latest English CLDR).
 #[pyfunction]

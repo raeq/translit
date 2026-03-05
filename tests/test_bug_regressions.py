@@ -263,3 +263,48 @@ class TestPipelineEdgeCases:
         )
         result = pipe("  Héllo  😀  Wörld  ")
         assert result == "hello grinning face world"
+
+
+# ---------------------------------------------------------------------------
+# EmojiProvider warning behaviour
+# ---------------------------------------------------------------------------
+
+
+class TestEmojiProviderWarnings:
+    """Provider exceptions and bad return types must issue UserWarning, not crash."""
+
+    def test_provider_exception_issues_warning(self) -> None:
+        """A provider that always raises must trigger a UserWarning."""
+        import warnings
+
+        class BrokenProvider:
+            def lookup(self, sequence: list) -> str | None:
+                raise RuntimeError("provider is broken")
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            result = demojize("😀", provider=BrokenProvider())
+
+        assert any("raised an exception" in str(w.message) for w in caught), (
+            "Expected a UserWarning about provider exception"
+        )
+        # Falls back to CLDR table
+        assert "grinning face" in result
+
+    def test_provider_non_string_return_issues_warning(self) -> None:
+        """A provider returning a non-string must trigger a UserWarning."""
+        import warnings
+
+        class BadReturnProvider:
+            def lookup(self, sequence: list) -> object:
+                return 42  # wrong type
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            result = demojize("😀", provider=BadReturnProvider())
+
+        assert any("non-string" in str(w.message) for w in caught), (
+            "Expected a UserWarning about non-string return value"
+        )
+        # Falls back to CLDR table
+        assert "grinning face" in result
