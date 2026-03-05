@@ -149,6 +149,10 @@ pub fn transliterate_impl<'a>(
 /// We sample the first 5 non-ASCII codepoints and use the maximum multiplier
 /// seen, so mixed-script strings like "Hello 北京" pick up the CJK 4×
 /// multiplier rather than defaulting to 1× from the leading Latin characters.
+/// The result is capped at 256 MiB: a larger `with_capacity` hint is never
+/// useful and avoids attempting massive pre-allocations on adversarial input.
+const MAX_CAPACITY_HINT: usize = 256 * 1024 * 1024; // 256 MiB
+
 fn estimate_capacity(text: &str) -> usize {
     let multiplier = text
         .chars()
@@ -166,7 +170,7 @@ fn estimate_capacity(text: &str) -> usize {
             };
             max_m.max(m)
         });
-    text.len().saturating_mul(multiplier)
+    text.len().saturating_mul(multiplier).min(MAX_CAPACITY_HINT)
 }
 
 /// Classify a non-ASCII character into a script class:

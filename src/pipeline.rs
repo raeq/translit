@@ -141,7 +141,7 @@ impl _TextPipeline {
 
         // 6. Fold case (after transliteration)
         if self.steps.contains(PipelineSteps::FOLD_CASE) {
-            buf = case_fold::_fold_case(&buf);
+            buf = case_fold::fold_case_impl(&buf);
         }
 
         // 7. Collapse whitespace + strip control (final cleanup)

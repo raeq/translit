@@ -482,9 +482,9 @@ impl _Slugifier {
         hexadecimal: bool,
     ) -> PyResult<Self> {
         let compiled_regex = regex_pattern
-            .map(regex::Regex::new)
+            .map(compile_regex)
             .transpose()
-            .map_err(|e| crate::TranslitError::new_err(format!("Invalid regex: {e}")))?;
+            .map_err(|e| crate::TranslitError::new_err(e))?;
 
         let stopset: HashSet<String> = stopwords.iter().cloned().collect();
         Ok(Self {

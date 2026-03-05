@@ -112,7 +112,7 @@ pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyRes
     // 4. Strip accents (NFD decompose → remove combining marks → NFC)
     buf = transliterate::_strip_accents(&buf);
     // 5. Unicode case folding (ß→ss, ﬁ→fi, etc.)
-    buf = case_fold::_fold_case(&buf);
+    buf = case_fold::fold_case_impl(&buf);
     // 6. Collapse whitespace + strip control + strip zero-width
     buf = whitespace::_collapse_whitespace(&buf, true, true);
     Ok(buf)
@@ -147,7 +147,7 @@ pub fn _catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> PyResu
     // 4. Strip accents
     let buf = transliterate::_strip_accents(&buf);
     // 5. Unicode case folding
-    let buf = case_fold::_fold_case(&buf);
+    let buf = case_fold::fold_case_impl(&buf);
     // 6. Collapse whitespace + strip control + strip zero-width
     let buf = whitespace::_collapse_whitespace(&buf, true, true);
     Ok(buf)
