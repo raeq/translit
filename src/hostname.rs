@@ -28,17 +28,32 @@ pub fn _is_safe_hostname(hostname: &str) -> PyResult<(bool, SafeHostnameDetails)
     // IPv6 literals (e.g. "[::1]", "[2001:db8::1]") are not IDN hostnames and
     // cannot be visually spoofed via homoglyph attacks. Return them as safe
     // without running the script/confusable analysis.
-    if normalized.starts_with('[') && normalized.contains(':') {
-        return Ok((
-            true,
-            SafeHostnameDetails {
-                safe: true,
-                scripts: Vec::new(),
-                mixed_script: false,
-                has_confusables: false,
-                canonical: normalized,
-            },
-        ));
+    //
+    // We require:
+    //   1. Starts with '[' and ends with ']' (proper bracket wrapping).
+    //   2. Contains at least one ':' (distinguishes from bare hostnames).
+    //   3. The content between the brackets contains only characters that are
+    //      legal in an IPv6 address literal per RFC 3986 §3.2.2: hex digits,
+    //      colons, dots (for embedded IPv4), and '%' (zone ID).  Anything else
+    //      means the input is not a real IPv6 literal and must be analysed.
+    if normalized.starts_with('[') && normalized.ends_with(']') {
+        let inner = &normalized[1..normalized.len() - 1];
+        let is_ipv6_content = inner.contains(':')
+            && inner.chars().all(|c| {
+                c.is_ascii_hexdigit() || c == ':' || c == '.' || c == '%'
+            });
+        if is_ipv6_content {
+            return Ok((
+                true,
+                SafeHostnameDetails {
+                    safe: true,
+                    scripts: Vec::new(),
+                    mixed_script: false,
+                    has_confusables: false,
+                    canonical: normalized,
+                },
+            ));
+        }
     }
 
     // 2. Split on dots to check each label

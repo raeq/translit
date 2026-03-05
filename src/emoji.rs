@@ -78,8 +78,9 @@ fn match_emoji_at(chars: &[char], pos: usize) -> Option<(&'static str, usize)> {
             let seq = &chars[pos..pos + len];
 
             // Skip sequences that end with a variation selector or ZWJ
-            // (they're incomplete)
-            let last = seq[seq.len() - 1];
+            // (they're incomplete).  Use .last() instead of direct indexing so
+            // that a future change to the loop bounds cannot cause a panic.
+            let Some(&last) = seq.last() else { continue };
             if last == '\u{200D}' || last == '\u{FE0F}' || last == '\u{FE0E}' {
                 continue;
             }
