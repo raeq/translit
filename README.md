@@ -1,11 +1,11 @@
 # translit
 
-Fast Unicode transliteration, slugification, and text normalization — a Rust-powered Python library.
+Unicode text infrastructure for Python: transliteration, normalization, and safety analysis, powered by Rust.
 
 ## Features
 
 - **Transliteration**: Unicode → ASCII for Latin, Cyrillic, Greek, CJK (Chinese pinyin, Korean romanization, Japanese kana), and 37 language-specific profiles
-- **Slugification**: URL-safe slugs with full python-slugify parameter compatibility
+- **Slugification**: URL-safe slugs with python-slugify parameter compatibility
 - **Filename sanitization**: Cross-platform safe filenames with NFC normalization, path traversal protection, and Windows reserved name handling
 - **Text normalization**: NFC/NFD/NFKC/NFKD, confusable homoglyph detection (TR39), full Unicode case folding (1,557 CaseFolding.txt mappings via PHF), whitespace collapse
 - **Precompiled pipelines**: `security_clean`, `ml_normalize`, `catalog_key`, `display_clean` for common workflows
@@ -63,7 +63,7 @@ sanitize_filename("../../etc/passwd")      # → ".etc_passwd"
 
 Chinese characters are mapped to toneless pinyin from the Unicode Unihan `kMandarin` field, covering the full CJK Unified Ideographs block (U+4E00–U+9FFF, 20,924 characters). Korean Hangul syllables are algorithmically decomposed into jamo and romanized using the Revised Romanization standard (all 11,172 precomposed syllables). Japanese hiragana and katakana use Modified Hepburn; kanji fall back to Chinese pinyin readings.
 
-This is context-free, character-by-character transliteration — the same approach as Unidecode. See [docs/limitations.md](docs/limitations.md) for details on polyphony, phonological rules, and other trade-offs.
+This is context-free, character-by-character transliteration, the same approach as Unidecode. See [docs/limitations.md](docs/limitations.md) for details on polyphony, phonological rules, and other trade-offs.
 
 ## Precompiled pipelines
 
@@ -95,6 +95,50 @@ result = (
 )
 # → "unicode cafe hot beverage"
 ```
+
+## Package structure
+
+The API is organized into domain-specific namespaces. All functions are also available at the top level for convenience.
+
+| Namespace | Purpose | Key functions |
+|---|---|---|
+| `translit` | Core transforms | `transliterate`, `slugify`, `Text`, `TextPipeline` |
+| `translit.normalization` | Unicode normalization | `normalize`, `strip_accents`, `fold_case`, `collapse_whitespace` |
+| `translit.security` | Safety analysis | `is_confusable`, `is_mixed_script`, `is_safe_hostname`, `security_clean` |
+| `translit.files` | Filename handling | `sanitize_filename` |
+| `translit.codec` | Byte decoding | `decode_to_utf8`, `detect_encoding` |
+
+```python
+# Namespace imports
+from translit.security import is_confusable, security_clean
+from translit.codec import decode_to_utf8
+from translit.normalization import fold_case
+
+# Top-level imports also work
+from translit import is_confusable, security_clean, decode_to_utf8, fold_case
+```
+
+## Script policies
+
+Transliteration applies different policies depending on the script. This table documents what each script does and which standard it follows.
+
+| Script | Policy | Standard / Source | Example |
+|---|---|---|---|
+| Latin (accented) | Accent stripping | Unicode NFKD decomposition | `é` → `e` |
+| Cyrillic | Phonetic romanization | ISO 9:1995 (scholarly, via `strict_iso9=True`) or GOST-based (default) | `Москва` → `Moskva` |
+| Greek | Transliteration | BGN/PCGN romanization | `Αθήνα` → `Athena` |
+| Chinese (Hanzi) | Romanization | Unihan `kMandarin` (toneless pinyin) | `北京` → `bei jing` |
+| Korean (Hangul) | Romanization | Revised Romanization of Korean | `서울` → `seo ul` |
+| Japanese (Kana) | Romanization | Modified Hepburn | `ひらがな` → `hiragana` |
+| Japanese (Kanji) | Romanization | Falls back to Chinese pinyin readings | `東京` → `dong jing` |
+| Arabic | Transliteration | Buckwalter-derived | `مرحبا` → `mrhba` |
+| Devanagari | Transliteration | IAST-derived | `नमस्ते` → `namaste` |
+| Georgian | Transliteration | National romanization | `თბილისი` → `tbilisi` |
+| Armenian | Transliteration | BGN/PCGN | `Երևան` → `Erevan` |
+
+All transliteration is **context-free and character-by-character**, the same approach as AnyAscii/Unidecode. No linguistic analysis, polyphony handling, or phonological rules. See [docs/limitations.md](docs/limitations.md) for trade-offs.
+
+Language-specific profiles (e.g., `lang="de"`) apply **sparse overrides** on top of the default table. For example, German maps `ü` → `ue` instead of the default `u`.
 
 ## Language profiles
 
