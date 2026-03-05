@@ -98,10 +98,11 @@ fn lookup_hangul_static(ch: char) -> Option<&'static str> {
     if (0xAC00..=0xD7A3).contains(&code) {
         let idx = (code - 0xAC00) as usize;
         // `hangul_romanizations()` returns `&'static Vec<String>` (OnceCell).
-        // Indexing into a `&'static Vec<String>` yields `&'static String`,
-        // and `.as_str()` gives `&'static str` — no unsafe required.
+        // `.get(idx)` is used instead of direct indexing so that an unexpected
+        // out-of-bounds (e.g. after a future range-check refactor) returns
+        // `None` rather than panicking.
         let roms: &'static Vec<String> = hangul_romanizations();
-        Some(roms[idx].as_str())
+        roms.get(idx).map(String::as_str)
     } else {
         hangul::lookup_compat_jamo(ch)
     }
