@@ -4,7 +4,7 @@ The optimization strategies that make translit 10–53× faster than pure-Python
 
 ## The PyO3 boundary problem
 
-Every call from Python into Rust crosses the PyO3 boundary: argument conversion, GIL management, result conversion back to a Python object. This costs ~400–800 ns per call. For a function like `transliterate()` that processes a short string in ~430 ns of actual Rust work, the boundary overhead is the dominant cost. Every optimization strategy below either reduces the time spent in the boundary or reduces the number of crossings.
+Every call from Python into Rust crosses the PyO3 boundary: argument conversion, GIL management, result conversion back to a Python object. This costs ~300–500 ns per call. For a function like `transliterate()` that processes a short string in ~60 ns of actual Rust work, the boundary overhead is the dominant cost. Every optimization strategy below either reduces the time spent in the boundary or reduces the number of crossings.
 
 ## Optimization 1: Python-side ASCII fast-path
 
@@ -12,10 +12,10 @@ The most effective optimization is never crossing the boundary at all. `translit
 
 | Function | With fast-path | Without |
 |---|---|---|
-| `transliterate("hello")` | 51 ns | 430 ns |
+| `transliterate("hello")` | 62 ns | 407 ns |
 | `strip_accents("hello")` | 36 ns | 805 ns |
 
-This turns the common case from a ~400 ns function call into a ~50 ns no-op.
+This turns the common case from a ~400 ns function call into a ~60 ns no-op.
 
 ## Optimization 2: Flat BMP array
 
@@ -23,7 +23,7 @@ The default transliteration table covers U+0080–U+FFFF as a flat `[Option<&'st
 
 The array occupies ~512 KB in the `.rodata` section. The OS pages it in on demand; only the pages containing accessed codepoint ranges are resident in memory.
 
-This replaced a PHF map for BMP lookups and delivered the single largest speedup: Latin transliteration went from 34× faster than Unidecode to 53× faster.
+This replaced a PHF map for BMP lookups and delivered the single largest speedup: Latin transliteration went from 34× faster than Unidecode to 58× faster.
 
 ## Optimization 3: Range-based dispatch
 
@@ -49,12 +49,11 @@ This heuristic eliminates reallocations for the two most common workload shapes.
 
 ## Optimization 6: Batch APIs
 
-`transliterate_batch()`, `slugify_batch()`, `normalize_batch()`, and `strip_accents_batch()` process a list of strings in a single PyO3 boundary crossing. For 100 strings, this saves ~31 µs of boundary overhead (310 ns × 100). The saving scales linearly with batch size.
+`transliterate_batch()`, `slugify_batch()`, `normalize_batch()`, and `strip_accents_batch()` process a list of strings in a single PyO3 boundary crossing. For 100 strings, this saves ~24 µs of boundary overhead (240 ns × 100). The saving scales linearly with batch size.
 
 | Operation (100 strings) | Batch | Loop | Speedup |
 |---|---|---|---|
-| transliterate | 22.8 µs | 53.8 µs | 2.4× |
-| slugify | 50.9 µs | 134 µs | 2.6× |
+| transliterate | 14.5 µs | 38.5 µs | 2.7× |
 
 ## Optimization 7: CPython delegation
 
@@ -73,6 +72,6 @@ All secondary lookup tables (Hanzi pinyin, confusables, case folding, emoji) use
 Two operations are inherently slower than their CPython C-builtin counterparts:
 
 - **Normalization**: `unicodedata.normalize()` operates on CPython's internal string buffer without copying. translit's Rust normalizer must copy across the PyO3 boundary. Standalone calls delegate to CPython (see above); only pipeline/batch paths use Rust.
-- **Case folding**: `str.casefold()` is a CPython C builtin with zero allocation overhead. translit's PHF-based `fold_case()` is within 2× on short input, closing to ~1.3× on long input as the Rust computation dominates fixed boundary cost.
+- **Case folding**: `str.casefold()` is a CPython C builtin with zero allocation overhead. translit's PHF-based `fold_case()` is within ~3× at the Python level, with the gap dominated by PyO3 boundary-crossing cost rather than algorithmic differences.
 
-These gaps are acceptable because normalization and case folding are rarely the bottleneck in real workloads — transliteration and slugification dominate processing time, and translit is 10–53× faster for those.
+These gaps are acceptable because normalization and case folding are rarely the bottleneck in real workloads — transliteration and slugification dominate processing time, and translit is 10–58× faster for those.

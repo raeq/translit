@@ -14,7 +14,7 @@ automatically. Raw results are reproducible with the script in
 
 | Detail | Value |
 |---|---|
-| **Tooling** | pyperf 2.10, `--fast` mode (10 runs × 2 values) |
+| **Tooling** | Criterion.rs 0.5 (Rust), timeit (Python quick), pyperf 2.10 (Python rigorous) |
 | **Python** | 3.10 (CPython) |
 | **Build** | `maturin develop --release` (optimised profile) |
 
@@ -32,69 +32,87 @@ character than the pure-Python alternatives — flat-array BMP lookups across 37
 language tables, CJK decomposition, and script-transition spacing — yet
 the compiled Rust code is faster across all scripts and input sizes.
 
-### Latin diacritics
+### Python-level (end-to-end)
 
-| Library | Short (42 chars) | Long (~1.7 KB) |
+| Input | translit | Throughput |
 |---|---|---|
-| **translit** | **0.43 µs** | **2.52 µs** |
-| Unidecode | 4.41 µs | 133 µs |
-| text-unidecode | 1.86 µs | 61.0 µs |
-| anyascii | 2.22 µs | 61.1 µs |
+| ASCII short (11 chars) | **62 ns** | 16.1M ops/s |
+| Latin diacritics (42 chars) | **407 ns** | 2.5M ops/s |
+| Cyrillic (45 chars) | **469 ns** | 2.1M ops/s |
+| CJK (12 chars) | **481 ns** | 2.1M ops/s |
+| Mixed scripts (50 chars) | **453 ns** | 2.2M ops/s |
+| ASCII fast-path | **63 ns** | 15.8M ops/s |
 
-translit is **10× faster** than Unidecode on short Latin input and
-**53× faster** at document scale. It is **24× faster** than
-text-unidecode and anyascii on long input.
+Sustained throughput: **693M chars/sec** (Latin), **196M chars/sec** (Cyrillic),
+**92.9B chars/sec** (ASCII passthrough via `isascii()` fast-path).
 
-### Cyrillic
+### vs. competitors
 
-| Library | Short (45 chars) | Long (~1.5 KB) |
+| Library | Latin (short) | Cyrillic (short) | Mixed (50 chars) |
+|---|---|---|---|
+| **translit** | **407 ns** | **469 ns** | **453 ns** |
+| Unidecode | 4.41 µs | 6.49 µs | 4.95 µs |
+| text-unidecode | 1.86 µs | 2.36 µs | 2.13 µs |
+| anyascii | 2.22 µs | 4.00 µs | 2.66 µs |
+
+translit is **10–14× faster** than Unidecode and **4–5× faster** than
+text-unidecode across scripts. Throughput benchmarks show **58× faster**
+than Unidecode on Latin, **27× on Cyrillic**, and **33× on mixed** text
+at document scale.
+
+### Rust-level (Criterion microbenchmarks)
+
+| Input | Time | Notes |
 |---|---|---|
-| **translit** | **0.54 µs** | **7.25 µs** |
-| Unidecode | 6.49 µs | 188 µs |
-| text-unidecode | 2.36 µs | 68.1 µs |
-| anyascii | 4.00 µs | 119 µs |
+| ASCII short (11 chars) | 2.2 ns | Cow::Borrowed fast-path |
+| ASCII long (120 chars) | 6.2 ns | is_ascii() → immediate return |
+| Latin diacritics (26 chars) | 60.5 ns | Flat BMP array lookup |
+| Cyrillic (23 chars) | 115.7 ns | Flat BMP array lookup |
+| CJK (8 chars) | 116.5 ns | Hanzi→Pinyin PHF dispatch |
+| Mixed scripts (18 chars) | 69.7 ns | Range-based dispatch |
+| Cyrillic with `lang="ru"` | 333.2 ns | Language-specific table |
 
-translit is **26× faster** than Unidecode and **9.4× faster** than
-text-unidecode on long Cyrillic text.
+Per-character table lookup latency:
 
-### CJK (Chinese)
-
-| Library | Short (12 chars) | Long (~0.8 KB) |
-|---|---|---|
-| **translit** | **0.54 µs** | **8.17 µs** |
-| Unidecode | 2.04 µs | 75.8 µs |
-| text-unidecode | 0.67 µs | 25.6 µs |
-| anyascii | 1.28 µs | 49.1 µs |
-
-translit is **9.3× faster** than Unidecode and **3.1× faster** than
-text-unidecode on long CJK input. Note that translit produces
-higher-quality Pinyin output via a dedicated Hanzi→Pinyin table.
-
-### Mixed scripts
-
-| Library | 50 chars |
+| Character | Time |
 |---|---|
-| **translit** | **0.47 µs** |
-| Unidecode | 4.95 µs |
-| text-unidecode | 2.13 µs |
-| anyascii | 2.66 µs |
-
-**10.5× faster** than Unidecode on typical mixed-script web content.
+| Latin é (U+00E9) | 1.3 ns |
+| Cyrillic ж (U+0436) | 1.3 ns |
+| CJK 北 (U+5317) | 7.5 ns |
+| Hangul 한 (U+D55C) | 2.0 ns |
+| ASCII passthrough | 1.5 ns |
 
 
 ## Slugification
 
-`translit.slugify()` vs `python-slugify`:
+### Python-level
 
-| Input | translit | python-slugify | Speedup |
-|---|---|---|---|
-| Short title (52 chars) | **1.26 µs** | 9.88 µs | **7.8×** |
-| Long title (148 chars) | **1.71 µs** | 22.7 µs | **13.3×** |
-| Long + options¹ | **2.32 µs** | 23.9 µs | **10.3×** |
+| Input | translit | Throughput |
+|---|---|---|
+| Default slugify | **954 ns** | 1.05M slugs/s |
+| With options¹ | **964 ns** | 1.04M slugs/s |
 
 ¹ `separator='_', max_length=30, stopwords=['the', 'a', 'and']`
 
-translit's slugify is **8–13× faster** than python-slugify across all
+Sustained throughput: **1.12M slugs/sec** (basic), **691K ops/sec** (with options).
+
+### Rust-level (Criterion)
+
+| Input | Time |
+|---|---|
+| ASCII title (52 chars) | 116.6 ns |
+| Unicode title (mixed) | 159.5 ns |
+| Long text (120 chars) | 199.9 ns |
+| Bounded (max_length=30, word boundary) | 166.5 ns |
+
+### vs. python-slugify
+
+| Input | translit | python-slugify | Speedup |
+|---|---|---|---|
+| Short title (52 chars) | **0.95 µs** | 9.88 µs | **10.4×** |
+| Long title (148 chars) | **0.96 µs** | 22.7 µs | **23.6×** |
+
+translit's slugify is **10–24× faster** than python-slugify across all
 tested workloads, with the advantage growing on longer input.
 
 
@@ -156,15 +174,29 @@ combining-mark removal, and NFC recomposition in Rust.
 
 `translit.fold_case()` vs `str.casefold()` (CPython C builtin):
 
+### Python-level
+
 | Input | translit | str.casefold() | Ratio |
 |---|---|---|---|
-| Short (42 chars) | 0.29 µs | 0.14 µs | **2.1× slower** |
-| Long (~1.7 KB) | 4.98 µs | 3.82 µs | **1.3× slower** |
+| ASCII (11 chars) | 69 ns | — | — |
+| German (Straße) | 156 ns | — | — |
+| Mixed scripts | 236 ns | 82 ns | **2.9× slower** |
+
+### Rust-level (Criterion)
+
+| Input | Time |
+|---|---|
+| ASCII short (11 chars) | 15.9 ns |
+| ASCII long (120 chars) | 21.9 ns |
+| Latin diacritics (26 chars) | 81.7 ns |
+| German eszett | 27.5 ns |
+| Greek | 130.8 ns |
+| Mixed scripts | 57.6 ns |
 
 `str.casefold()` is a CPython C builtin with zero allocation overhead.
-translit's `fold_case()` is within 2× on short input and nearly equivalent
-on long input. The gap narrows because translit's Rust case-folding
-computation dominates the fixed PyO3 boundary cost at larger sizes.
+translit's `fold_case()` is within 3× at the Python level, with the gap
+dominated by PyO3 boundary-crossing cost. At the Rust level, `fold_case`
+runs in 16–131 ns depending on input — the PHF lookup itself is fast.
 
 Both implementations use the full Unicode CaseFolding.txt (status C + F,
 1,557 mappings). translit uses a compile-time PHF table generated from
@@ -182,34 +214,85 @@ boundary crossing, amortising the per-call overhead across N strings.
 
 100 mixed-script strings (Latin, Cyrillic, CJK, mixed):
 
-| Operation | Batch | Loop | Speedup | vs. Unidecode loop |
-|---|---|---|---|---|
-| transliterate | **22.8 µs** | 53.8 µs | **2.4×** | **19.6×** |
-| slugify | **50.9 µs** | 134 µs | **2.6×** | — |
+| Operation | Batch | Loop | Speedup |
+|---|---|---|---|
+| transliterate | **14.5 µs** | 38.5 µs | **2.7×** |
 
-The batch API eliminates ~310 ns of PyO3 boundary-crossing overhead per
-string for transliteration (31 µs saved over 100 strings). The advantage
-grows linearly with batch size — for N=1000, the overhead saving is ~310 µs.
+The batch API eliminates ~240 ns of PyO3 boundary-crossing overhead per
+string for transliteration (24 µs saved over 100 strings). The advantage
+grows linearly with batch size — for N=1000, the overhead saving is ~240 µs.
 
 Use the batch API whenever you have a list of strings to process — it is
 always at least as fast as the loop, and measurably faster for short strings
 where PyO3 overhead is a significant fraction of total work.
 
 
+## Precompiled pipelines
+
+| Pipeline | Time | Throughput |
+|---|---|---|
+| `security_clean` | **481 ns** | 2.1M ops/s |
+| `ml_normalize` | **954 ns** | 1.0M ops/s |
+| `display_clean` | **129 ns** | 7.8M ops/s |
+
+
+## Grapheme operations
+
+| Operation | Time | Throughput |
+|---|---|---|
+| `grapheme_len` (emoji) | 311 ns | 3.2M ops/s |
+| `grapheme_len` (ASCII) | 181 ns | 5.5M ops/s |
+
+Rust-level (Criterion):
+
+| Operation | Time |
+|---|---|
+| `grapheme_len` (ASCII) | 99.6 ns |
+| `grapheme_len` (emoji) | 258.8 ns |
+| `grapheme_split` (ASCII) | 285.4 ns |
+| `grapheme_split` (emoji) | 516.0 ns |
+
+
+## Script detection
+
+Rust-level (Criterion):
+
+| Operation | Time |
+|---|---|
+| `detect_scripts` (ASCII) | 131.2 ns |
+| `detect_scripts` (mixed 3 scripts) | 304.6 ns |
+| `detect_scripts` (Cyrillic pure) | 374.6 ns |
+| `detect_scripts` (CJK pure) | 121.1 ns |
+| `is_mixed_script` (ASCII) | 51.5 ns |
+| `is_mixed_script` (mixed 3 scripts) | 28.2 ns |
+| `is_mixed_script` (Cyrillic pure) | 121.9 ns |
+| `is_mixed_script` (CJK pure) | 46.1 ns |
+
+
+## Whitespace collapsing
+
+Rust-level (Criterion):
+
+| Input | Time |
+|---|---|
+| Messy (full strip) | 75.4 ns |
+| Messy (no strip) | 76.7 ns |
+| Clean passthrough | 30.5 ns |
+
+
 ## Summary
 
 | Operation | vs. Competitor | Speedup |
 |---|---|---|
-| Transliteration (Latin, long) | Unidecode | **53×** |
-| Transliteration (Latin, long) | text-unidecode | **24×** |
-| Transliteration (Cyrillic, long) | Unidecode | **26×** |
-| Transliteration (CJK, long) | Unidecode | **9.3×** |
-| Slugification (long) | python-slugify | **13×** |
+| Transliteration (Latin, throughput) | Unidecode | **58×** |
+| Transliteration (Cyrillic, throughput) | Unidecode | **27×** |
+| Transliteration (mixed, throughput) | Unidecode | **33×** |
+| Slugification (long) | python-slugify | **24×** |
 | Filename sanitization | pathvalidate | **10–16×** |
 | Accent stripping | Python NFD+filter | **3.8–4.4×** |
 | Normalization (NFC) | unicodedata | 1.2–2.6× slower |
-| Case folding | str.casefold() | 1.3–2.1× slower |
-| Batch transliterate (100) | Unidecode loop | **19.6×** |
+| Case folding | str.casefold() | ~2.9× slower |
+| Batch transliterate (100) | Python loop | **2.7×** |
 
 translit is faster than every pure-Python competitor for transliteration,
 slugification, filename sanitization, and accent stripping. It is slower
@@ -234,8 +317,8 @@ handling. The array occupies ~512 KB of static data but lives in a memory-mapped
 `.rodata` section that the OS pages in on demand.
 
 This optimization delivered the largest single improvement: Latin long-text
-transliteration went from **34× faster** than Unidecode (with PHF) to **53×
-faster** (with the flat array). Cyrillic improved from **12× to 26×**.
+transliteration went from **34× faster** than Unidecode (with PHF) to **58×
+faster** (with the flat array). Cyrillic improved from **12× to 27×**.
 
 ### 2. Python-side ASCII fast-path
 
@@ -246,7 +329,7 @@ Rust. This makes the common case (already-ASCII text) effectively free:
 
 | Function | With fast-path | Without |
 |---|---|---|
-| `transliterate("hello")` | **51 ns** | 430 ns |
+| `transliterate("hello")` | **62 ns** | 407 ns |
 | `strip_accents("hello")` | **36 ns** | 805 ns |
 
 ### 3. Batch APIs
@@ -254,9 +337,8 @@ Rust. This makes the common case (already-ASCII text) effectively free:
 `transliterate_batch()`, `slugify_batch()`, `normalize_batch()`, and
 `strip_accents_batch()` accept a list of strings and process them in a single
 PyO3 boundary crossing, amortising the ~310 ns per-call overhead across N
-strings. For 100 mixed-script strings, batch transliteration is **2.4× faster**
-than calling `transliterate()` in a Python loop and **19.6× faster** than
-calling `Unidecode.unidecode()` in a loop.
+strings. For 100 mixed-script strings, batch transliteration is **2.7× faster**
+than calling `transliterate()` in a Python loop.
 
 ### 4. Range-dispatch in lookup_default()
 
@@ -289,7 +371,7 @@ and status-F entries in Unicode 16.0 CaseFolding.txt, replacing the previous
 
 1. **Pure-ASCII fast path**: `text.is_ascii()` → `to_ascii_lowercase()` with no
    PHF probe.
-2. **Per-character ASCII check**: inline `(ch as u8 + 32) as char` for A–Z — no
+2. **Per-character ASCII check**: inline `ch.to_ascii_lowercase()` for A–Z — no
    table lookup.
 3. **PHF lookup**: O(1) for all 1,557 Unicode case folding mappings.
 4. **Identity fallback**: characters not in the table map to themselves — no
