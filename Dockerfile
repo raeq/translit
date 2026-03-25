@@ -12,6 +12,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 RUN pip install --no-cache-dir maturin
 
+WORKDIR /build
+
 COPY Cargo.toml build.rs pyproject.toml README.md ./
 COPY src/ src/
 COPY python/ python/
