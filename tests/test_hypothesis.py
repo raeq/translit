@@ -506,6 +506,81 @@ _hebrew_presentation = st.text(
 )
 
 
+_georgian_text = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x10D0, 0x10F1)]),
+    min_size=1, max_size=20,
+)
+_armenian_text = st.text(
+    alphabet=st.sampled_from(
+        [chr(c) for c in range(0x0531, 0x0557)]
+        + [chr(c) for c in range(0x0561, 0x0588)]
+    ),
+    min_size=1, max_size=20,
+)
+
+
+class TestGeorgianTransliterationProperties:
+    """Property-based tests for Georgian script transliteration."""
+
+    @given(text=_georgian_text)
+    @settings(max_examples=300)
+    def test_georgian_produces_ascii(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Georgian: {result!r}"
+
+    @given(text=_georgian_text)
+    @settings(max_examples=300)
+    def test_georgian_idempotent(self, text: str) -> None:
+        once = transliterate(text, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
+
+    @given(text=_georgian_text)
+    @settings(max_examples=300)
+    def test_georgian_nonempty(self, text: str) -> None:
+        """Georgian letters always produce non-empty output."""
+        result = transliterate(text, errors="ignore")
+        assert len(result) > 0, f"Empty result from Georgian: {text!r}"
+
+    @given(text=_georgian_text)
+    @settings(max_examples=300)
+    def test_georgian_slugify_valid(self, text: str) -> None:
+        result = slugify(text)
+        if result:
+            assert SLUG_PATTERN.match(result), f"Bad slug from Georgian: {result!r}"
+
+
+class TestArmenianTransliterationProperties:
+    """Property-based tests for Armenian script transliteration."""
+
+    @given(text=_armenian_text)
+    @settings(max_examples=300)
+    def test_armenian_produces_ascii(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Armenian: {result!r}"
+
+    @given(text=_armenian_text)
+    @settings(max_examples=300)
+    def test_armenian_idempotent(self, text: str) -> None:
+        once = transliterate(text, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
+
+    @given(text=_armenian_text)
+    @settings(max_examples=300)
+    def test_armenian_nonempty(self, text: str) -> None:
+        """Armenian letters always produce non-empty output."""
+        result = transliterate(text, errors="ignore")
+        assert len(result) > 0, f"Empty result from Armenian: {text!r}"
+
+    @given(text=_armenian_text)
+    @settings(max_examples=300)
+    def test_armenian_slugify_valid(self, text: str) -> None:
+        result = slugify(text)
+        if result:
+            assert SLUG_PATTERN.match(result), f"Bad slug from Armenian: {result!r}"
+
+
 class TestHebrewTransliterationProperties:
     """Property-based tests for Hebrew script transliteration."""
 

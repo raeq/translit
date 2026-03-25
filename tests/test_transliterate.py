@@ -305,6 +305,8 @@ LANG_SMOKE_TESTS: dict[str, tuple[str, str]] = {
     "kn": ("ಕನ್ನಡ", "kannada"),
     "ml": ("മലയാളം", "malayalam"),
     "he": ("שלום", "shlvm"),
+    "hy": ("Հայաստան", "Hayastan"),
+    "ka": ("თბილისი", "tbilisi"),
 }
 
 
@@ -356,9 +358,11 @@ class TestLanguageProfileRegistry:
             "hi",
             "hr",
             "hu",
+            "hy",
             "is",
             "it",
             "ja",
+            "ka",
             "kn",
             "ko",
             "lt",
@@ -608,6 +612,94 @@ class TestIndicTransliteration:
             assert len(result) > 0, (
                 f"Expected non-empty result for {sample!r}"
             )
+
+
+class TestGeorgianTransliteration:
+    """Tests for Georgian script transliteration."""
+
+    def test_georgian_mkhedruli(self) -> None:
+        assert transliterate("თბილისი") == "tbilisi"
+
+    def test_georgian_sakartvelo(self) -> None:
+        assert transliterate("საქართველო") == "sakartvelo"
+
+    def test_georgian_alphabet_sample(self) -> None:
+        """First few Mkhedruli letters."""
+        assert transliterate("ა") == "a"
+        assert transliterate("ბ") == "b"
+        assert transliterate("გ") == "g"
+
+    def test_georgian_digraphs(self) -> None:
+        assert transliterate("ჟ") == "zh"
+        assert transliterate("შ") == "sh"
+        assert transliterate("ჩ") == "ch"
+        assert transliterate("ხ") == "kh"
+
+    def test_georgian_produces_ascii(self) -> None:
+        samples = ["თბილისი", "საქართველო", "ქართული", "ბათუმი"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0
+
+    def test_georgian_mixed_with_latin(self) -> None:
+        assert transliterate("Hello თბილისი") == "Hello tbilisi"
+
+    def test_georgian_mtavruli_uppercase(self) -> None:
+        """Mtavruli (U+1C90+) uppercase letters."""
+        assert transliterate("\u1C90") == "A"
+        assert transliterate("\u1C91") == "B"
+
+    def test_georgian_supplement(self) -> None:
+        """Georgian Supplement (U+2D00+) lowercase Nuskhuri."""
+        assert transliterate("\u2D00") == "a"
+        assert transliterate("\u2D01") == "b"
+
+
+class TestArmenianTransliteration:
+    """Tests for Armenian script transliteration."""
+
+    def test_armenian_yerevan(self) -> None:
+        assert transliterate("Երևան") == "Eryevan"
+
+    def test_armenian_hayastan(self) -> None:
+        assert transliterate("Հայաստան") == "Hayastan"
+
+    def test_armenian_alphabet_sample(self) -> None:
+        assert transliterate("Ա") == "A"
+        assert transliterate("Բ") == "B"
+        assert transliterate("Գ") == "G"
+        assert transliterate("ա") == "a"
+        assert transliterate("բ") == "b"
+
+    def test_armenian_digraphs(self) -> None:
+        assert transliterate("Ժ") == "Zh"
+        assert transliterate("Շ") == "Sh"
+        assert transliterate("Խ") == "Kh"
+        assert transliterate("ժ") == "zh"
+
+    def test_armenian_yev_ligature(self) -> None:
+        assert transliterate("և") == "yev"
+
+    def test_armenian_presentation_ligatures(self) -> None:
+        assert transliterate("\uFB13") == "mn"
+        assert transliterate("\uFB14") == "me"
+        assert transliterate("\uFB15") == "mi"
+        assert transliterate("\uFB16") == "vn"
+        assert transliterate("\uFB17") == "mkh"
+
+    def test_armenian_hyphen(self) -> None:
+        assert transliterate("\u058A") == "-"
+
+    def test_armenian_produces_ascii(self) -> None:
+        samples = ["Հայաստան", "Երևան", "Հայերեն"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0
+
+    def test_armenian_mixed_with_latin(self) -> None:
+        assert transliterate("Hello Երևան") == "Hello Eryevan"
 
 
 class TestHebrewTransliteration:

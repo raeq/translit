@@ -28,7 +28,7 @@ automatically. Raw results are reproducible with the script in
 ## Transliteration
 
 The core value proposition. translit's `transliterate()` does more work per
-character than the pure-Python alternatives — flat-array BMP lookups across 51
+character than the pure-Python alternatives — flat-array BMP lookups across 53
 language tables, CJK decomposition, and script-transition spacing — yet
 the compiled Rust code is faster across all scripts and input sizes.
 

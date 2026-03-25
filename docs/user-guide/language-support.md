@@ -1,6 +1,6 @@
 # Language Support
 
-translit ships with 51 built-in language profiles that provide language-specific transliteration rules. You can also register custom profiles at runtime.
+translit ships with 53 built-in language profiles that provide language-specific transliteration rules. You can also register custom profiles at runtime.
 
 ## Built-in languages
 
@@ -47,6 +47,13 @@ translit ships with 51 built-in language profiles that provide language-specific
 |---|---|---|
 | `ar` | Arabic | Basic transliteration (Buckwalter-derived) |
 | `he` | Hebrew | Common Israeli romanization; Qof → q (SBL); presentation forms with dagesh |
+
+### Caucasian languages
+
+| Code | Language | Notes |
+|---|---|---|
+| `hy` | Armenian | BGN/PCGN romanization |
+| `ka` | Georgian | National romanization |
 
 ### Indic languages
 
@@ -135,9 +142,9 @@ from translit import list_langs
 
 print(list_langs())
 # => ['ar', 'as', 'bg', 'bn', 'ca', 'cs', 'cy', 'da', 'de', 'el',
-#     'es', 'et', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'is',
-#     'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'mt', 'ne',
-#     'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'sk',
+#     'es', 'et', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy',
+#     'is', 'it', 'ja', 'ka', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'mt',
+#     'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'sk',
 #     'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'tr', 'uk', 'vi', 'zh']
 ```
 

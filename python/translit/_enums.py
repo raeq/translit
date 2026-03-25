@@ -127,6 +127,10 @@ LANG_ZH: str = "zh"  # Chinese
 # Language code constants — Semitic
 LANG_HE: str = "he"  # Hebrew
 
+# Language code constants — Caucasian
+LANG_HY: str = "hy"  # Armenian
+LANG_KA: str = "ka"  # Georgian
+
 # Language code constants — Indic
 LANG_AS: str = "as"  # Assamese
 LANG_BN: str = "bn"  # Bengali
