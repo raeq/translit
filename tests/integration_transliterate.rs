@@ -329,3 +329,63 @@ fn devanagari_multiword() {
         transliterate::transliterate_impl("नमस्ते दुनिया", None, ErrorMode::Ignore, "", false, false);
     assert_eq!(result, "namaste duniya");
 }
+
+// --- Hebrew ---
+
+#[test]
+fn hebrew_unpointed() {
+    let result =
+        transliterate::transliterate_impl("שלום", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "shlvm");
+}
+
+#[test]
+fn hebrew_final_forms() {
+    let result =
+        transliterate::transliterate_impl("ך", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "kh");
+    let result =
+        transliterate::transliterate_impl("ץ", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "ts");
+}
+
+#[test]
+fn hebrew_shin_sin_presentation() {
+    // Shin with shin dot (FB2A) → sh
+    let result =
+        transliterate::transliterate_impl("\u{FB2A}", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "sh");
+    // Shin with sin dot (FB2B) → s
+    let result =
+        transliterate::transliterate_impl("\u{FB2B}", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "s");
+}
+
+#[test]
+fn hebrew_dagesh_presentation() {
+    // Bet with dagesh (FB31) → b (vs plain bet → v)
+    let result =
+        transliterate::transliterate_impl("\u{FB31}", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "b");
+    let result =
+        transliterate::transliterate_impl("ב", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "v");
+}
+
+#[test]
+fn hebrew_mixed_with_latin() {
+    let result =
+        transliterate::transliterate_impl("שלום world", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "shlvm world");
+}
+
+#[test]
+fn hebrew_produces_ascii() {
+    let samples = ["שלום", "ישראל", "ירושלים"];
+    for sample in &samples {
+        let result =
+            transliterate::transliterate_impl(sample, None, ErrorMode::Ignore, "", false, false);
+        assert!(result.is_ascii(), "Expected ASCII for {sample:?}, got: {result:?}");
+        assert!(!result.is_empty(), "Expected non-empty for {sample:?}");
+    }
+}

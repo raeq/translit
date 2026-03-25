@@ -79,9 +79,9 @@ pub fn has_registered_lang(code: &str) -> bool {
 /// All built-in language codes, sorted.
 const BUILTIN_LANGS: &[&str] = &[
     "ar", "as", "bg", "bn", "ca", "cs", "cy", "da", "de", "el", "es", "et", "fi", "fr", "ga", "gu",
-    "hi", "hr", "hu", "is", "it", "ja", "kn", "ko", "lt", "lv", "ml", "mr", "mt", "ne", "nl", "no",
-    "or", "pa", "pl", "pt", "ro", "ru", "sa", "sk", "sl", "sq", "sr", "sv", "ta", "te", "tr", "uk",
-    "vi", "zh",
+    "he", "hi", "hr", "hu", "is", "it", "ja", "kn", "ko", "lt", "lv", "ml", "mr", "mt", "ne", "nl",
+    "no", "or", "pa", "pl", "pt", "ro", "ru", "sa", "sk", "sl", "sq", "sr", "sv", "ta", "te", "tr",
+    "uk", "vi", "zh",
 ];
 
 /// Look up a character in the default transliteration table.

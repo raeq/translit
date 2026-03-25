@@ -32,6 +32,14 @@ This is the same approach taken by Python's Unidecode, text-unidecode, anyascii,
 
 Arabic, Hebrew, and Urdu romanization is heavily context-dependent without vowel pointing. [Jaf et al. (2021)](https://onlinelibrary.wiley.com/doi/10.1155/2021/7152935) demonstrate this specifically for Ottoman Turkish script, where character-level mapping produces poor results for scripts with suppressed vowels. translit's Arabic transliteration is best-effort and does not recover unwritten short vowels.
 
+### Hebrew matres lectionis and contextual vowels
+
+Hebrew uses *matres lectionis* — consonant letters (yod, vav, he) that function as vowel markers in certain positions. For example, vav with a dagesh (שׁוּרֶק *shureq*) represents /u/, and ḥolam followed by vav (חוֹלָם מָלֵא) represents /o/. These multi-character sequences require lookahead to distinguish from their consonantal uses.
+
+translit's character-by-character engine maps each codepoint independently, so it cannot detect these contextual patterns. Pointed Hebrew text (with nikkud vowel marks) will produce the correct vowel from the nikkud itself, but the accompanying mater lectionis consonant will also appear in the output (e.g., an extra "y" or "v"). Unpointed Hebrew produces a consonant skeleton only.
+
+For scholarly-grade Hebrew transliteration with full contextual rules (hiriq-yod, shureq, qamats-he, dagesh forte doubling), use a dedicated Hebrew transliterator such as [hebrew-transliteration](https://github.com/charlesLoder/hebrew-transliteration).
+
 ### Competing standards
 
 Even within a single language, multiple romanization standards exist. Russian alone has BGN/PCGN, GOST, ISO 9 (scholarly), passport transliteration, and several informal systems. translit's `lang` parameter selects one standard per language; `strict_iso9=True` provides scholarly Cyrillic transliteration per ISO 9:1995. Users needing a specific standard not offered by the default or `lang` can use `register_lang()` to override.

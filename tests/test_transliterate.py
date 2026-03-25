@@ -304,6 +304,7 @@ LANG_SMOKE_TESTS: dict[str, tuple[str, str]] = {
     "gu": ("ગુજરાતી", "gujarati"),
     "kn": ("ಕನ್ನಡ", "kannada"),
     "ml": ("മലയാളം", "malayalam"),
+    "he": ("שלום", "shlvm"),
 }
 
 
@@ -332,7 +333,7 @@ class TestLanguageProfileRegistry:
     """Tests for the language profile system."""
 
     def test_list_langs_returns_all_builtin(self) -> None:
-        """list_langs() must include all 50 built-in languages."""
+        """list_langs() must include all 51 built-in languages."""
         langs = list_langs()
         expected_langs = {
             "ar",
@@ -351,6 +352,7 @@ class TestLanguageProfileRegistry:
             "fr",
             "ga",
             "gu",
+            "he",
             "hi",
             "hr",
             "hu",
@@ -606,6 +608,68 @@ class TestIndicTransliteration:
             assert len(result) > 0, (
                 f"Expected non-empty result for {sample!r}"
             )
+
+
+class TestHebrewTransliteration:
+    """Tests for Hebrew script transliteration."""
+
+    def test_hebrew_consonants_unpointed(self) -> None:
+        """Unpointed Hebrew produces consonant skeleton."""
+        assert transliterate("שלום") == "shlvm"
+        assert transliterate("ישראל") == "yshrl"
+
+    def test_hebrew_final_forms(self) -> None:
+        assert transliterate("ך") == "kh"
+        assert transliterate("ם") == "m"
+        assert transliterate("ן") == "n"
+        assert transliterate("ף") == "f"
+        assert transliterate("ץ") == "ts"
+
+    def test_hebrew_nikkud(self) -> None:
+        """Vowel points produce correct vowels."""
+        assert transliterate("\u05B4") == "i"   # hiriq
+        assert transliterate("\u05B8") == "a"   # qamats
+        assert transliterate("\u05B9") == "o"   # holam
+        assert transliterate("\u05BB") == "u"   # qubbuts
+
+    def test_hebrew_presentation_forms_dagesh(self) -> None:
+        """Precomposed consonant+dagesh forms give correct romanization."""
+        assert transliterate("\uFB31") == "b"   # bet + dagesh
+        assert transliterate("\uFB3A") == "k"   # final kaf + dagesh
+        assert transliterate("\uFB44") == "p"   # pe + dagesh
+
+    def test_hebrew_shin_sin_dots(self) -> None:
+        """Shin/sin dot presentation forms distinguish sh vs s."""
+        assert transliterate("\uFB2A") == "sh"  # shin + shin dot
+        assert transliterate("\uFB2B") == "s"   # shin + sin dot
+
+    def test_hebrew_maqaf(self) -> None:
+        assert transliterate("\u05BE") == "-"
+
+    def test_hebrew_yiddish_ligatures(self) -> None:
+        assert transliterate("\u05F0") == "v"   # double vav
+        assert transliterate("\u05F1") == "vy"  # vav yod
+        assert transliterate("\u05F2") == "y"   # double yod
+
+    def test_hebrew_alef_lamed_ligature(self) -> None:
+        assert transliterate("\uFB4F") == "al"
+
+    def test_hebrew_cantillation_stripped(self) -> None:
+        """Cantillation marks should be stripped (empty mapping)."""
+        result = transliterate("\u0591")
+        assert result == "" or result == "[?]"  # depends on error mode
+        result_ignore = transliterate("\u0591", errors="ignore")
+        assert result_ignore == ""
+
+    def test_hebrew_mixed_with_latin(self) -> None:
+        assert transliterate("שלום world") == "shlvm world"
+
+    def test_hebrew_produces_ascii(self) -> None:
+        samples = ["שלום", "ישראל", "ירושלים", "תל אביב"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0, f"Expected non-empty for {sample!r}"
 
 
 class TestReplaceWithEmpty:

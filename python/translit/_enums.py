@@ -124,6 +124,9 @@ LANG_KO: str = "ko"  # Korean
 LANG_RU: str = "ru"  # Russian
 LANG_ZH: str = "zh"  # Chinese
 
+# Language code constants — Semitic
+LANG_HE: str = "he"  # Hebrew
+
 # Language code constants — Indic
 LANG_AS: str = "as"  # Assamese
 LANG_BN: str = "bn"  # Bengali

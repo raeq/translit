@@ -48,7 +48,7 @@ transliterate("北京")  # => "bei jing"
 
 ### Language awareness
 
-anyascii has no language parameter. translit provides 50 language-specific profiles:
+anyascii has no language parameter. translit provides 51 language-specific profiles:
 
 ```python
 from translit import transliterate

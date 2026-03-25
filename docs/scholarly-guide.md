@@ -153,7 +153,7 @@ pipe("Щука")  # → "shhuka"
 
 ## Language-Specific Transliteration
 
-translit ships 50 language profiles. Each profile provides override
+translit ships 51 language profiles. Each profile provides override
 mappings for characters whose standard romanization differs from the
 pan-script defaults.
 
@@ -186,8 +186,8 @@ pan-script defaults.
 | `zh` | Chinese   | Hanzi → pinyin                                  |
 | `ko` | Korean    | Hangul → romanization                           |
 
-Full list of 50 codes: `ar`, `as`, `bg`, `bn`, `ca`, `cs`, `cy`, `da`, `de`, `el`,
-`es`, `et`, `fi`, `fr`, `ga`, `gu`, `hi`, `hr`, `hu`, `is`, `it`, `ja`, `kn`, `ko`, `lt`,
+Full list of 51 codes: `ar`, `as`, `bg`, `bn`, `ca`, `cs`, `cy`, `da`, `de`, `el`,
+`es`, `et`, `fi`, `fr`, `ga`, `gu`, `he`, `hi`, `hr`, `hu`, `is`, `it`, `ja`, `kn`, `ko`, `lt`,
 `lv`, `ml`, `mr`, `mt`, `ne`, `nl`, `no`, `or`, `pa`, `pl`, `pt`, `ro`, `ru`, `sa`, `sk`,
 `sl`, `sq`, `sr`, `sv`, `ta`, `te`, `tr`, `uk`, `vi`, `zh`.
 

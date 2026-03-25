@@ -1,6 +1,6 @@
 # Language Support
 
-translit ships with 50 built-in language profiles that provide language-specific transliteration rules. You can also register custom profiles at runtime.
+translit ships with 51 built-in language profiles that provide language-specific transliteration rules. You can also register custom profiles at runtime.
 
 ## Built-in languages
 
@@ -109,7 +109,7 @@ from translit import list_langs
 
 print(list_langs())
 # => ['ar', 'as', 'bg', 'bn', 'ca', 'cs', 'cy', 'da', 'de', 'el',
-#     'es', 'et', 'fi', 'fr', 'ga', 'gu', 'hi', 'hr', 'hu', 'is',
+#     'es', 'et', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'is',
 #     'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'mt', 'ne',
 #     'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'sk',
 #     'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'tr', 'uk', 'vi', 'zh']
