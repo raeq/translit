@@ -373,8 +373,7 @@ fn decode_numeric_entity_skip(bytes: &[u8], pos: usize) -> usize {
     if i < len && (bytes[i] == b'x' || bytes[i] == b'X') {
         i += 1;
     }
-    while i < len && bytes[i].is_ascii() && bytes[i] != b';' && (i - pos) < MAX_ENTITY_DIGITS + 4
-    {
+    while i < len && bytes[i].is_ascii() && bytes[i] != b';' && (i - pos) < MAX_ENTITY_DIGITS + 4 {
         i += 1;
     }
     if i < len && bytes[i] == b';' {
@@ -830,10 +829,19 @@ mod tests {
     fn test_decode_entities_multibyte_utf8() {
         // BUG-1: decode_entities previously used `bytes[i] as char` which
         // corrupts multi-byte UTF-8 characters (é = 0xC3 0xA9 → Ã ©).
-        assert_eq!(decode_entities("café &amp; résumé", true, true), "café & résumé");
+        assert_eq!(
+            decode_entities("café &amp; résumé", true, true),
+            "café & résumé"
+        );
         assert_eq!(decode_entities("über &lt; cool", true, true), "über < cool");
-        assert_eq!(decode_entities("中文 &amp; 日本語", true, true), "中文 & 日本語");
-        assert_eq!(decode_entities("emoji 🎉 &amp; fun", true, true), "emoji 🎉 & fun");
+        assert_eq!(
+            decode_entities("中文 &amp; 日本語", true, true),
+            "中文 & 日本語"
+        );
+        assert_eq!(
+            decode_entities("emoji 🎉 &amp; fun", true, true),
+            "emoji 🎉 & fun"
+        );
         // Pure non-ASCII without entities hits the fast path (no &),
         // but mixed input must also work correctly.
         assert_eq!(decode_entities("café", true, true), "café");
@@ -843,7 +851,10 @@ mod tests {
     fn test_decode_named_entities() {
         assert_eq!(decode_entities("AT&amp;T", true, true), "AT&T");
         assert_eq!(decode_entities("5 &lt; 10", true, true), "5 < 10");
-        assert_eq!(decode_entities("&quot;hello&quot;", true, true), "\"hello\"");
+        assert_eq!(
+            decode_entities("&quot;hello&quot;", true, true),
+            "\"hello\""
+        );
     }
 
     #[test]
@@ -908,7 +919,10 @@ mod tests {
     #[test]
     fn test_decode_both_disabled() {
         // Both disabled: numeric entities preserved, named still decoded
-        assert_eq!(decode_entities("&#65; &amp; &#x41;", false, false), "&#65; & &#x41;");
+        assert_eq!(
+            decode_entities("&#65; &amp; &#x41;", false, false),
+            "&#65; & &#x41;"
+        );
     }
 
     #[test]
