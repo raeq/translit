@@ -79,7 +79,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Criterion benchmarks (short run)
-        run: cargo bench --no-default-features -- --warm-up-time 1 --measurement-time 2 --sample-size 10
+        run: cargo bench --no-default-features --bench bench_core -- --warm-up-time 1 --measurement-time 2 --sample-size 10
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
