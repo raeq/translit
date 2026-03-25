@@ -131,6 +131,9 @@ LANG_HE: str = "he"  # Hebrew
 LANG_HY: str = "hy"  # Armenian
 LANG_KA: str = "ka"  # Georgian
 
+# Language code constants — South Asian (non-Indic)
+LANG_SI: str = "si"  # Sinhala
+
 # Language code constants — Indic
 LANG_AS: str = "as"  # Assamese
 LANG_BN: str = "bn"  # Bengali

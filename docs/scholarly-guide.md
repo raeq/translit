@@ -153,7 +153,7 @@ pipe("Щука")  # → "shhuka"
 
 ## Language-Specific Transliteration
 
-translit ships 53 language profiles. Each profile provides override
+translit ships 54 language profiles. Each profile provides override
 mappings for characters whose standard romanization differs from the
 pan-script defaults.
 
@@ -186,9 +186,9 @@ pan-script defaults.
 | `zh` | Chinese   | Hanzi → pinyin                                  |
 | `ko` | Korean    | Hangul → romanization                           |
 
-Full list of 53 codes: `ar`, `as`, `bg`, `bn`, `ca`, `cs`, `cy`, `da`, `de`, `el`,
+Full list of 54 codes: `ar`, `as`, `bg`, `bn`, `ca`, `cs`, `cy`, `da`, `de`, `el`,
 `es`, `et`, `fi`, `fr`, `ga`, `gu`, `he`, `hi`, `hr`, `hu`, `hy`, `is`, `it`, `ja`, `ka`, `kn`, `ko`, `lt`,
-`lv`, `ml`, `mr`, `mt`, `ne`, `nl`, `no`, `or`, `pa`, `pl`, `pt`, `ro`, `ru`, `sa`, `sk`,
+`lv`, `ml`, `mr`, `mt`, `ne`, `nl`, `no`, `or`, `pa`, `pl`, `pt`, `ro`, `ru`, `sa`, `si`, `sk`,
 `sl`, `sq`, `sr`, `sv`, `ta`, `te`, `tr`, `uk`, `vi`, `zh`.
 
 ### Runtime Language Registration
@@ -248,7 +248,7 @@ The katakana prolonged sound mark ー (U+30FC) transliterates to a hyphen:
 
 ## Indic Script Transliteration
 
-translit supports transliteration of 9 Brahmic scripts covering ~2 billion speakers.
+translit supports transliteration of 10 Brahmic scripts covering ~2 billion speakers.
 All Brahmic scripts share a common alphasyllabic structure at consistent Unicode offsets,
 enabling systematic romanization with virama/mātrā-aware processing.
 
@@ -265,6 +265,7 @@ enabling systematic romanization with virama/mātrā-aware processing.
 | Telugu     | U+0C00–U+0C7F   | ~80     | తెలుగు → telugu            |
 | Kannada    | U+0C80–U+0CFF   | ~80     | ಕನ್ನಡ → kannada            |
 | Malayalam  | U+0D00–U+0D7F   | ~82     | മലയാളം → malayalam         |
+| Sinhala    | U+0D80–U+0DFF   | ~80     | සිංහල → simhala            |
 
 ### Virama and Mātrā Handling
 
@@ -305,10 +306,10 @@ diacritical marks, compare with:
 
 ### Supported Languages
 
-13 Indic language codes are registered: `as` (Assamese), `bn` (Bengali),
+14 Indic language codes are registered: `as` (Assamese), `bn` (Bengali),
 `gu` (Gujarati), `hi` (Hindi), `kn` (Kannada), `ml` (Malayalam),
 `mr` (Marathi), `ne` (Nepali), `or` (Odia), `pa` (Punjabi),
-`sa` (Sanskrit), `ta` (Tamil), `te` (Telugu). All use the default
+`sa` (Sanskrit), `si` (Sinhala), `ta` (Tamil), `te` (Telugu). All use the default
 transliteration table.
 
 ---

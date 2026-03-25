@@ -41,7 +41,7 @@ import translit
 | **Performance** | Pure Python | Rust via PyO3 ([benchmarks](../performance.md)) |
 | **License** | Mixed GPL/Artistic/MIT | MIT |
 | **API** | 8 different APIs | One coherent API |
-| **Language profiles** | 0–5 languages | 53 built-in |
+| **Language profiles** | 0–5 languages | 54 built-in |
 | **Type safety** | Partial | Full py.typed + stubs |
 | **Confusable detection** | Separate package | Built in |
 | **Filename sanitization** | Separate package | Built in |

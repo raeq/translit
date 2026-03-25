@@ -1,6 +1,6 @@
 # Transliteration
 
-Transliteration converts Unicode text to ASCII by replacing each character with its closest ASCII equivalent. translit uses hand-curated lookup tables with support for 53 language-specific override profiles.
+Transliteration converts Unicode text to ASCII by replacing each character with its closest ASCII equivalent. translit uses hand-curated lookup tables with support for 54 language-specific override profiles.
 
 ## Basic usage
 

@@ -312,9 +312,13 @@ enum IndicRole {
 /// Classify an Indic codepoint's role based on its offset within the script block.
 ///
 /// All Brahmic scripts share a common structural layout at consistent Unicode
-/// offsets (modulo 0x80), so a single function handles all 9 scripts.
+/// offsets (modulo 0x80), so a single function handles the 9 core scripts.
+/// Sinhala (U+0D80–U+0DFF) uses different offsets and is handled separately.
 #[inline]
 fn indic_char_role(cp: u32) -> IndicRole {
+    if (0x0D80..=0x0DFF).contains(&cp) {
+        return sinhala_char_role(cp);
+    }
     if !(0x0900..=0x0D7F).contains(&cp) {
         return IndicRole::None;
     }
@@ -323,6 +327,18 @@ fn indic_char_role(cp: u32) -> IndicRole {
         0x15..=0x39 | 0x58..=0x5F => IndicRole::Consonant,
         0x3E..=0x4C => IndicRole::DependentVowel,
         0x4D => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Sinhala codepoint's role. Sinhala consonants, dependent vowels,
+/// and virama (al-lakuna) occupy different offsets from the other Indic scripts.
+#[inline]
+fn sinhala_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x0D9A..=0x0DC6 => IndicRole::Consonant,
+        0x0DCF..=0x0DDF | 0x0DF2..=0x0DF3 => IndicRole::DependentVowel,
+        0x0DCA => IndicRole::Virama,
         _ => IndicRole::None,
     }
 }

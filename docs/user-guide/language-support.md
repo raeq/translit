@@ -1,6 +1,6 @@
 # Language Support
 
-translit ships with 53 built-in language profiles that provide language-specific transliteration rules. You can also register custom profiles at runtime.
+translit ships with 54 built-in language profiles that provide language-specific transliteration rules. You can also register custom profiles at runtime.
 
 ## Built-in languages
 
@@ -70,10 +70,11 @@ translit ships with 53 built-in language profiles that provide language-specific
 | `or` | Odia | Odia | ଓଡ଼ିଆ → odia |
 | `pa` | Punjabi | Gurmukhi | ਗੁਰਮੁਖੀ → gurmukhi |
 | `sa` | Sanskrit | Devanagari | — |
+| `si` | Sinhala | Sinhala | සිංහල → simhala |
 | `ta` | Tamil | Tamil | தமிழ் → tamizh |
 | `te` | Telugu | Telugu | తెలుగు → telugu |
 
-All 9 Brahmic scripts use virama/mātrā-aware transliteration: consonants carry an inherent "a" that is suppressed by virama (halant) or replaced by dependent vowel marks.
+All 10 Brahmic scripts use virama/mātrā-aware transliteration: consonants carry an inherent "a" that is suppressed by virama (halant) or replaced by dependent vowel marks.
 
 ### East Asian & other non-European languages
 
@@ -144,8 +145,8 @@ print(list_langs())
 # => ['ar', 'as', 'bg', 'bn', 'ca', 'cs', 'cy', 'da', 'de', 'el',
 #     'es', 'et', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy',
 #     'is', 'it', 'ja', 'ka', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'mt',
-#     'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'sk',
-#     'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'tr', 'uk', 'vi', 'zh']
+#     'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'si',
+#     'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'tr', 'uk', 'vi', 'zh']
 ```
 
 ## Custom language profiles

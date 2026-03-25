@@ -307,6 +307,7 @@ LANG_SMOKE_TESTS: dict[str, tuple[str, str]] = {
     "he": ("שלום", "shlvm"),
     "hy": ("Հայաստան", "Hayastan"),
     "ka": ("თბილისი", "tbilisi"),
+    "si": ("සිංහල", "simhala"),
 }
 
 
@@ -380,6 +381,7 @@ class TestLanguageProfileRegistry:
             "ro",
             "ru",
             "sa",
+            "si",
             "sk",
             "sl",
             "sq",
@@ -612,6 +614,44 @@ class TestIndicTransliteration:
             assert len(result) > 0, (
                 f"Expected non-empty result for {sample!r}"
             )
+
+
+class TestSinhalaTransliteration:
+    """Tests for Sinhala script transliteration."""
+
+    def test_sinhala_bare_consonant(self) -> None:
+        assert transliterate("\u0D9A") == "ka"
+
+    def test_sinhala_virama(self) -> None:
+        assert transliterate("\u0D9A\u0DCA") == "k"
+
+    def test_sinhala_matra(self) -> None:
+        assert transliterate("\u0D9A\u0DD2") == "ki"
+        assert transliterate("\u0D9A\u0DD4") == "ku"
+
+    def test_sinhala_word(self) -> None:
+        result = transliterate("සිංහල")
+        assert result == "simhala"
+
+    def test_sinhala_independent_vowels(self) -> None:
+        assert transliterate("\u0D85") == "a"
+        assert transliterate("\u0D89") == "i"
+        assert transliterate("\u0D8B") == "u"
+
+    def test_sinhala_digits(self) -> None:
+        assert transliterate("෧෨෩") == "123"
+
+    def test_sinhala_produces_ascii(self) -> None:
+        samples = ["සිංහල", "ලංකා", "කොළඹ"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0
+
+    def test_sinhala_mixed_with_latin(self) -> None:
+        result = transliterate("Hello සිංහල")
+        assert result.isascii()
+        assert "Hello" in result
 
 
 class TestGeorgianTransliteration:

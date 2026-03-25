@@ -376,7 +376,7 @@ _odia_text = st.text(
 )
 _any_indic_text = st.text(
     alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0900, 0x0D80) if chr(c).isprintable()]
+        [chr(c) for c in range(0x0900, 0x0E00) if chr(c).isprintable()]
     ),
     min_size=1, max_size=40,
 )
@@ -504,6 +504,38 @@ _hebrew_presentation = st.text(
     ),
     min_size=1, max_size=15,
 )
+
+
+_sinhala_text = st.text(
+    alphabet=st.sampled_from(
+        [chr(c) for c in range(0x0D80, 0x0E00) if chr(c).isprintable()]
+    ),
+    min_size=1, max_size=30,
+)
+
+
+class TestSinhalaTransliterationProperties:
+    """Property-based tests for Sinhala script transliteration."""
+
+    @given(text=_sinhala_text)
+    @settings(max_examples=300)
+    def test_sinhala_produces_ascii(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Sinhala: {result!r}"
+
+    @given(text=_sinhala_text)
+    @settings(max_examples=300)
+    def test_sinhala_idempotent(self, text: str) -> None:
+        once = transliterate(text, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
+
+    @given(text=_sinhala_text)
+    @settings(max_examples=300)
+    def test_sinhala_slugify_valid(self, text: str) -> None:
+        result = slugify(text)
+        if result:
+            assert SLUG_PATTERN.match(result), f"Bad slug from Sinhala: {result!r}"
 
 
 _georgian_text = st.text(

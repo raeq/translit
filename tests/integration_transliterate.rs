@@ -387,6 +387,69 @@ fn hebrew_produces_ascii() {
     }
 }
 
+// --- Sinhala ---
+
+#[test]
+fn sinhala_bare_consonant() {
+    let result =
+        transliterate::transliterate_impl("\u{0D9A}", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "ka");
+}
+
+#[test]
+fn sinhala_virama() {
+    let result = transliterate::transliterate_impl(
+        "\u{0D9A}\u{0DCA}",
+        None,
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    assert_eq!(result, "k");
+}
+
+#[test]
+fn sinhala_matra() {
+    let result = transliterate::transliterate_impl(
+        "\u{0D9A}\u{0DD2}",
+        None,
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    assert_eq!(result, "ki");
+}
+
+#[test]
+fn sinhala_word() {
+    let result =
+        transliterate::transliterate_impl("සිංහල", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "simhala");
+}
+
+#[test]
+fn sinhala_digits() {
+    let result =
+        transliterate::transliterate_impl("෧෨෩", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "123");
+}
+
+#[test]
+fn sinhala_produces_ascii() {
+    let samples = ["සිංහල", "ලංකා", "කොළඹ"];
+    for sample in &samples {
+        let result =
+            transliterate::transliterate_impl(sample, None, ErrorMode::Ignore, "", false, false);
+        assert!(
+            result.is_ascii(),
+            "Expected ASCII for {sample:?}, got: {result:?}"
+        );
+        assert!(!result.is_empty(), "Expected non-empty for {sample:?}");
+    }
+}
+
 // --- Georgian ---
 
 #[test]
@@ -498,9 +561,9 @@ fn tamil_text() -> BoxedStrategy<String> {
     chars_in_range(0x0B80, 0x0BFF)
 }
 
-/// Generate text from any of the 9 Indic blocks (U+0900-U+0D7F).
+/// Generate text from any of the 10 Indic blocks (U+0900-U+0DFF, includes Sinhala).
 fn any_indic_text() -> BoxedStrategy<String> {
-    chars_in_range(0x0900, 0x0D7F)
+    chars_in_range(0x0900, 0x0DFF)
 }
 
 /// Generate Hebrew text (U+0590-U+05FF).
@@ -511,6 +574,11 @@ fn hebrew_text() -> BoxedStrategy<String> {
 /// Generate Hebrew presentation forms (U+FB1D-U+FB4F).
 fn hebrew_presentation_text() -> BoxedStrategy<String> {
     chars_in_range(0xFB1D, 0xFB4F)
+}
+
+/// Generate Sinhala text (U+0D80-U+0DFF).
+fn sinhala_text() -> BoxedStrategy<String> {
+    chars_in_range(0x0D80, 0x0DFF)
 }
 
 /// Generate Georgian text (U+10D0-U+10F0 Mkhedruli).
@@ -627,6 +695,25 @@ proptest! {
     fn prop_hebrew_no_double_spaces(s in hebrew_text()) {
         let result = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
         prop_assert!(!result.contains("  "), "Double space in: {:?}", result);
+    }
+}
+
+// --- Sinhala property tests ---
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(500))]
+
+    #[test]
+    fn prop_sinhala_produces_ascii(s in sinhala_text()) {
+        let result = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Sinhala: {:?}", result);
+    }
+
+    #[test]
+    fn prop_sinhala_idempotent(s in sinhala_text()) {
+        let once = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
+        prop_assert_eq!(&once, &twice);
     }
 }
 
