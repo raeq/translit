@@ -267,6 +267,60 @@ fn detect_char_script(ch: char) -> &'static str {
     }
 }
 
+/// Map a detected script name to a default ISO 639-1 language code.
+///
+/// For scripts that serve a single language (Thai, Georgian, etc.) the mapping
+/// is unambiguous.  For multi-language scripts (Cyrillic → Russian, Han → Chinese)
+/// a reasonable default is chosen.  Scripts with no useful language-specific
+/// transliteration table (Latin, Runic, Ogham, …) return `None`.
+fn script_to_lang(script: &str) -> Option<&'static str> {
+    match script {
+        "Thai" => Some("th"),
+        "Lao" => Some("lo"),
+        "Myanmar" => Some("my"),
+        "Khmer" => Some("km"),
+        "Georgian" => Some("ka"),
+        "Armenian" => Some("hy"),
+        "Tibetan" => Some("bo"),
+        "Ethiopic" => Some("am"),
+        "Bengali" => Some("bn"),
+        "Tamil" => Some("ta"),
+        "Telugu" => Some("te"),
+        "Kannada" => Some("kn"),
+        "Malayalam" => Some("ml"),
+        "Gujarati" => Some("gu"),
+        "Gurmukhi" => Some("pa"),
+        "Oriya" => Some("or"),
+        "Sinhala" => Some("si"),
+        "Hangul" => Some("ko"),
+        "Hebrew" => Some("he"),
+        "Arabic" => Some("ar"),
+        "Javanese" => Some("jv"),
+        "Mongolian" => Some("mn"),
+        "Devanagari" => Some("hi"),
+        "Cyrillic" => Some("ru"),
+        "Han" => Some("zh"),
+        "Hiragana" | "Katakana" => Some("ja"),
+        "Greek" => Some("el"),
+        _ => None,
+    }
+}
+
+/// Resolve `lang="auto"` by scanning text for the first non-Latin, non-Common script.
+///
+/// Returns the default language code for that script, or `None` if the text
+/// contains only Latin/Common/Inherited characters (or is empty).
+pub fn resolve_auto_lang(text: &str) -> Option<String> {
+    for ch in text.chars() {
+        let script = detect_char_script(ch);
+        if script == "Common" || script == "Inherited" || script == "Latin" {
+            continue;
+        }
+        return script_to_lang(script).map(str::to_owned);
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -766,5 +820,73 @@ mod tests {
     fn test_khmer_symbols_range() {
         assert_eq!(detect_char_script('\u{19E0}'), "Khmer");
         assert_eq!(detect_char_script('\u{19FF}'), "Khmer");
+    }
+
+    // ── resolve_auto_lang tests ─────────────────────────────────
+
+    #[test]
+    fn test_resolve_auto_lang_thai() {
+        assert_eq!(resolve_auto_lang("ภาษาไทย"), Some("th".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_latin_only() {
+        assert_eq!(resolve_auto_lang("hello"), None);
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_empty() {
+        assert_eq!(resolve_auto_lang(""), None);
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_accented_latin() {
+        assert_eq!(resolve_auto_lang("café"), None);
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_mixed_latin_cyrillic() {
+        assert_eq!(resolve_auto_lang("Hello Москва"), Some("ru".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_hiragana() {
+        assert_eq!(resolve_auto_lang("こんにちは"), Some("ja".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_han() {
+        assert_eq!(resolve_auto_lang("中文"), Some("zh".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_hangul() {
+        assert_eq!(resolve_auto_lang("한국어"), Some("ko".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_arabic() {
+        assert_eq!(resolve_auto_lang("العربية"), Some("ar".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_hebrew() {
+        assert_eq!(resolve_auto_lang("עברית"), Some("he".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_georgian() {
+        assert_eq!(resolve_auto_lang("ქართული"), Some("ka".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_armenian() {
+        assert_eq!(resolve_auto_lang("Հայերեն"), Some("hy".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_unmapped_script() {
+        // Runic character — no language mapping
+        assert_eq!(resolve_auto_lang("\u{16A0}"), None);
     }
 }

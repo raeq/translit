@@ -1685,6 +1685,107 @@ proptest! {
     }
 }
 
+// ── lang="auto" deterministic tests ────────────────────────────────────────
+
+#[test]
+fn auto_lang_cyrillic_matches_explicit_ru() {
+    let text = "Москва";
+    let auto =
+        transliterate::transliterate_impl(text, Some("auto"), ErrorMode::Ignore, "", false, false);
+    let explicit =
+        transliterate::transliterate_impl(text, Some("ru"), ErrorMode::Ignore, "", false, false);
+    assert_eq!(auto, explicit);
+}
+
+#[test]
+fn auto_lang_thai_matches_explicit_th() {
+    let text = "ภาษาไทย";
+    let auto =
+        transliterate::transliterate_impl(text, Some("auto"), ErrorMode::Ignore, "", false, false);
+    let explicit =
+        transliterate::transliterate_impl(text, Some("th"), ErrorMode::Ignore, "", false, false);
+    assert_eq!(auto, explicit);
+}
+
+#[test]
+fn auto_lang_hiragana_matches_explicit_ja() {
+    let text = "こんにちは";
+    let auto =
+        transliterate::transliterate_impl(text, Some("auto"), ErrorMode::Ignore, "", false, false);
+    let explicit =
+        transliterate::transliterate_impl(text, Some("ja"), ErrorMode::Ignore, "", false, false);
+    assert_eq!(auto, explicit);
+}
+
+#[test]
+fn auto_lang_han_matches_explicit_zh() {
+    let text = "中文";
+    let auto =
+        transliterate::transliterate_impl(text, Some("auto"), ErrorMode::Ignore, "", false, false);
+    let explicit =
+        transliterate::transliterate_impl(text, Some("zh"), ErrorMode::Ignore, "", false, false);
+    assert_eq!(auto, explicit);
+}
+
+#[test]
+fn auto_lang_hangul_matches_explicit_ko() {
+    let text = "한국어";
+    let auto =
+        transliterate::transliterate_impl(text, Some("auto"), ErrorMode::Ignore, "", false, false);
+    let explicit =
+        transliterate::transliterate_impl(text, Some("ko"), ErrorMode::Ignore, "", false, false);
+    assert_eq!(auto, explicit);
+}
+
+#[test]
+fn auto_lang_ascii_passthrough() {
+    let result = transliterate::transliterate_impl(
+        "hello",
+        Some("auto"),
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    assert_eq!(result, "hello");
+}
+
+#[test]
+fn auto_lang_latin_accented_uses_default() {
+    let auto = transliterate::transliterate_impl(
+        "café",
+        Some("auto"),
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    let default =
+        transliterate::transliterate_impl("café", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(auto, default);
+}
+
+#[test]
+fn auto_lang_mixed_latin_cyrillic_first_nonlatin_wins() {
+    let auto = transliterate::transliterate_impl(
+        "Hello Москва",
+        Some("auto"),
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    let explicit = transliterate::transliterate_impl(
+        "Hello Москва",
+        Some("ru"),
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    assert_eq!(auto, explicit);
+}
+
 // ── Expanded multi-script mixture property tests (including new scripts) ────
 
 proptest! {
@@ -1807,5 +1908,11 @@ proptest! {
         let mixed = format!("{cherokee}{canadian}");
         let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
         prop_assert!(result.is_ascii(), "Non-ASCII at Cherokee/Canadian boundary: {:?}", result);
+    }
+
+    /// lang="auto" must never panic on arbitrary input.
+    #[test]
+    fn prop_auto_lang_never_panics(text in "\\PC*") {
+        let _ = transliterate::transliterate_impl(&text, Some("auto"), ErrorMode::Ignore, "", false, false);
     }
 }

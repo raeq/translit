@@ -167,3 +167,6 @@ LANG_TE: str = "te"  # Telugu
 LANG_DV: str = "dv"  # Dhivehi (Thaana)
 LANG_JV: str = "jv"  # Javanese
 LANG_MN: str = "mn"  # Mongolian
+
+# Auto-detection
+LANG_AUTO: str = "auto"  # Auto-detect language from script

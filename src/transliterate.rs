@@ -85,6 +85,15 @@ pub fn transliterate_impl<'a>(
         return Cow::Borrowed(text);
     }
 
+    // Resolve lang="auto" to detected language code.
+    let resolved: Option<String>;
+    let lang = if lang == Some("auto") {
+        resolved = crate::scripts::resolve_auto_lang(text);
+        resolved.as_deref()
+    } else {
+        lang
+    };
+
     let mut result = String::with_capacity(estimate_capacity(text));
     let mut prev_class = ScriptClass::None;
     // Track last char appended to `result` — avoids O(n) `result.chars().last()` scan.
