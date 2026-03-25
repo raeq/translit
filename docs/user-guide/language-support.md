@@ -41,11 +41,37 @@ translit ships with 51 built-in language profiles that provide language-specific
 | `uk` | Ukrainian | Г→H, Ґ→G, Є→Ye, Ї→Yi, І→I | Київ → Kyiv |
 | `vi` | Vietnamese | Full diacritical vowel set | Hà Nội → Ha Noi |
 
-### Non-European languages
+### Semitic languages
 
 | Code | Language | Notes |
 |---|---|---|
-| `ar` | Arabic | Basic transliteration |
+| `ar` | Arabic | Basic transliteration (Buckwalter-derived) |
+| `he` | Hebrew | Common Israeli romanization; Qof → q (SBL); presentation forms with dagesh |
+
+### Indic languages
+
+| Code | Language | Script | Example |
+|---|---|---|---|
+| `as` | Assamese | Bengali | — |
+| `bn` | Bengali | Bengali | কলকাতা → kalakata |
+| `gu` | Gujarati | Gujarati | ગુજરાતી → gujarati |
+| `hi` | Hindi | Devanagari | नमस्ते → namaste |
+| `kn` | Kannada | Kannada | ಕನ್ನಡ → kannada |
+| `ml` | Malayalam | Malayalam | മലയാളം → malayalam |
+| `mr` | Marathi | Devanagari | — |
+| `ne` | Nepali | Devanagari | — |
+| `or` | Odia | Odia | ଓଡ଼ିଆ → odia |
+| `pa` | Punjabi | Gurmukhi | ਗੁਰਮੁਖੀ → gurmukhi |
+| `sa` | Sanskrit | Devanagari | — |
+| `ta` | Tamil | Tamil | தமிழ் → tamizh |
+| `te` | Telugu | Telugu | తెలుగు → telugu |
+
+All 9 Brahmic scripts use virama/mātrā-aware transliteration: consonants carry an inherent "a" that is suppressed by virama (halant) or replaced by dependent vowel marks.
+
+### East Asian & other non-European languages
+
+| Code | Language | Notes |
+|---|---|---|
 | `ja` | Japanese | Hiragana/Katakana → Hepburn; Kanji → Chinese pinyin fallback |
 | `ko` | Korean | Hangul → Revised Romanization (algorithmic jamo decomposition) |
 | `ru` | Russian | Full Cyrillic → Latin |

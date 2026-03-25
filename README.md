@@ -161,7 +161,7 @@ Language-specific profiles (e.g., `lang="de"`) apply **sparse overrides** on top
 
 ## Language profiles
 
-51 built-in language profiles with ISO 9:1995 scholarly Cyrillic support and 9 Indic scripts:
+[51 built-in language profiles](docs/user-guide/language-support.md) with ISO 9:1995 scholarly Cyrillic support and 9 Indic scripts:
 
 ```python
 from translit import list_langs, transliterate
