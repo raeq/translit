@@ -367,13 +367,17 @@ fn decode_numeric_entity(bytes: &[u8], pos: usize, num_buf: &mut String) -> Opti
 }
 
 /// Calculate how many bytes to skip for a malformed numeric entity at `pos`.
+///
+/// Only scans ASCII bytes — stops immediately at non-ASCII (high bit set)
+/// so we never land inside a multi-byte UTF-8 character.
 fn decode_numeric_entity_skip(bytes: &[u8], pos: usize) -> usize {
     let len = bytes.len();
     let mut i = pos + 2; // skip "&#"
     if i < len && (bytes[i] == b'x' || bytes[i] == b'X') {
         i += 1;
     }
-    while i < len && bytes[i] != b';' && (i - pos) < MAX_ENTITY_DIGITS + 4 {
+    while i < len && bytes[i].is_ascii() && bytes[i] != b';' && (i - pos) < MAX_ENTITY_DIGITS + 4
+    {
         i += 1;
     }
     if i < len && bytes[i] == b';' {
