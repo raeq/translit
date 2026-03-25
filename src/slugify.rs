@@ -46,27 +46,20 @@ fn compile_regex(pattern: &str) -> Result<regex::Regex, String> {
         .map_err(|e| format!("Invalid regex: {e}"))
 }
 
-/// Find the largest byte index `<= index` that lies on a UTF-8 char boundary.
-///
-/// Equivalent to the nightly-only `str::floor_char_boundary()`.
-/// Returns `s.len()` when `index >= s.len()`.
-fn floor_char_boundary(s: &str, index: usize) -> usize {
-    if index >= s.len() {
-        s.len()
-    } else {
-        let mut i = index;
-        while i > 0 && !s.is_char_boundary(i) {
-            i -= 1;
-        }
-        i
-    }
-}
+use crate::utils::floor_char_boundary;
 
 /// Configuration for slug generation, extracted from parameters.
 ///
-/// Fields `save_order`, `decimal`, and `hexadecimal` are accepted for
-/// python-slugify parameter compatibility but not yet used in the Rust
-/// implementation. They are retained to preserve API compatibility.
+/// # Compatibility fields (no-op)
+///
+/// The following fields are accepted for python-slugify API compatibility
+/// but have **no effect** in the current implementation:
+///
+/// - `save_order`: Intended to preserve original word order when applying
+///   stopwords. The current implementation always preserves insertion order.
+/// - `decimal` / `hexadecimal`: Intended to toggle HTML decimal/hex entity
+///   decoding independently. The current implementation always decodes both
+///   when `entities` is true.
 #[allow(dead_code)]
 pub struct SlugConfig {
     pub separator: String,
@@ -184,9 +177,38 @@ pub(crate) fn slugify_impl_with_stopset(
 
     let mut value = text.to_owned();
 
-    // Step 1: Apply pre-transliteration replacements
-    for (from, to) in &config.replacements {
-        value = value.replace(from.as_str(), to.as_str());
+    // Step 1: Apply pre-transliteration replacements (single-pass when possible)
+    if !config.replacements.is_empty() {
+        if config.replacements.len() == 1 {
+            // Common case: single replacement pair — .replace() is optimal.
+            let (from, to) = &config.replacements[0];
+            value = value.replace(from.as_str(), to.as_str());
+        } else {
+            // Multiple replacement pairs: single-pass scan to avoid N× full-string
+            // scans and N allocations from chained .replace() calls.
+            let mut result = String::with_capacity(value.len());
+            let mut i = 0;
+            let value_bytes = value.as_bytes();
+            while i < value.len() {
+                let mut matched = false;
+                for (from, to) in &config.replacements {
+                    if value_bytes[i..].starts_with(from.as_bytes()) {
+                        result.push_str(to);
+                        i += from.len();
+                        matched = true;
+                        break;
+                    }
+                }
+                if !matched {
+                    // Safe: we are at a valid position in the string.
+                    // Advance by one character (may be multi-byte).
+                    let ch = value[i..].chars().next().unwrap();
+                    result.push(ch);
+                    i += ch.len_utf8();
+                }
+            }
+            value = result;
+        }
     }
 
     // Step 2: Decode HTML entities (if enabled)
@@ -199,7 +221,7 @@ pub(crate) fn slugify_impl_with_stopset(
         value = transliterate::transliterate_impl(
             &value,
             config.lang.as_deref(),
-            transliterate::ErrorMode::Ignore,
+            crate::ErrorMode::Ignore,
             "",
             false,
         )
@@ -242,20 +264,15 @@ pub(crate) fn slugify_impl_with_stopset(
     // should check `slug.is_empty()` and supply one (e.g. a hash of the input).
     if !config.stopwords.is_empty() {
         // Use the caller-supplied set when available (e.g. _Slugifier caches it
-        // at construction), otherwise build a temporary one from config.
-        let temp;
-        let stopset: &HashSet<String> = match prebuilt_stopset {
-            Some(s) => s,
-            None => {
-                temp = config.stopwords.iter().cloned().collect::<HashSet<String>>();
-                &temp
-            }
+        // at construction), otherwise build a temporary zero-copy set from config.
+        let tmp_stopset;
+        let stopset: &HashSet<String> = if let Some(s) = prebuilt_stopset {
+            s
+        } else {
+            tmp_stopset = config.stopwords.iter().cloned().collect();
+            &tmp_stopset
         };
-        let filtered: Vec<&str> = slug
-            .split(separator.as_str())
-            .filter(|w| !stopset.contains(*w))
-            .collect();
-        slug = filtered.join(separator);
+        slug = filter_stopwords(&slug, separator, stopset);
     }
 
     // Step 8: Truncate to max_length (byte-length, char-boundary safe for allow_unicode)
@@ -276,6 +293,14 @@ pub(crate) fn slugify_impl_with_stopset(
     slug
 }
 
+/// Remove stopwords from a slug, splitting and rejoining on the separator.
+fn filter_stopwords(slug: &str, separator: &str, stopset: &HashSet<String>) -> String {
+    slug.split(separator)
+        .filter(|w| !stopset.contains(*w))
+        .collect::<Vec<_>>()
+        .join(separator)
+}
+
 /// Truncate slug at a word boundary (separator), char-boundary safe.
 fn truncate_at_boundary(slug: &str, max_length: usize, separator: &str) -> String {
     if slug.len() <= max_length {
@@ -289,85 +314,118 @@ fn truncate_at_boundary(slug: &str, max_length: usize, separator: &str) -> Strin
     }
 }
 
-/// Decode HTML entities: named entities (&amp; &lt; &gt; &quot; &apos;)
-/// and numeric entities (&#38; &#x26;).
-fn decode_entities(text: &str) -> String {
-    // First pass: named entities
-    let mut result = text
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&apos;", "'");
-
-    // Second pass: numeric entities (decimal &#NNN; and hex &#xHHH;)
-    if result.contains("&#") {
-        result = decode_numeric_entities(&result);
+/// Decode a numeric HTML entity (&#NNN; or &#xHHH;) starting at `pos`.
+///
+/// Returns `Some((char, bytes_consumed))` on success, `None` for malformed
+/// or control-character entities.  `num_buf` is a caller-supplied buffer
+/// reused across calls to avoid per-entity allocation.
+fn decode_numeric_entity(bytes: &[u8], pos: usize, num_buf: &mut String) -> Option<(char, usize)> {
+    let len = bytes.len();
+    let mut i = pos + 2; // skip "&#"
+    let is_hex = i < len && (bytes[i] == b'x' || bytes[i] == b'X');
+    if is_hex {
+        i += 1;
     }
-
-    result
+    num_buf.clear();
+    while i < len {
+        let b = bytes[i];
+        if b == b';' {
+            i += 1;
+            break;
+        }
+        if num_buf.len() >= MAX_ENTITY_DIGITS {
+            break;
+        }
+        let valid_digit = if is_hex {
+            (b as char).is_ascii_hexdigit()
+        } else {
+            b.is_ascii_digit()
+        };
+        if valid_digit {
+            num_buf.push(b as char);
+            i += 1;
+        } else {
+            break;
+        }
+    }
+    let parsed = if is_hex {
+        u32::from_str_radix(num_buf, 16).ok()
+    } else {
+        num_buf.parse::<u32>().ok()
+    };
+    // Exclude control characters — they are never valid slug content.
+    let ch = parsed.and_then(char::from_u32).filter(|c| !c.is_control())?;
+    Some((ch, i - pos))
 }
 
-/// Decode numeric HTML entities: &#38; (decimal) and &#x26; (hex).
-///
-/// Caps digit collection at `MAX_ENTITY_DIGITS` to prevent unbounded
-/// string accumulation on malformed input.
-fn decode_numeric_entities(text: &str) -> String {
-    let mut result = String::with_capacity(text.len());
-    let mut chars = text.chars().peekable();
+/// Calculate how many bytes to skip for a malformed numeric entity at `pos`.
+fn decode_numeric_entity_skip(bytes: &[u8], pos: usize) -> usize {
+    let len = bytes.len();
+    let mut i = pos + 2; // skip "&#"
+    if i < len && (bytes[i] == b'x' || bytes[i] == b'X') {
+        i += 1;
+    }
+    while i < len && bytes[i] != b';' && (i - pos) < MAX_ENTITY_DIGITS + 4 {
+        i += 1;
+    }
+    if i < len && bytes[i] == b';' {
+        i += 1;
+    }
+    i - pos
+}
 
-    while let Some(ch) = chars.next() {
-        if ch == '&' {
-            // Peek for '#'
-            if chars.peek() == Some(&'#') {
-                chars.next(); // consume '#'
-                let mut num_str = String::new();
-                let is_hex = chars.peek() == Some(&'x') || chars.peek() == Some(&'X');
-                if is_hex {
-                    chars.next(); // consume 'x'/'X'
-                }
-                // Collect digits (bounded), track whether ';' was consumed
-                let mut saw_semicolon = false;
-                while let Some(&d) = chars.peek() {
-                    if d == ';' {
-                        chars.next(); // consume ';'
-                        saw_semicolon = true;
-                        break;
-                    }
-                    if num_str.len() >= MAX_ENTITY_DIGITS {
-                        break; // malformed — too many digits
-                    }
-                    if is_hex && d.is_ascii_hexdigit() {
-                        num_str.push(d);
-                        chars.next();
-                    } else if !is_hex && d.is_ascii_digit() {
-                        num_str.push(d);
-                        chars.next();
-                    } else {
-                        break; // malformed — stop collecting
-                    }
-                }
-                // Try to parse and convert to char
-                let parsed = if is_hex {
-                    u32::from_str_radix(&num_str, 16).ok()
-                } else {
-                    num_str.parse::<u32>().ok()
-                };
-                // filter(|c| !c.is_control()) excludes NUL (U+0000) and other
-                // control characters — they are never valid slug content.
-                if let Some(cp) = parsed.and_then(char::from_u32).filter(|c| !c.is_control()) {
-                    result.push(cp);
-                }
-                // Malformed or control-char entities are silently dropped.
-                // Reconstructing the raw fragment (&#xGGG;, &#<tag>, etc.) could
-                // pass attacker-controlled sequences into the slug pipeline and
-                // produces surprising output. Dropping is safe: the slug pipeline
-                // already strips all non-alphanumeric characters anyway.
-            } else {
+/// Decode HTML entities in a single pass: named entities (&amp; &lt; etc.)
+/// and numeric entities (&#38; &#x26;).
+///
+/// Replaces the previous two-pass approach (5× `.replace()` + numeric scan)
+/// with one scan and one output buffer.
+fn decode_entities(text: &str) -> String {
+    // Fast path: no ampersand means no entities to decode.
+    if !text.contains('&') {
+        return text.to_owned();
+    }
+
+    let mut result = String::with_capacity(text.len());
+    let bytes = text.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    // Reusable buffer for numeric entity digits (avoids per-entity allocation).
+    let mut num_buf = String::with_capacity(MAX_ENTITY_DIGITS);
+
+    while i < len {
+        if bytes[i] != b'&' {
+            result.push(bytes[i] as char);
+            i += 1;
+            continue;
+        }
+
+        // Try named entities (longest-prefix first for correctness)
+        if text[i..].starts_with("&amp;") {
+            result.push('&');
+            i += 5;
+        } else if text[i..].starts_with("&lt;") {
+            result.push('<');
+            i += 4;
+        } else if text[i..].starts_with("&gt;") {
+            result.push('>');
+            i += 4;
+        } else if text[i..].starts_with("&quot;") {
+            result.push('"');
+            i += 6;
+        } else if text[i..].starts_with("&apos;") {
+            result.push('\'');
+            i += 6;
+        } else if text[i..].starts_with("&#") {
+            if let Some((ch, consumed)) = decode_numeric_entity(bytes, i, &mut num_buf) {
                 result.push(ch);
+                i += consumed;
+            } else {
+                // Malformed or control-char entity — advance past "&#".
+                i += decode_numeric_entity_skip(bytes, i);
             }
         } else {
-            result.push(ch);
+            result.push('&');
+            i += 1;
         }
     }
 
@@ -409,6 +467,14 @@ pub fn _slugify_batch(
     decimal: bool,
     hexadecimal: bool,
 ) -> PyResult<Vec<String>> {
+    if texts.len() > crate::MAX_BATCH_SIZE {
+        return translit_err!(
+            "batch too large ({} items); maximum is {} items",
+            texts.len(),
+            crate::MAX_BATCH_SIZE
+        );
+    }
+
     let compiled_regex = regex_pattern
         .map(compile_regex)
         .transpose()
@@ -430,9 +496,12 @@ pub fn _slugify_batch(
         hexadecimal,
     };
 
+    // Pre-build the stopword set once for the entire batch instead of
+    // reconstructing it on every call to slugify_impl.
+    let stopset: HashSet<String> = config.stopwords.iter().cloned().collect();
     Ok(texts
         .iter()
-        .map(|text| slugify_impl(text, &config))
+        .map(|text| slugify_impl_with_stopset(text, &config, Some(&stopset)))
         .collect())
 }
 
@@ -617,6 +686,19 @@ impl _UniqueSlugifier {
                 }
             }
             candidate = format!("{}{}{counter}", base, self.inner.config.separator);
+            // If max_length is set, ensure the suffixed candidate doesn't exceed it.
+            // Truncate the base portion to make room for the separator + counter.
+            if self.inner.config.max_length > 0 && candidate.len() > self.inner.config.max_length {
+                let suffix = format!("{}{counter}", self.inner.config.separator);
+                if suffix.len() >= self.inner.config.max_length {
+                    // Suffix alone exceeds max_length — use the suffix truncated.
+                    candidate = suffix[..self.inner.config.max_length].to_owned();
+                } else {
+                    let avail = self.inner.config.max_length - suffix.len();
+                    let boundary = floor_char_boundary(&base, avail);
+                    candidate = format!("{}{suffix}", &base[..boundary]);
+                }
+            }
             counter += 1;
         }
     }
@@ -732,14 +814,14 @@ mod tests {
 
     #[test]
     fn test_decode_numeric_entity_decimal() {
-        assert_eq!(decode_numeric_entities("&#65;"), "A");
-        assert_eq!(decode_numeric_entities("&#38;"), "&");
+        assert_eq!(decode_entities("&#65;"), "A");
+        assert_eq!(decode_entities("&#38;"), "&");
     }
 
     #[test]
     fn test_decode_numeric_entity_hex() {
-        assert_eq!(decode_numeric_entities("&#x41;"), "A");
-        assert_eq!(decode_numeric_entities("&#x26;"), "&");
+        assert_eq!(decode_entities("&#x41;"), "A");
+        assert_eq!(decode_entities("&#x26;"), "&");
     }
 
     #[test]
@@ -747,20 +829,20 @@ mod tests {
         // Malformed entities are silently dropped (not reconstructed).
         // "&#xyz;" — 'x' triggers hex mode, then 'y' is not a hex digit,
         // so the entire &#x fragment is dropped; "yz;" are emitted as-is.
-        assert_eq!(decode_numeric_entities("&#xyz;"), "yz;");
+        assert_eq!(decode_entities("&#xyz;"), "yz;");
     }
 
     #[test]
     fn test_decode_malformed_entity_semicolon_preserved() {
         // Empty decimal entity &#; — no digits, malformed, dropped silently.
         // The semicolon is consumed by the digit-collection loop and also dropped.
-        assert_eq!(decode_numeric_entities("&#;"), "");
+        assert_eq!(decode_entities("&#;"), "");
         // Empty hex entity &#x; — no hex digits, malformed, dropped silently.
-        assert_eq!(decode_numeric_entities("&#x;"), "");
+        assert_eq!(decode_entities("&#x;"), "");
         // Invalid codepoint (too large for Unicode): malformed, dropped silently.
-        assert_eq!(decode_numeric_entities("&#xFFFFFFFF;"), "");
+        assert_eq!(decode_entities("&#xFFFFFFFF;"), "");
         // U+0000 is a control character and is filtered; entity dropped silently.
-        let result = decode_numeric_entities("&#0;");
+        let result = decode_entities("&#0;");
         assert_eq!(result, "");
     }
 
@@ -770,7 +852,7 @@ mod tests {
         // The entity fails to parse (truncated number is out of Unicode range)
         // and is silently dropped — the result should be empty.
         let long = format!("&#{}1;", "9".repeat(100));
-        let result = decode_numeric_entities(&long);
+        let result = decode_entities(&long);
         // No reconstruction: the malformed entity is dropped entirely.
         assert!(!result.contains("&#"));
     }
@@ -793,29 +875,6 @@ mod tests {
     #[test]
     fn test_truncate_at_boundary_no_separator_found() {
         assert_eq!(truncate_at_boundary("helloworld", 5, "-"), "hello");
-    }
-
-    #[test]
-    fn test_floor_char_boundary() {
-        // ASCII: every byte is a char boundary
-        assert_eq!(floor_char_boundary("hello", 3), 3);
-        assert_eq!(floor_char_boundary("hello", 10), 5); // beyond len
-        assert_eq!(floor_char_boundary("hello", 0), 0);
-
-        // "café" = [99, 97, 102, 195, 169] — 'é' is 2 bytes at index 3–4
-        let s = "café";
-        assert_eq!(floor_char_boundary(s, 5), 5); // full string
-        assert_eq!(floor_char_boundary(s, 4), 3); // mid-'é', rounds down to before it
-        assert_eq!(floor_char_boundary(s, 3), 3); // start of 'é'
-
-        // "日本" = 6 bytes (3 per char)
-        let s = "日本";
-        assert_eq!(floor_char_boundary(s, 6), 6);
-        assert_eq!(floor_char_boundary(s, 5), 3); // mid-second char
-        assert_eq!(floor_char_boundary(s, 4), 3);
-        assert_eq!(floor_char_boundary(s, 3), 3);
-        assert_eq!(floor_char_boundary(s, 2), 0); // mid-first char
-        assert_eq!(floor_char_boundary(s, 1), 0);
     }
 
     #[test]

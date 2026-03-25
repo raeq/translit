@@ -42,305 +42,229 @@ pub fn _is_mixed_script(text: &str) -> bool {
     false
 }
 
+/// Sorted table of (range_start, range_end_inclusive, script_name) for binary search.
+/// Sorted by range_start. All ranges are non-overlapping.
+static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
+    // Latin
+    (0x0041, 0x005A, "Latin"),
+    (0x0061, 0x007A, "Latin"),
+    (0x00C0, 0x024F, "Latin"),
+    (0x0250, 0x02AF, "Latin"),       // IPA Extensions
+    // Inherited — Combining Diacritical Marks
+    (0x0300, 0x036F, "Inherited"),
+    // Greek
+    (0x0370, 0x03FF, "Greek"),
+    // Cyrillic
+    (0x0400, 0x04FF, "Cyrillic"),
+    (0x0500, 0x052F, "Cyrillic"),    // Cyrillic Supplement
+    // Armenian
+    (0x0530, 0x058F, "Armenian"),
+    // Hebrew
+    (0x0590, 0x05FF, "Hebrew"),
+    // Arabic
+    (0x0600, 0x06FF, "Arabic"),
+    // Syriac
+    (0x0700, 0x074F, "Syriac"),
+    // Arabic Supplement
+    (0x0750, 0x077F, "Arabic"),
+    // Thaana
+    (0x0780, 0x07BF, "Thaana"),
+    // NKo
+    (0x07C0, 0x07FF, "NKo"),
+    // Syriac Supplement
+    (0x0860, 0x086F, "Syriac"),
+    // Arabic Extended-A
+    (0x08A0, 0x08FF, "Arabic"),
+    // Devanagari
+    (0x0900, 0x097F, "Devanagari"),
+    // Bengali
+    (0x0980, 0x09FF, "Bengali"),
+    // Gurmukhi
+    (0x0A00, 0x0A7F, "Gurmukhi"),
+    // Gujarati
+    (0x0A80, 0x0AFF, "Gujarati"),
+    // Oriya
+    (0x0B00, 0x0B7F, "Oriya"),
+    // Tamil
+    (0x0B80, 0x0BFF, "Tamil"),
+    // Telugu
+    (0x0C00, 0x0C7F, "Telugu"),
+    // Kannada
+    (0x0C80, 0x0CFF, "Kannada"),
+    // Malayalam
+    (0x0D00, 0x0D7F, "Malayalam"),
+    // Sinhala
+    (0x0D80, 0x0DFF, "Sinhala"),
+    // Thai
+    (0x0E00, 0x0E7F, "Thai"),
+    // Lao
+    (0x0E80, 0x0EFF, "Lao"),
+    // Tibetan
+    (0x0F00, 0x0FFF, "Tibetan"),
+    // Myanmar
+    (0x1000, 0x109F, "Myanmar"),
+    // Georgian
+    (0x10A0, 0x10FF, "Georgian"),
+    // Hangul Jamo
+    (0x1100, 0x11FF, "Hangul"),
+    // Ethiopic
+    (0x1200, 0x137F, "Ethiopic"),
+    (0x1380, 0x139F, "Ethiopic"),    // Ethiopic Supplement
+    // Cherokee
+    (0x13A0, 0x13FF, "Cherokee"),
+    // Canadian Aboriginal Syllabics
+    (0x1400, 0x167F, "CanadianAboriginal"),
+    // Ogham
+    (0x1680, 0x169F, "Ogham"),
+    // Runic
+    (0x16A0, 0x16FF, "Runic"),
+    // Khmer
+    (0x1780, 0x17FF, "Khmer"),
+    // Mongolian
+    (0x1800, 0x18AF, "Mongolian"),
+    // Canadian Aboriginal Syllabics Extended
+    (0x18B0, 0x18FF, "CanadianAboriginal"),
+    // Tai Le
+    (0x1950, 0x197F, "TaiLe"),
+    // New Tai Lue
+    (0x1980, 0x19DF, "NewTaiLue"),
+    // Khmer Symbols
+    (0x19E0, 0x19FF, "Khmer"),
+    // Inherited — Combining Diacritical Marks Extended
+    (0x1AB0, 0x1AFF, "Inherited"),
+    // Balinese
+    (0x1B00, 0x1B7F, "Balinese"),
+    // Georgian Extended
+    (0x1C90, 0x1CBF, "Georgian"),
+    // Latin — Phonetic Extensions
+    (0x1D00, 0x1D7F, "Latin"),
+    // Latin — Phonetic Extensions Supplement
+    (0x1D80, 0x1DBF, "Latin"),
+    // Inherited — Combining Diacritical Marks Supplement
+    (0x1DC0, 0x1DFF, "Inherited"),
+    // Latin Extended Additional
+    (0x1E00, 0x1EFF, "Latin"),
+    // Greek Extended
+    (0x1F00, 0x1FFF, "Greek"),
+    // Inherited — Combining Diacritical Marks for Symbols
+    (0x20D0, 0x20FF, "Inherited"),
+    // Latin Extended-C
+    (0x2C60, 0x2C7F, "Latin"),
+    // Coptic
+    (0x2C80, 0x2CFF, "Coptic"),
+    // Georgian Supplement
+    (0x2D00, 0x2D2F, "Georgian"),
+    // Ethiopic Extended
+    (0x2D80, 0x2DDF, "Ethiopic"),
+    // Cyrillic Extended-A
+    (0x2DE0, 0x2DFF, "Cyrillic"),
+    // CJK Radicals Supplement
+    (0x2E80, 0x2EFF, "Han"),
+    // Kangxi Radicals
+    (0x2F00, 0x2FDF, "Han"),
+    // Hiragana
+    (0x3040, 0x309F, "Hiragana"),
+    // Katakana
+    (0x30A0, 0x30FF, "Katakana"),
+    // Hangul Compatibility Jamo
+    (0x3130, 0x318F, "Hangul"),
+    // Katakana Phonetic Extensions
+    (0x31F0, 0x31FF, "Katakana"),
+    // CJK Unified Ext A
+    (0x3400, 0x4DBF, "Han"),
+    // CJK Unified
+    (0x4E00, 0x9FFF, "Han"),
+    // Vai
+    (0xA500, 0xA63F, "Vai"),
+    // Cyrillic Extended-B
+    (0xA640, 0xA69F, "Cyrillic"),
+    // Latin Extended-D
+    (0xA720, 0xA7FF, "Latin"),
+    // Devanagari Extended
+    (0xA8E0, 0xA8FF, "Devanagari"),
+    // Hangul Jamo Extended-A
+    (0xA960, 0xA97F, "Hangul"),
+    // Javanese
+    (0xA980, 0xA9DF, "Javanese"),
+    // Myanmar Extended-A
+    (0xAA60, 0xAA7F, "Myanmar"),
+    // Ethiopic Extended-A
+    (0xAB00, 0xAB2F, "Ethiopic"),
+    // Latin Extended-E
+    (0xAB30, 0xAB6F, "Latin"),
+    // Cherokee Supplement
+    (0xAB70, 0xABBF, "Cherokee"),
+    // Hangul Syllables
+    (0xAC00, 0xD7AF, "Hangul"),
+    // Hangul Jamo Extended-B
+    (0xD7B0, 0xD7FF, "Hangul"),
+    // CJK Compatibility Ideographs
+    (0xF900, 0xFAFF, "Han"),
+    // Latin ligatures in Alphabetic PF
+    (0xFB00, 0xFB06, "Latin"),
+    // Armenian ligatures in Alphabetic PF
+    (0xFB13, 0xFB17, "Armenian"),
+    // Hebrew presentation forms
+    (0xFB1D, 0xFB4F, "Hebrew"),
+    // Arabic Presentation Forms-A
+    (0xFB50, 0xFDFF, "Arabic"),
+    // Inherited — Combining Half Marks
+    (0xFE20, 0xFE2F, "Inherited"),
+    // Arabic Presentation Forms-B
+    (0xFE70, 0xFEFF, "Arabic"),
+    // Halfwidth Katakana
+    (0xFF65, 0xFF9F, "Katakana"),
+    // CJK Unified Ext B
+    (0x20000, 0x2A6DF, "Han"),
+    // CJK Unified Ext C
+    (0x2A700, 0x2B73F, "Han"),
+    // CJK Unified Ext D
+    (0x2B740, 0x2B81F, "Han"),
+    // CJK Unified Ext E
+    (0x2B820, 0x2CEAF, "Han"),
+    // CJK Unified Ext F
+    (0x2CEB0, 0x2EBEF, "Han"),
+    // CJK Unified Ext G
+    (0x30000, 0x3134F, "Han"),
+];
+
 /// Detect the Unicode script for a single character.
-/// Uses Unicode Script property ranges (UAX #24).
+///
+/// Uses binary search over sorted, non-overlapping Unicode Script ranges
+/// (UAX #24).  O(log n) where n = number of ranges (~100), vs the previous
+/// linear chain which was O(n) worst-case.
 fn detect_char_script(ch: char) -> &'static str {
     let cp = ch as u32;
 
-    // ── Latin ────────────────────────────────────────────
-    if (0x0041..=0x005A).contains(&cp)
-        || (0x0061..=0x007A).contains(&cp)
-        || (0x00C0..=0x024F).contains(&cp)
-        || (0x0250..=0x02AF).contains(&cp)   // IPA Extensions
-        || (0x1D00..=0x1D7F).contains(&cp)   // Phonetic Extensions
-        || (0x1D80..=0x1DBF).contains(&cp)   // Phonetic Extensions Supplement
-        || (0x1E00..=0x1EFF).contains(&cp)   // Latin Extended Additional
-        || (0x2C60..=0x2C7F).contains(&cp)   // Latin Extended-C
-        || (0xA720..=0xA7FF).contains(&cp)   // Latin Extended-D
-        || (0xAB30..=0xAB6F).contains(&cp)   // Latin Extended-E
-        || (0xFB00..=0xFB06).contains(&cp)
-    // Latin ligatures in Alphabetic PF (ﬀ ﬁ ﬂ ﬃ ﬄ ﬅ ﬆ)
-    {
-        return "Latin";
-    }
-
-    // ── Greek ────────────────────────────────────────────
-    if (0x0370..=0x03FF).contains(&cp) || (0x1F00..=0x1FFF).contains(&cp)
-    // Greek Extended
-    {
-        return "Greek";
-    }
-
-    // ── Cyrillic ─────────────────────────────────────────
-    if (0x0400..=0x04FF).contains(&cp)
-        || (0x0500..=0x052F).contains(&cp)   // Cyrillic Supplement
-        || (0x2DE0..=0x2DFF).contains(&cp)   // Cyrillic Extended-A
-        || (0xA640..=0xA69F).contains(&cp)
-    // Cyrillic Extended-B
-    {
-        return "Cyrillic";
-    }
-
-    // ── Armenian ─────────────────────────────────────────
-    if (0x0530..=0x058F).contains(&cp) || (0xFB13..=0xFB17).contains(&cp)
-    // Armenian ligatures in Alphabetic PF (ﬓ ﬔ ﬕ ﬖ ﬗ)
-    {
-        return "Armenian";
-    }
-
-    // ── Hebrew ───────────────────────────────────────────
-    if (0x0590..=0x05FF).contains(&cp) || (0xFB1D..=0xFB4F).contains(&cp)
-    // Hebrew presentation forms
-    {
-        return "Hebrew";
-    }
-
-    // ── Arabic ───────────────────────────────────────────
-    if (0x0600..=0x06FF).contains(&cp)
-        || (0x0750..=0x077F).contains(&cp)   // Arabic Supplement
-        || (0x08A0..=0x08FF).contains(&cp)   // Arabic Extended-A
-        || (0xFB50..=0xFDFF).contains(&cp)   // Arabic Presentation Forms-A
-        || (0xFE70..=0xFEFF).contains(&cp)
-    // Arabic Presentation Forms-B
-    {
-        return "Arabic";
-    }
-
-    // ── Syriac ───────────────────────────────────────────
-    if (0x0700..=0x074F).contains(&cp) || (0x0860..=0x086F).contains(&cp)
-    // Syriac Supplement
-    {
-        return "Syriac";
-    }
-
-    // ── Thaana (Maldivian/Dhivehi) ──────────────────────
-    if (0x0780..=0x07BF).contains(&cp) {
-        return "Thaana";
-    }
-
-    // ── N'Ko ─────────────────────────────────────────────
-    if (0x07C0..=0x07FF).contains(&cp) {
-        return "NKo";
-    }
-
-    // ── Devanagari ───────────────────────────────────────
-    if (0x0900..=0x097F).contains(&cp) || (0xA8E0..=0xA8FF).contains(&cp)
-    // Devanagari Extended
-    {
-        return "Devanagari";
-    }
-
-    // ── Bengali ──────────────────────────────────────────
-    if (0x0980..=0x09FF).contains(&cp) {
-        return "Bengali";
-    }
-
-    // ── Gurmukhi (Punjabi) ───────────────────────────────
-    if (0x0A00..=0x0A7F).contains(&cp) {
-        return "Gurmukhi";
-    }
-
-    // ── Gujarati ─────────────────────────────────────────
-    if (0x0A80..=0x0AFF).contains(&cp) {
-        return "Gujarati";
-    }
-
-    // ── Oriya / Odia ─────────────────────────────────────
-    if (0x0B00..=0x0B7F).contains(&cp) {
-        return "Oriya";
-    }
-
-    // ── Tamil ────────────────────────────────────────────
-    if (0x0B80..=0x0BFF).contains(&cp) {
-        return "Tamil";
-    }
-
-    // ── Telugu ───────────────────────────────────────────
-    if (0x0C00..=0x0C7F).contains(&cp) {
-        return "Telugu";
-    }
-
-    // ── Kannada ──────────────────────────────────────────
-    if (0x0C80..=0x0CFF).contains(&cp) {
-        return "Kannada";
-    }
-
-    // ── Malayalam ────────────────────────────────────────
-    if (0x0D00..=0x0D7F).contains(&cp) {
-        return "Malayalam";
-    }
-
-    // ── Sinhala ──────────────────────────────────────────
-    if (0x0D80..=0x0DFF).contains(&cp) {
-        return "Sinhala";
-    }
-
-    // ── Thai ─────────────────────────────────────────────
-    if (0x0E00..=0x0E7F).contains(&cp) {
-        return "Thai";
-    }
-
-    // ── Lao ──────────────────────────────────────────────
-    if (0x0E80..=0x0EFF).contains(&cp) {
-        return "Lao";
-    }
-
-    // ── Tibetan ──────────────────────────────────────────
-    if (0x0F00..=0x0FFF).contains(&cp) {
-        return "Tibetan";
-    }
-
-    // ── Myanmar (Burmese) ────────────────────────────────
-    if (0x1000..=0x109F).contains(&cp) || (0xAA60..=0xAA7F).contains(&cp)
-    // Myanmar Extended-A
-    {
-        return "Myanmar";
-    }
-
-    // ── Georgian ─────────────────────────────────────────
-    if (0x10A0..=0x10FF).contains(&cp)
-        || (0x2D00..=0x2D2F).contains(&cp)   // Georgian Supplement
-        || (0x1C90..=0x1CBF).contains(&cp)
-    // Georgian Extended
-    {
-        return "Georgian";
-    }
-
-    // ── Hangul ───────────────────────────────────────────
-    if (0x1100..=0x11FF).contains(&cp)        // Jamo
-        || (0x3130..=0x318F).contains(&cp)    // Compatibility Jamo
-        || (0xA960..=0xA97F).contains(&cp)    // Jamo Extended-A
-        || (0xAC00..=0xD7AF).contains(&cp)    // Syllables
-        || (0xD7B0..=0xD7FF).contains(&cp)
-    // Jamo Extended-B
-    {
-        return "Hangul";
-    }
-
-    // ── Ethiopic ─────────────────────────────────────────
-    if (0x1200..=0x137F).contains(&cp)
-        || (0x1380..=0x139F).contains(&cp)    // Ethiopic Supplement
-        || (0x2D80..=0x2DDF).contains(&cp)    // Ethiopic Extended
-        || (0xAB00..=0xAB2F).contains(&cp)
-    // Ethiopic Extended-A
-    {
-        return "Ethiopic";
-    }
-
-    // ── Cherokee ─────────────────────────────────────────
-    if (0x13A0..=0x13FF).contains(&cp) || (0xAB70..=0xABBF).contains(&cp)
-    // Cherokee Supplement
-    {
-        return "Cherokee";
-    }
-
-    // ── Canadian Aboriginal Syllabics ────────────────────
-    if (0x1400..=0x167F).contains(&cp) || (0x18B0..=0x18FF).contains(&cp)
-    // Unified Canadian Aboriginal Syllabics Extended
-    {
-        return "CanadianAboriginal";
-    }
-
-    // ── Ogham ────────────────────────────────────────────
-    if (0x1680..=0x169F).contains(&cp) {
-        return "Ogham";
-    }
-
-    // ── Runic ────────────────────────────────────────────
-    if (0x16A0..=0x16FF).contains(&cp) {
-        return "Runic";
-    }
-
-    // ── Khmer (Cambodian) ────────────────────────────────
-    if (0x1780..=0x17FF).contains(&cp) || (0x19E0..=0x19FF).contains(&cp)
-    // Khmer Symbols
-    {
-        return "Khmer";
-    }
-
-    // ── Mongolian ────────────────────────────────────────
-    if (0x1800..=0x18AF).contains(&cp) {
-        return "Mongolian";
-    }
-
-    // ── Tai Le ───────────────────────────────────────────
-    if (0x1950..=0x197F).contains(&cp) {
-        return "TaiLe";
-    }
-
-    // ── New Tai Lue ──────────────────────────────────────
-    if (0x1980..=0x19DF).contains(&cp) {
-        return "NewTaiLue";
-    }
-
-    // ── Balinese ─────────────────────────────────────────
-    if (0x1B00..=0x1B7F).contains(&cp) {
-        return "Balinese";
-    }
-
-    // ── Coptic ───────────────────────────────────────────
-    if (0x2C80..=0x2CFF).contains(&cp) {
-        return "Coptic";
-    }
-
-    // ── Hiragana ─────────────────────────────────────────
-    if (0x3040..=0x309F).contains(&cp) {
-        return "Hiragana";
-    }
-
-    // ── Katakana ─────────────────────────────────────────
-    if (0x30A0..=0x30FF).contains(&cp)
-        || (0x31F0..=0x31FF).contains(&cp)    // Katakana Phonetic Extensions
-        || (0xFF65..=0xFF9F).contains(&cp)
-    // Halfwidth Katakana
-    {
-        return "Katakana";
-    }
-
-    // ── CJK Unified Ideographs (Han) ────────────────────
-    if (0x2E80..=0x2EFF).contains(&cp)        // CJK Radicals Supplement
-        || (0x2F00..=0x2FDF).contains(&cp)    // Kangxi Radicals
-        || (0x3400..=0x4DBF).contains(&cp)    // CJK Unified Ext A
-        || (0x4E00..=0x9FFF).contains(&cp)    // CJK Unified
-        || (0xF900..=0xFAFF).contains(&cp)    // CJK Compatibility
-        || (0x20000..=0x2A6DF).contains(&cp)  // CJK Unified Ext B
-        || (0x2A700..=0x2B73F).contains(&cp)  // CJK Unified Ext C
-        || (0x2B740..=0x2B81F).contains(&cp)  // CJK Unified Ext D
-        || (0x2B820..=0x2CEAF).contains(&cp)  // CJK Unified Ext E
-        || (0x2CEB0..=0x2EBEF).contains(&cp)  // CJK Unified Ext F
-        || (0x30000..=0x3134F).contains(&cp)
-    // CJK Unified Ext G
-    {
-        return "Han";
-    }
-
-    // ── Vai ──────────────────────────────────────────────
-    if (0xA500..=0xA63F).contains(&cp) {
-        return "Vai";
-    }
-
-    // ── Javanese ─────────────────────────────────────────
-    if (0xA980..=0xA9DF).contains(&cp) {
-        return "Javanese";
-    }
-
-    // ── Common: digits, punctuation, whitespace ──────────
-    if ch.is_ascii_digit() || ch.is_ascii_punctuation() || ch.is_whitespace() {
+    // Fast path for ASCII digits/punctuation/whitespace (very common).
+    if ch.is_ascii() {
+        if (0x0041..=0x005A).contains(&cp) || (0x0061..=0x007A).contains(&cp) {
+            return "Latin";
+        }
+        if ch.is_ascii_digit() || ch.is_ascii_punctuation() || ch.is_whitespace() {
+            return "Common";
+        }
         return "Common";
     }
 
-    // Combining marks in the general range are Inherited
-    if (0x0300..=0x036F).contains(&cp)        // Combining Diacritical Marks
-        || (0x1AB0..=0x1AFF).contains(&cp)    // Combining Diacritical Marks Extended
-        || (0x1DC0..=0x1DFF).contains(&cp)    // Combining Diacritical Marks Supplement
-        || (0x20D0..=0x20FF).contains(&cp)    // Combining Diacritical Marks for Symbols
-        || (0xFE20..=0xFE2F).contains(&cp)
-    // Combining Half Marks
-    {
-        return "Inherited";
+    // Binary search: find the rightmost range whose start <= cp
+    match SCRIPT_RANGES.binary_search_by(|&(start, _, _)| start.cmp(&cp)) {
+        // Exact match on a range start
+        Ok(idx) => SCRIPT_RANGES[idx].2,
+        // cp would be inserted at `idx`; check if it falls within the range before it
+        Err(0) => {
+            // cp is below all ranges
+            "Common"
+        }
+        Err(idx) => {
+            let &(_, end, script) = &SCRIPT_RANGES[idx - 1];
+            if cp <= end {
+                script
+            } else {
+                "Common"
+            }
+        }
     }
-
-    "Common"
 }
 
 #[cfg(test)]

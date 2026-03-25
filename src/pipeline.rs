@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use pyo3::prelude::*;
 
 use bitflags::bitflags;
@@ -90,48 +92,57 @@ impl _TextPipeline {
             steps |= PipelineSteps::DEMOJIZE;
         }
 
-        Ok(Self {
+        let pipeline = Self {
             steps,
             normalize_form: normalize.map(|s| s.to_owned()),
             lang: lang.map(|s| s.to_owned()),
             strict_iso9,
             strip_control,
             strip_zero_width,
-        })
+        };
+
+        // Invariant: NORMALIZE step requires a normalize_form, and vice versa.
+        debug_assert_eq!(
+            pipeline.steps.contains(PipelineSteps::NORMALIZE),
+            pipeline.normalize_form.is_some(),
+            "NORMALIZE step and normalize_form must be set together"
+        );
+
+        Ok(pipeline)
     }
 
     /// Return the ordered list of active pipeline steps and their parameters.
+    ///
+    /// Order matches `process()`: normalize → confusables → demojize →
+    /// strip_accents → transliterate → fold_case → collapse_whitespace.
     fn steps(&self) -> Vec<(String, Option<String>)> {
-        let mut result = Vec::new();
-        // Return in execution order (same as process())
-        if self.steps.contains(PipelineSteps::NORMALIZE) {
-            result.push((
-                "normalize".to_owned(),
-                self.normalize_form.clone(),
-            ));
-        }
-        if self.steps.contains(PipelineSteps::CONFUSABLES) {
-            result.push(("confusables".to_owned(), Some("latin".to_owned())));
-        }
-        if self.steps.contains(PipelineSteps::DEMOJIZE) {
-            result.push(("demojize".to_owned(), None));
-        }
-        if self.steps.contains(PipelineSteps::STRIP_ACCENTS) {
-            result.push(("strip_accents".to_owned(), None));
-        }
-        if self.steps.contains(PipelineSteps::TRANSLITERATE) {
-            result.push((
-                "transliterate".to_owned(),
-                self.lang.clone(),
-            ));
-        }
-        if self.steps.contains(PipelineSteps::FOLD_CASE) {
-            result.push(("fold_case".to_owned(), None));
-        }
-        if self.steps.contains(PipelineSteps::COLLAPSE_WS) {
-            result.push(("collapse_whitespace".to_owned(), None));
-        }
-        result
+        // Execution order — add new steps here AND in process().
+        const STEP_ORDER: &[(PipelineSteps, &str)] = &[
+            (PipelineSteps::NORMALIZE, "normalize"),
+            (PipelineSteps::CONFUSABLES, "confusables"),
+            (PipelineSteps::DEMOJIZE, "demojize"),
+            (PipelineSteps::STRIP_ACCENTS, "strip_accents"),
+            (PipelineSteps::TRANSLITERATE, "transliterate"),
+            (PipelineSteps::FOLD_CASE, "fold_case"),
+            (PipelineSteps::COLLAPSE_WS, "collapse_whitespace"),
+        ];
+
+        STEP_ORDER
+            .iter()
+            .filter(|(flag, _)| self.steps.contains(*flag))
+            .map(|(flag, name)| {
+                let param = if flag.contains(PipelineSteps::NORMALIZE) {
+                    self.normalize_form.clone()
+                } else if flag.contains(PipelineSteps::CONFUSABLES) {
+                    Some("latin".to_owned())
+                } else if flag.contains(PipelineSteps::TRANSLITERATE) {
+                    self.lang.clone()
+                } else {
+                    None
+                };
+                ((*name).to_owned(), param)
+            })
+            .collect()
     }
 
     fn __repr__(&self) -> String {
@@ -145,54 +156,336 @@ impl _TextPipeline {
     }
 
     /// Process text through the pipeline.
+    ///
+    /// Uses `Cow<str>` to avoid cloning the input when no steps modify it
+    /// (e.g. empty pipeline, or input that passes through unchanged).
     fn process(&self, text: &str) -> PyResult<String> {
-        let mut buf = text.to_owned();
+        let mut buf: Cow<'_, str> = Cow::Borrowed(text);
 
         // Fixed optimal order regardless of construction order:
         // 1. Normalize (canonical form first)
         if self.steps.contains(PipelineSteps::NORMALIZE) {
             if let Some(ref form) = self.normalize_form {
-                buf = normalize::_normalize(&buf, form)?;
+                buf = Cow::Owned(normalize::_normalize(&buf, form)?);
             }
         }
 
         // 2. Confusables (before transliteration — operates on Unicode)
         if self.steps.contains(PipelineSteps::CONFUSABLES) {
-            buf = confusables::_normalize_confusables(&buf, "latin")?;
+            buf = Cow::Owned(confusables::_normalize_confusables(&buf, "latin")?);
         }
 
         // 3. Demojize (after normalization, before transliteration)
         if self.steps.contains(PipelineSteps::DEMOJIZE) {
-            buf = emoji::demojize_rust(&buf, false);
+            buf = Cow::Owned(emoji::demojize_rust(&buf, false));
         }
 
         // 4. Strip accents (NFD decompose + strip combining marks)
         if self.steps.contains(PipelineSteps::STRIP_ACCENTS) {
-            buf = transliterate::_strip_accents(&buf);
+            buf = Cow::Owned(transliterate::_strip_accents(&buf));
         }
 
         // 5. Transliterate (Unicode → ASCII)
         if self.steps.contains(PipelineSteps::TRANSLITERATE) {
-            buf = transliterate::transliterate_impl(
-                &buf,
-                self.lang.as_deref(),
-                transliterate::ErrorMode::Ignore,
-                "",
-                self.strict_iso9,
-            )
-            .into_owned();
+            buf = Cow::Owned(
+                transliterate::transliterate_impl(
+                    &buf,
+                    self.lang.as_deref(),
+                    crate::ErrorMode::Ignore,
+                    "",
+                    self.strict_iso9,
+                )
+                .into_owned(),
+            );
         }
 
         // 6. Fold case (after transliteration)
         if self.steps.contains(PipelineSteps::FOLD_CASE) {
-            buf = case_fold::fold_case_impl(&buf);
+            buf = Cow::Owned(case_fold::fold_case_impl(&buf));
         }
 
         // 7. Collapse whitespace + strip control (final cleanup)
         if self.steps.contains(PipelineSteps::COLLAPSE_WS) {
-            buf = whitespace::_collapse_whitespace(&buf, self.strip_control, self.strip_zero_width);
+            buf = Cow::Owned(whitespace::_collapse_whitespace(&buf, self.strip_control, self.strip_zero_width));
         }
 
-        Ok(buf)
+        Ok(buf.into_owned())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── Unit tests: individual steps ─────────────────────────────────
+
+    #[test]
+    fn test_pipeline_empty_passthrough() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::empty(),
+            normalize_form: None,
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        assert_eq!(p.process("hello world").unwrap(), "hello world");
+        assert_eq!(p.process("").unwrap(), "");
+        assert_eq!(p.process("café ☕").unwrap(), "café ☕");
+    }
+
+    #[test]
+    fn test_pipeline_normalize_only() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::NORMALIZE,
+            normalize_form: Some("NFC".to_owned()),
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        // NFD e + combining accent → NFC é
+        let result = p.process("caf\u{0065}\u{0301}").unwrap();
+        assert_eq!(result, "caf\u{00e9}");
+    }
+
+    #[test]
+    fn test_pipeline_transliterate_only() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::TRANSLITERATE,
+            normalize_form: None,
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        let result = p.process("café").unwrap();
+        assert!(result.is_ascii(), "expected ASCII, got: {result:?}");
+    }
+
+    #[test]
+    fn test_pipeline_fold_case_only() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::FOLD_CASE,
+            normalize_form: None,
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        assert_eq!(p.process("HELLO").unwrap(), "hello");
+        assert_eq!(p.process("Straße").unwrap(), "strasse");
+    }
+
+    #[test]
+    fn test_pipeline_strip_accents_only() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::STRIP_ACCENTS,
+            normalize_form: None,
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        assert_eq!(p.process("café").unwrap(), "cafe");
+        assert_eq!(p.process("naïve").unwrap(), "naive");
+    }
+
+    #[test]
+    fn test_pipeline_collapse_ws_only() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::COLLAPSE_WS,
+            normalize_form: None,
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        assert_eq!(p.process("  hello   world  ").unwrap(), "hello world");
+    }
+
+    #[test]
+    fn test_pipeline_confusables_only() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::CONFUSABLES,
+            normalize_form: None,
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        // Cyrillic а (U+0430) → Latin a
+        let result = p.process("\u{0430}bc").unwrap();
+        assert_eq!(result, "abc");
+    }
+
+    #[test]
+    fn test_pipeline_demojize_only() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::DEMOJIZE,
+            normalize_form: None,
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        let result = p.process("Hello 😀").unwrap();
+        assert!(result.contains("grinning face"), "expected emoji name, got: {result:?}");
+    }
+
+    // ── Step ordering verification ───────────────────────────────────
+
+    #[test]
+    fn test_pipeline_all_steps_ordering() {
+        // With all steps, the documented order is:
+        // normalize → confusables → demojize → strip_accents → transliterate → fold_case → collapse_ws
+        let p = _TextPipeline {
+            steps: PipelineSteps::all(),
+            normalize_form: Some("NFKC".to_owned()),
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        // ﬁ (Latin ligature fi) → NFKC → fi → ... → fi
+        let result = p.process("\u{FB01}").unwrap();
+        assert_eq!(result, "fi");
+    }
+
+    #[test]
+    fn test_pipeline_steps_list_matches_execution_order() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::all(),
+            normalize_form: Some("NFC".to_owned()),
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        let step_names: Vec<String> = p.steps().iter().map(|(name, _)| name.clone()).collect();
+        assert_eq!(step_names, vec![
+            "normalize",
+            "confusables",
+            "demojize",
+            "strip_accents",
+            "transliterate",
+            "fold_case",
+            "collapse_whitespace",
+        ]);
+    }
+
+    #[test]
+    fn test_pipeline_repr_format() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::NORMALIZE | PipelineSteps::FOLD_CASE,
+            normalize_form: Some("NFC".to_owned()),
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        let repr = p.__repr__();
+        assert!(repr.starts_with("TextPipeline("), "repr: {repr:?}");
+        assert!(repr.contains("normalize"), "repr: {repr:?}");
+        assert!(repr.contains("fold_case"), "repr: {repr:?}");
+    }
+
+    // ── Edge cases ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_pipeline_all_steps_empty_input() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::all(),
+            normalize_form: Some("NFC".to_owned()),
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        assert_eq!(p.process("").unwrap(), "");
+    }
+
+    #[test]
+    fn test_pipeline_all_steps_ascii_input() {
+        let p = _TextPipeline {
+            steps: PipelineSteps::all(),
+            normalize_form: Some("NFC".to_owned()),
+            lang: None,
+            strict_iso9: false,
+            strip_control: true,
+            strip_zero_width: true,
+        };
+        assert_eq!(p.process("hello").unwrap(), "hello");
+    }
+
+    // ── Property-based tests ─────────────────────────────────────────
+
+    mod proptest_properties {
+        use super::*;
+        use proptest::prelude::*;
+
+        fn all_steps_pipeline() -> _TextPipeline {
+            _TextPipeline {
+                steps: PipelineSteps::all(),
+                normalize_form: Some("NFKC".to_owned()),
+                lang: None,
+                strict_iso9: false,
+                strip_control: true,
+                strip_zero_width: true,
+            }
+        }
+
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(1000))]
+
+            /// The full pipeline must never panic on any valid Unicode string.
+            #[test]
+            fn pipeline_all_steps_never_panics(s in "\\PC*") {
+                let p = all_steps_pipeline();
+                let result = p.process(&s);
+                prop_assert!(result.is_ok(), "pipeline panicked on: {:?}", s);
+            }
+
+            /// Output of all-steps pipeline is always valid ASCII (since
+            /// transliterate with Ignore mode is included, which drops non-ASCII).
+            #[test]
+            fn pipeline_all_steps_produces_ascii(s in "\\PC*") {
+                let p = all_steps_pipeline();
+                let result = p.process(&s).unwrap();
+                prop_assert!(
+                    result.is_ascii(),
+                    "non-ASCII in all-steps pipeline output: {:?} → {:?}",
+                    s, result
+                );
+            }
+
+            /// Pipeline is idempotent: processing already-processed text gives
+            /// the same result. This must hold because every step is individually
+            /// idempotent and the composition of idempotent operations in a fixed
+            /// order is idempotent.
+            #[test]
+            fn pipeline_all_steps_idempotent(s in "\\PC*") {
+                let p = all_steps_pipeline();
+                let once = p.process(&s).unwrap();
+                let twice = p.process(&once).unwrap();
+                prop_assert_eq!(&once, &twice,
+                    "pipeline is not idempotent on: {:?}", s);
+            }
+
+            /// Empty pipeline is a no-op — output equals input.
+            #[test]
+            fn pipeline_empty_is_identity(s in "\\PC*") {
+                let p = _TextPipeline {
+                    steps: PipelineSteps::empty(),
+                    normalize_form: None,
+                    lang: None,
+                    strict_iso9: false,
+                    strip_control: true,
+                    strip_zero_width: true,
+                };
+                let result = p.process(&s).unwrap();
+                prop_assert_eq!(&result, &s);
+            }
+        }
     }
 }

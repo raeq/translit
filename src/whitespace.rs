@@ -7,6 +7,8 @@ use pyo3::prelude::*;
 pub fn _collapse_whitespace(text: &str, strip_control: bool, strip_zero_width: bool) -> String {
     let mut result = String::with_capacity(text.len());
     let mut prev_was_space = false;
+    // Track whether we've seen any non-whitespace yet to skip leading spaces.
+    let mut seen_non_ws = false;
 
     for ch in text.chars() {
         if is_zero_width(ch) {
@@ -24,18 +26,24 @@ pub fn _collapse_whitespace(text: &str, strip_control: bool, strip_zero_width: b
         }
 
         if ch.is_whitespace() {
-            if !prev_was_space {
+            if seen_non_ws && !prev_was_space {
                 result.push(' ');
                 prev_was_space = true;
             }
         } else {
             result.push(ch);
             prev_was_space = false;
+            seen_non_ws = true;
         }
     }
 
-    // Trim leading/trailing whitespace
-    result.trim().to_owned()
+    // Strip trailing whitespace in-place (at most one trailing space from
+    // the collapsing logic above).
+    if result.ends_with(' ') {
+        result.truncate(result.len() - 1);
+    }
+
+    result
 }
 
 /// Check if a character is invisible/zero-width and should be stripped.

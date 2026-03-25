@@ -40,16 +40,15 @@ pub(crate) fn fold_case_impl(text: &str) -> String {
         return text.to_ascii_lowercase();
     }
 
-    let mut result = String::with_capacity(text.len());
+    // Over-allocate by 10% to reduce reallocations when expanding chars
+    // are present (e.g. ß→ss, ﬃ→ffi).  For pure non-expanding input the
+    // excess is negligible; for expansion-heavy input it avoids 1–2 reallocs.
+    let mut result = String::with_capacity(text.len() + text.len() / 10);
 
     for ch in text.chars() {
         if ch.is_ascii() {
-            // Inline ASCII lowercase — no PHF lookup needed.
-            result.push(if ch.is_ascii_uppercase() {
-                (ch as u8 + 32) as char
-            } else {
-                ch
-            });
+            // ASCII lowercase — no PHF lookup needed.
+            result.push(ch.to_ascii_lowercase());
         } else if let Some(folded) = case_folding_data::lookup(ch) {
             result.push_str(folded);
         } else {

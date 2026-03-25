@@ -15,6 +15,14 @@ use std::sync::RwLock;
 use once_cell::sync::Lazy;
 
 use crate::tables;
+use crate::ErrorMode;
+
+/// Zero-Width Joiner — joins emoji into compound sequences (e.g. family groups).
+const ZWJ: char = '\u{200D}';
+/// Variation Selector 16 — request emoji presentation.
+const VS16: char = '\u{FE0F}';
+/// Variation Selector 15 — request text presentation.
+const VS15: char = '\u{FE0E}';
 
 /// Sentinel for "no custom provider registered".
 static GLOBAL_PROVIDER: Lazy<RwLock<Option<PyObject>>> = Lazy::new(|| RwLock::new(None));
@@ -23,27 +31,6 @@ static GLOBAL_PROVIDER: Lazy<RwLock<Option<PyObject>>> = Lazy::new(|| RwLock::ne
 pub fn set_provider(provider: Option<PyObject>) {
     let mut guard = crate::recover_lock(GLOBAL_PROVIDER.write());
     *guard = provider;
-}
-
-/// Error handling mode — mirrors transliterate.
-#[derive(Debug, Clone, Copy)]
-enum ErrorMode {
-    Replace,
-    Ignore,
-    Preserve,
-}
-
-impl ErrorMode {
-    fn from_str(s: &str) -> PyResult<Self> {
-        match s {
-            "replace" => Ok(Self::Replace),
-            "ignore" => Ok(Self::Ignore),
-            "preserve" => Ok(Self::Preserve),
-            _ => Err(pyo3::exceptions::PyValueError::new_err(format!(
-                "errors must be 'replace', 'ignore', or 'preserve', got '{s}'"
-            ))),
-        }
-    }
 }
 
 /// Write a slice of codepoints as an uppercase hex key into `buf`, reusing it.
@@ -71,22 +58,41 @@ fn match_emoji_at(chars: &[char], pos: usize) -> Option<(&'static str, usize)> {
     // Try multi-codepoint sequences first (longest match)
     if tables::is_emoji_multi_starter(ch) {
         let max_len = tables::max_emoji_seq_len().min(remaining);
-        // Single allocation for all candidate keys in this call.
+        // Build the full key once for max_len, then use pre-computed separator
+        // positions for O(1) truncation instead of rfind('_') per iteration.
         let mut key_buf = String::with_capacity(max_len * 6);
-        // Try longest sequences first
-        for len in (2..=max_len).rev() {
-            let seq = &chars[pos..pos + len];
+        encode_key_into(&mut key_buf, &chars[pos..pos + max_len]);
 
+        // Pre-compute positions of '_' separators for O(1) indexed truncation.
+        // sep_positions[i] = byte offset of the (i+1)-th '_' separator.
+        // To get a key for `len` codepoints, truncate at sep_positions[len-2]
+        // (since the first codepoint has no leading separator).
+        let sep_positions: Vec<usize> = key_buf
+            .bytes()
+            .enumerate()
+            .filter_map(|(i, b)| if b == b'_' { Some(i) } else { None })
+            .collect();
+
+        // Try longest sequences first, truncating the key progressively
+        for len in (2..=max_len).rev() {
+            let last = chars[pos + len - 1];
             // Skip sequences that end with a variation selector or ZWJ
-            // (they're incomplete).  Use .last() instead of direct indexing so
-            // that a future change to the loop bounds cannot cause a panic.
-            let Some(&last) = seq.last() else { continue };
-            if last == '\u{200D}' || last == '\u{FE0F}' || last == '\u{FE0E}' {
+            // (they're incomplete).
+            if last == ZWJ || last == VS16 || last == VS15 {
                 continue;
             }
 
-            encode_key_into(&mut key_buf, seq);
-            if let Some(name) = tables::lookup_emoji_multi(&key_buf) {
+            // Truncate key to `len` codepoints using the separator index.
+            // sep_positions has max_len-1 entries (one per separator between codepoints).
+            // For `len` codepoints we need `len-1` separators, so truncate at
+            // sep_positions[len-1] (the start of the (len+1)-th codepoint's separator).
+            let key_slice = if len < max_len {
+                &key_buf[..sep_positions[len - 1]]
+            } else {
+                &key_buf
+            };
+
+            if let Some(name) = tables::lookup_emoji_multi(key_slice) {
                 return Some((name, len));
             }
         }
@@ -96,7 +102,7 @@ fn match_emoji_at(chars: &[char], pos: usize) -> Option<(&'static str, usize)> {
     if let Some(name) = tables::lookup_emoji_single(ch) {
         // Check if followed by variation selector — consume it too
         let consumed = if pos + 1 < chars.len()
-            && (chars[pos + 1] == '\u{FE0F}' || chars[pos + 1] == '\u{FE0E}')
+            && (chars[pos + 1] == VS16 || chars[pos + 1] == VS15)
         {
             2
         } else {
@@ -190,7 +196,7 @@ fn demojize_impl(
         let ch = chars[i];
 
         // Skip orphaned variation selectors and ZWJ characters
-        if ch == '\u{FE0F}' || ch == '\u{FE0E}' || ch == '\u{200D}' {
+        if ch == VS16 || ch == VS15 || ch == ZWJ {
             i += 1;
             continue;
         }
@@ -212,18 +218,7 @@ fn demojize_impl(
 
         // Try built-in emoji tables
         if let Some((name, consumed)) = match_emoji_at(&chars, i) {
-            // If strip_modifiers, check if this is a modified variant
-            // (contains ": " indicating skin tone or other modifier)
-            let output_name = if strip_modifiers {
-                if let Some(base_end) = name.find(": ") {
-                    &name[..base_end]
-                } else {
-                    name
-                }
-            } else {
-                name
-            };
-            result.push_str(output_name);
+            result.push_str(strip_modifier_suffix(name, strip_modifiers));
             i += consumed;
             // Consume any trailing orphaned ZWJ/VS after matched emoji
             while i < chars.len() && is_emoji_modifier(chars[i]) {
@@ -352,6 +347,18 @@ pub fn _set_emoji_provider(provider: Option<PyObject>) {
     set_provider(provider);
 }
 
+/// Strip modifier suffixes (": light skin tone", etc.) from a CLDR short name
+/// when `strip_modifiers` is true.
+#[inline]
+fn strip_modifier_suffix<'a>(name: &'a str, strip_modifiers: bool) -> &'a str {
+    if strip_modifiers {
+        if let Some(base_end) = name.find(": ") {
+            return &name[..base_end];
+        }
+    }
+    name
+}
+
 /// Pure Rust demojize for use by TextPipeline (no Python provider support).
 pub fn demojize_rust(text: &str, strip_modifiers: bool) -> String {
     let chars: Vec<char> = text.chars().collect();
@@ -361,31 +368,21 @@ pub fn demojize_rust(text: &str, strip_modifiers: bool) -> String {
     while i < chars.len() {
         let ch = chars[i];
 
-        if ch == '\u{FE0F}' || ch == '\u{FE0E}' {
+        if ch == VS16 || ch == VS15 || ch == ZWJ {
             i += 1;
             continue;
         }
 
         if let Some((name, consumed)) = match_emoji_at(&chars, i) {
-            let output_name = if strip_modifiers {
-                if let Some(base_end) = name.find(": ") {
-                    &name[..base_end]
-                } else {
-                    name
-                }
-            } else {
-                name
-            };
-            result.push_str(output_name);
+            result.push_str(strip_modifier_suffix(name, strip_modifiers));
             i += consumed;
-            // Consume any trailing orphaned ZWJ/VS after matched emoji
             while i < chars.len() && is_emoji_modifier(chars[i]) {
                 i += 1;
             }
             continue;
         }
 
-        // Unknown emoji — use replace mode with empty string (drop it)
+        // Unknown emoji — drop it (Ignore mode)
         if is_emoji_codepoint(ch) {
             i += 1;
             while i < chars.len() && is_emoji_modifier(chars[i]) {
@@ -415,7 +412,7 @@ mod tests {
     #[test]
     fn test_encode_key_multi() {
         let mut buf = String::new();
-        encode_key_into(&mut buf, &['\u{1F468}', '\u{200D}', '\u{1F469}']);
+        encode_key_into(&mut buf, &['\u{1F468}', ZWJ, '\u{1F469}']);
         assert_eq!(buf, "1F468_200D_1F469");
     }
 
@@ -429,8 +426,8 @@ mod tests {
 
     #[test]
     fn test_is_emoji_modifier() {
-        assert!(is_emoji_modifier('\u{200D}')); // ZWJ
-        assert!(is_emoji_modifier('\u{FE0F}')); // VS16
+        assert!(is_emoji_modifier(ZWJ)); // ZWJ
+        assert!(is_emoji_modifier(VS16)); // VS16
         assert!(is_emoji_modifier('\u{1F3FB}')); // Light skin tone
         assert!(!is_emoji_modifier('A'));
     }
