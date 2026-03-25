@@ -57,9 +57,6 @@ use crate::utils::floor_char_boundary;
 ///
 /// - `save_order`: Intended to preserve original word order when applying
 ///   stopwords. The current implementation always preserves insertion order.
-/// - `decimal` / `hexadecimal`: Intended to toggle HTML decimal/hex entity
-///   decoding independently. The current implementation always decodes both
-///   when `entities` is true.
 #[allow(dead_code)]
 pub struct SlugConfig {
     pub separator: String,
@@ -213,7 +210,7 @@ pub(crate) fn slugify_impl_with_stopset(
 
     // Step 2: Decode HTML entities (if enabled)
     if config.entities {
-        value = decode_entities(&value);
+        value = decode_entities(&value, config.decimal, config.hexadecimal);
     }
 
     // Step 3: Transliterate (unless allow_unicode)
@@ -391,7 +388,7 @@ fn decode_numeric_entity_skip(bytes: &[u8], pos: usize) -> usize {
 ///
 /// Replaces the previous two-pass approach (5× `.replace()` + numeric scan)
 /// with one scan and one output buffer.
-fn decode_entities(text: &str) -> String {
+fn decode_entities(text: &str, decimal: bool, hexadecimal: bool) -> String {
     // Fast path: no ampersand means no entities to decode.
     if !text.contains('&') {
         return text.to_owned();
@@ -432,12 +429,20 @@ fn decode_entities(text: &str) -> String {
             result.push('\'');
             i += 6;
         } else if text[i..].starts_with("&#") {
-            if let Some((ch, consumed)) = decode_numeric_entity(bytes, i, &mut num_buf) {
-                result.push(ch);
-                i += consumed;
+            let is_hex = i + 2 < len && (bytes[i + 2] == b'x' || bytes[i + 2] == b'X');
+            let decode = if is_hex { hexadecimal } else { decimal };
+            if decode {
+                if let Some((ch, consumed)) = decode_numeric_entity(bytes, i, &mut num_buf) {
+                    result.push(ch);
+                    i += consumed;
+                } else {
+                    // Malformed or control-char entity — advance past "&#".
+                    i += decode_numeric_entity_skip(bytes, i);
+                }
             } else {
-                // Malformed or control-char entity — advance past "&#".
-                i += decode_numeric_entity_skip(bytes, i);
+                // Flag disabled — preserve the raw '&' and let the loop advance.
+                result.push('&');
+                i += 1;
             }
         } else {
             result.push('&');
@@ -825,32 +830,32 @@ mod tests {
     fn test_decode_entities_multibyte_utf8() {
         // BUG-1: decode_entities previously used `bytes[i] as char` which
         // corrupts multi-byte UTF-8 characters (é = 0xC3 0xA9 → Ã ©).
-        assert_eq!(decode_entities("café &amp; résumé"), "café & résumé");
-        assert_eq!(decode_entities("über &lt; cool"), "über < cool");
-        assert_eq!(decode_entities("中文 &amp; 日本語"), "中文 & 日本語");
-        assert_eq!(decode_entities("emoji 🎉 &amp; fun"), "emoji 🎉 & fun");
+        assert_eq!(decode_entities("café &amp; résumé", true, true), "café & résumé");
+        assert_eq!(decode_entities("über &lt; cool", true, true), "über < cool");
+        assert_eq!(decode_entities("中文 &amp; 日本語", true, true), "中文 & 日本語");
+        assert_eq!(decode_entities("emoji 🎉 &amp; fun", true, true), "emoji 🎉 & fun");
         // Pure non-ASCII without entities hits the fast path (no &),
         // but mixed input must also work correctly.
-        assert_eq!(decode_entities("café"), "café");
+        assert_eq!(decode_entities("café", true, true), "café");
     }
 
     #[test]
     fn test_decode_named_entities() {
-        assert_eq!(decode_entities("AT&amp;T"), "AT&T");
-        assert_eq!(decode_entities("5 &lt; 10"), "5 < 10");
-        assert_eq!(decode_entities("&quot;hello&quot;"), "\"hello\"");
+        assert_eq!(decode_entities("AT&amp;T", true, true), "AT&T");
+        assert_eq!(decode_entities("5 &lt; 10", true, true), "5 < 10");
+        assert_eq!(decode_entities("&quot;hello&quot;", true, true), "\"hello\"");
     }
 
     #[test]
     fn test_decode_numeric_entity_decimal() {
-        assert_eq!(decode_entities("&#65;"), "A");
-        assert_eq!(decode_entities("&#38;"), "&");
+        assert_eq!(decode_entities("&#65;", true, true), "A");
+        assert_eq!(decode_entities("&#38;", true, true), "&");
     }
 
     #[test]
     fn test_decode_numeric_entity_hex() {
-        assert_eq!(decode_entities("&#x41;"), "A");
-        assert_eq!(decode_entities("&#x26;"), "&");
+        assert_eq!(decode_entities("&#x41;", true, true), "A");
+        assert_eq!(decode_entities("&#x26;", true, true), "&");
     }
 
     #[test]
@@ -858,20 +863,20 @@ mod tests {
         // Malformed entities are silently dropped (not reconstructed).
         // "&#xyz;" — 'x' triggers hex mode, then the skip function
         // scans past all remaining chars up to and including ';'.
-        assert_eq!(decode_entities("&#xyz;"), "");
+        assert_eq!(decode_entities("&#xyz;", true, true), "");
     }
 
     #[test]
     fn test_decode_malformed_entity_semicolon_preserved() {
         // Empty decimal entity &#; — no digits, malformed, dropped silently.
         // The semicolon is consumed by the digit-collection loop and also dropped.
-        assert_eq!(decode_entities("&#;"), "");
+        assert_eq!(decode_entities("&#;", true, true), "");
         // Empty hex entity &#x; — no hex digits, malformed, dropped silently.
-        assert_eq!(decode_entities("&#x;"), "");
+        assert_eq!(decode_entities("&#x;", true, true), "");
         // Invalid codepoint (too large for Unicode): malformed, dropped silently.
-        assert_eq!(decode_entities("&#xFFFFFFFF;"), "");
+        assert_eq!(decode_entities("&#xFFFFFFFF;", true, true), "");
         // U+0000 is a control character and is filtered; entity dropped silently.
-        let result = decode_entities("&#0;");
+        let result = decode_entities("&#0;", true, true);
         assert_eq!(result, "");
     }
 
@@ -881,9 +886,29 @@ mod tests {
         // The entity fails to parse (truncated number is out of Unicode range)
         // and is silently dropped — the result should be empty.
         let long = format!("&#{}1;", "9".repeat(100));
-        let result = decode_entities(&long);
+        let result = decode_entities(&long, true, true);
         // No reconstruction: the malformed entity is dropped entirely.
         assert!(!result.contains("&#"));
+    }
+
+    #[test]
+    fn test_decode_decimal_disabled() {
+        // decimal=false: &#65; is preserved as raw text, hex still decoded
+        assert_eq!(decode_entities("&#65;", false, true), "&#65;");
+        assert_eq!(decode_entities("&#x41;", false, true), "A");
+    }
+
+    #[test]
+    fn test_decode_hex_disabled() {
+        // hexadecimal=false: &#x41; is preserved, decimal still decoded
+        assert_eq!(decode_entities("&#x41;", true, false), "&#x41;");
+        assert_eq!(decode_entities("&#65;", true, false), "A");
+    }
+
+    #[test]
+    fn test_decode_both_disabled() {
+        // Both disabled: numeric entities preserved, named still decoded
+        assert_eq!(decode_entities("&#65; &amp; &#x41;", false, false), "&#65; & &#x41;");
     }
 
     #[test]
