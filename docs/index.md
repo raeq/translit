@@ -22,7 +22,7 @@ translit is a single, MIT-licensed Python package that replaces a constellation 
 ## Installation
 
 ```bash
-pip install translit
+pip install translit-rs
 ```
 
 Wheels are available for Linux, macOS, and Windows on Python 3.9+.

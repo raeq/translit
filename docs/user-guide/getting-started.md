@@ -5,7 +5,7 @@
 Install translit from PyPI:
 
 ```bash
-pip install translit
+pip install translit-rs
 ```
 
 Pre-built wheels are available for:

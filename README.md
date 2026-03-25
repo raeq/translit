@@ -4,7 +4,7 @@
 
 Unicode text infrastructure for Python: transliteration, normalization, and safety analysis, powered by Rust.
 
-**[Documentation](https://translit.readthedocs.io/)** | **[GitHub](https://github.com/raeq/translit)** | **[PyPI](https://pypi.org/project/translit/)**
+**[Documentation](https://translit.readthedocs.io/)** | **[GitHub](https://github.com/raeq/translit)** | **[PyPI](https://pypi.org/project/translit-rs/)**
 
 ## Features
 
@@ -22,10 +22,16 @@ All text processing is implemented in Rust with O(1) PHF lookups and exposed to 
 ## Installation
 
 ```bash
-pip install translit
+pip install translit-rs
 ```
 
-Requires Python 3.9+ and a Rust toolchain for building from source.
+The package installs as `translit-rs` on PyPI but imports as `translit`:
+
+```python
+import translit  # not translit_rs
+```
+
+Requires Python 3.9+. Wheels are available for Linux, macOS, and Windows.
 
 ## Quick start
 

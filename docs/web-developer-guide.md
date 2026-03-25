@@ -378,7 +378,7 @@ from translit import slugify
 ## Installation
 
 ```bash
-pip install translit
+pip install translit-rs
 ```
 
 Single wheel per platform. No Rust toolchain required for installation.

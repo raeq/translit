@@ -3,7 +3,7 @@ requires = ["maturin>=1.7,<2"]
 build-backend = "maturin"
 
 [project]
-name = "translit"
+name = "translit-rs"
 version = "0.1.0"
 description = "Fast Unicode transliteration (including CJK), slugification, and text normalization — Rust-powered Python library"
 readme = "README.md"
@@ -56,7 +56,7 @@ test = [
     "mypy>=1.10",
 ]
 dev = [
-    "translit[test]",
+    "translit-rs[test]",
     "ruff>=0.4",
     "maturin>=1.7,<2",
     "pre-commit>=3.0",

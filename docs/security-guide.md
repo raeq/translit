@@ -606,7 +606,7 @@ translit adds negligible latency compared to the I/O it sits behind.
 ## Installation
 
 ```bash
-pip install translit
+pip install translit-rs
 ```
 
 Single wheel per platform (abi3). No Rust toolchain required. No runtime
