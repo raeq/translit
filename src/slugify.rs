@@ -829,9 +829,9 @@ mod tests {
     #[test]
     fn test_decode_malformed_entity() {
         // Malformed entities are silently dropped (not reconstructed).
-        // "&#xyz;" — 'x' triggers hex mode, then 'y' is not a hex digit,
-        // so the entire &#x fragment is dropped; "yz;" are emitted as-is.
-        assert_eq!(decode_entities("&#xyz;"), "yz;");
+        // "&#xyz;" — 'x' triggers hex mode, then the skip function
+        // scans past all remaining chars up to and including ';'.
+        assert_eq!(decode_entities("&#xyz;"), "");
     }
 
     #[test]
