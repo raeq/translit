@@ -5,6 +5,44 @@
 
 use pyo3::prelude::*;
 
+// Shared utilities and error construction.
+#[doc(hidden)]
+pub mod utils;
+
+/// Construct a `TranslitError` `PyResult::Err` with a formatted message.
+///
+/// Usage: `translit_err!("invalid value: {}", val)` returns `Err(TranslitError(...))`.
+macro_rules! translit_err {
+    ($($arg:tt)*) => {
+        Err($crate::TranslitError::new_err(format!($($arg)*)))
+    };
+}
+/// Error handling mode for operations that encounter untranslatable/unknown input.
+///
+/// Shared across transliterate, emoji, and other modules that need the
+/// replace/ignore/preserve trichotomy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ErrorMode {
+    /// Substitute unknown input with a replacement string.
+    Replace,
+    /// Silently drop unknown input.
+    Ignore,
+    /// Pass unknown input through unchanged.
+    Preserve,
+}
+
+impl ErrorMode {
+    /// Parse a Python-facing error mode string (`"replace"`, `"ignore"`, `"preserve"`).
+    pub fn from_str(s: &str) -> PyResult<Self> {
+        match s {
+            "replace" => Ok(Self::Replace),
+            "ignore" => Ok(Self::Ignore),
+            "preserve" => Ok(Self::Preserve),
+            _ => translit_err!("errors must be 'replace', 'ignore', or 'preserve', got '{s}'"),
+        }
+    }
+}
+
 // Core modules — `pub` so Criterion benchmarks (external crate) can access
 // the pure-Rust implementation functions directly.
 #[doc(hidden)]
@@ -105,11 +143,19 @@ fn _translit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-/// Recover from a poisoned `RwLock` or `Mutex`, logging a warning to stderr.
+/// Maximum number of strings in a batch API call.
 ///
-/// A poisoned lock means a thread panicked while holding it.  The underlying
-/// data may be in an inconsistent state.  We log a diagnostic and continue
-/// rather than propagating the panic to every subsequent caller.
+/// Prevents excessive memory allocation from a single Python call.
+/// 100,000 strings is generous for any real workload; callers with
+/// larger datasets should chunk.
+pub(crate) const MAX_BATCH_SIZE: usize = 100_000;
+
+/// Recover from a poisoned `RwLock` or `Mutex` **read** guard.
+///
+/// A poisoned lock means a thread panicked while holding it.  For read
+/// access the data may be stale but is still structurally valid (the write
+/// that panicked was rolled back by the `Drop` impl).  We log a diagnostic
+/// and continue rather than propagating the panic to every subsequent caller.
 pub(crate) fn recover_lock<T>(result: std::sync::LockResult<T>) -> T {
     result.unwrap_or_else(|e| {
         eprintln!(
@@ -119,6 +165,30 @@ pub(crate) fn recover_lock<T>(result: std::sync::LockResult<T>) -> T {
         );
         e.into_inner()
     })
+}
+
+/// Recover from a poisoned `RwLock` **write** guard, resetting data.
+///
+/// Unlike `recover_lock()`, this resets the protected data to its `Default`
+/// value after recovering from poison.  This is appropriate for write access
+/// where the data may be in an inconsistent state and continuing with corrupt
+/// data is worse than losing cached registrations.
+pub(crate) fn recover_lock_or_clear<T: Default>(
+    result: std::sync::LockResult<std::sync::RwLockWriteGuard<'_, T>>,
+) -> std::sync::RwLockWriteGuard<'_, T> {
+    match result {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!(
+                "translit: RwLock poisoned (a thread panicked while holding the lock). \
+                 Recovering and clearing data to avoid operating on inconsistent state. \
+                 This is a bug; please report it."
+            );
+            let mut guard = e.into_inner();
+            *guard = T::default();
+            guard
+        }
+    }
 }
 
 pyo3::create_exception!(
