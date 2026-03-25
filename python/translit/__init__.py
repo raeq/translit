@@ -355,6 +355,9 @@ def sanitize_filename(
     platform: Platform = "universal",
     lang: str | None = None,
     preserve_extension: bool = True,
+    # pathvalidate compatibility aliases
+    replacement_text: str | None = None,
+    max_len: int | None = None,
 ) -> str:
     """Sanitize a string into a safe filename.
 
@@ -364,10 +367,12 @@ def sanitize_filename(
     Args:
         text: Input string (title, user input, etc.).
         separator: Replacement for spaces and stripped characters.
+            Also accepted as ``replacement_text`` (pathvalidate compatibility).
         max_length: Maximum filename length measured in **bytes** (UTF-8
             encoded), not characters. Default 255 matches the ext4/APFS/NTFS
             filesystem limit. Truncation always lands on a character boundary
             to avoid splitting multi-byte sequences.
+            Also accepted as ``max_len`` (pathvalidate compatibility).
         platform: Target platform — ``"universal"``, ``"windows"``, or
             ``"posix"``.
         lang: Language code for transliteration (e.g. ``"de"``, ``"ja"``).
@@ -394,6 +399,12 @@ def sanitize_filename(
     """
     if not isinstance(text, str):
         raise TypeError(f"sanitize_filename() expects str, got {type(text).__name__}")
+    # pathvalidate compatibility: replacement_text → separator
+    if replacement_text is not None:
+        separator = replacement_text
+    # pathvalidate compatibility: max_len → max_length
+    if max_len is not None:
+        max_length = max_len
     if max_length < 0:
         raise ValueError(f"max_length must be non-negative, got {max_length}")
     return _sanitize_filename(
@@ -434,6 +445,10 @@ def strip_accents(text: str) -> str:
     return _strip_accents(text)
 
 
+#: Alias for :func:`strip_accents` — common name in sklearn and ML ecosystems.
+remove_accents = strip_accents
+
+
 def fold_case(text: str) -> str:
     """Full Unicode case folding per CaseFolding.txt (Unicode 16.0).
 
@@ -470,6 +485,10 @@ def fold_case(text: str) -> str:
     if text.isascii():
         return text.lower()
     return _fold_case(text)
+
+
+#: Alias for :func:`fold_case` — matches ``str.casefold()`` naming for drop-in use.
+casefold = fold_case
 
 
 def collapse_whitespace(
@@ -515,6 +534,8 @@ def demojize(
     errors: ErrorMode = "replace",
     replace_with: str = "[?]",
     provider: EmojiProvider | None = None,
+    # emoji library compatibility
+    delimiters: tuple[str, str] | None = None,
 ) -> str:
     """Expand emoji sequences to their CLDR short-name text descriptions.
 
@@ -533,6 +554,10 @@ def demojize(
         provider: An object implementing the :class:`EmojiProvider` protocol.
             Overrides the global provider for this call.
             None uses the global provider or the built-in default.
+        delimiters: ``emoji`` library compatibility — ignored with a
+            ``DeprecationWarning``. translit always outputs bare CLDR
+            short names without delimiters; wrap the result yourself if
+            you need delimiters (e.g. ``f":{name}:"``).
 
     Returns:
         Text with emoji replaced by their descriptions.
@@ -551,6 +576,14 @@ def demojize(
     """
     if not isinstance(text, str):
         raise TypeError(f"demojize() expects str, got {type(text).__name__}")
+    if delimiters is not None:
+        _warnings.warn(
+            "The 'delimiters' parameter is not supported by translit.demojize(); "
+            "translit always outputs bare CLDR short names. "
+            "Wrap the result yourself if you need delimiters.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     return _demojize(
         text,
         strip_modifiers=strip_modifiers,
@@ -1141,6 +1174,9 @@ def is_confusable(
     text: str,
     *,
     target_script: str = "latin",
+    # confusable_homoglyphs compatibility
+    greedy: bool | None = None,
+    preferred_aliases: list[str] | None = None,
 ) -> bool:
     """True if text contains characters confusable with target-script characters.
 
@@ -1148,6 +1184,11 @@ def is_confusable(
         text: Input string.
         target_script: Script to check confusability against. Currently only
             ``"latin"`` is supported; any other value raises ``TranslitError``.
+        greedy: ``confusable_homoglyphs`` compatibility — ignored with a
+            ``DeprecationWarning``. translit always checks all characters.
+        preferred_aliases: ``confusable_homoglyphs`` compatibility — ignored
+            with a ``DeprecationWarning``. translit uses its own script
+            detection engine.
 
     Returns:
         True if any confusable homoglyphs are present.
@@ -1161,6 +1202,20 @@ def is_confusable(
         >>> is_confusable("paypal")  # all genuine Latin
         False
     """
+    if greedy is not None:
+        _warnings.warn(
+            "The 'greedy' parameter is not supported by translit.is_confusable(); "
+            "translit always checks all characters.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if preferred_aliases is not None:
+        _warnings.warn(
+            "The 'preferred_aliases' parameter is not supported by "
+            "translit.is_confusable(); translit uses its own script detection.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     return _is_confusable(text, target_script=target_script)
 
 
@@ -1634,6 +1689,9 @@ __all__ = [
     "LANG_KO",
     "LANG_RU",
     "LANG_ZH",
+    # Drop-in compatibility aliases
+    "casefold",
+    "remove_accents",
     # Compatibility aliases (Unidecode)
     "unidecode",
     "ascii_fold",

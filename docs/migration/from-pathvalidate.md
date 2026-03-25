@@ -25,20 +25,23 @@ from translit import sanitize_filename
 ## Parameter mapping
 
 ```python
-# pathvalidate
-sanitize_filename("my<file>.txt", replacement_text="_")
-sanitize_filename("my<file>.txt", platform="Windows")
+# pathvalidate — these work directly in translit (compatibility aliases)
+sanitize_filename("my<file>.txt", replacement_text="_")  # accepted
+sanitize_filename("my<file>.txt", max_len=100)           # accepted
 
-# translit
+# translit native names
 sanitize_filename("my<file>.txt", separator="_")
-sanitize_filename("my<file>.txt", platform="windows")  # lowercase
+sanitize_filename("my<file>.txt", max_length=100)
+
+# platform values are lowercase in translit
+sanitize_filename("my<file>.txt", platform="windows")  # not "Windows"
 ```
 
 | pathvalidate parameter | translit parameter | Notes |
 |---|---|---|
-| `replacement_text` | `separator` | Different name |
+| `replacement_text` | `separator` | Both accepted — `replacement_text` maps to `separator` |
 | `platform` | `platform` | Values are lowercase in translit |
-| `max_len` | `max_length` | Different name |
+| `max_len` | `max_length` | Both accepted — `max_len` maps to `max_length` |
 | — | `lang` | **New**: language-aware transliteration |
 | — | `preserve_extension` | **New**: protect file extension during truncation |
 

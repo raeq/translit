@@ -21,11 +21,12 @@ result = is_mixed_script("Неllo")  # => True
 ```python
 # Before
 from confusable_homoglyphs import confusables
-result = confusables.is_confusable("Неllo")  # detailed list of dicts
+result = confusables.is_confusable("Неllo", greedy=True)  # detailed list of dicts
 
-# After
+# After — greedy and preferred_aliases are accepted (with deprecation warning)
 from translit import is_confusable
 result = is_confusable("Неllo")  # => True
+result = is_confusable("Неllo", greedy=True)  # accepted, warns
 ```
 
 ### Confusable normalization
