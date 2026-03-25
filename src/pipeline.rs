@@ -94,8 +94,8 @@ impl _TextPipeline {
 
         let pipeline = Self {
             steps,
-            normalize_form: normalize.map(|s| s.to_owned()),
-            lang: lang.map(|s| s.to_owned()),
+            normalize_form: normalize.map(std::borrow::ToOwned::to_owned),
+            lang: lang.map(std::borrow::ToOwned::to_owned),
             strict_iso9,
             strip_control,
             strip_zero_width,

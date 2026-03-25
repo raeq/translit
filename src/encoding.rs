@@ -49,21 +49,20 @@ pub fn decode_to_utf8_impl(
     encoding: Option<&str>,
     min_confidence: f64,
 ) -> Result<(String, bool), String> {
-    let enc = match encoding {
-        Some(name) => encoding_rs::Encoding::for_label(name.as_bytes())
-            .ok_or_else(|| format!("Unknown encoding: '{name}'"))?,
-        None => {
-            let (name, confidence) = detect_encoding_impl(bytes);
-            if confidence < min_confidence {
-                return Err(format!(
-                    "Encoding detection confidence {confidence:.2} is below the required \
-                     minimum {min_confidence:.2} (best guess: '{name}'). \
-                     Provide an explicit encoding instead."
-                ));
-            }
-            encoding_rs::Encoding::for_label(name.as_bytes())
-                .ok_or_else(|| format!("Auto-detected encoding '{name}' is not supported"))?
+    let enc = if let Some(name) = encoding {
+        encoding_rs::Encoding::for_label(name.as_bytes())
+            .ok_or_else(|| format!("Unknown encoding: '{name}'"))?
+    } else {
+        let (name, confidence) = detect_encoding_impl(bytes);
+        if confidence < min_confidence {
+            return Err(format!(
+                "Encoding detection confidence {confidence:.2} is below the required \
+                 minimum {min_confidence:.2} (best guess: '{name}'). \
+                 Provide an explicit encoding instead."
+            ));
         }
+        encoding_rs::Encoding::for_label(name.as_bytes())
+            .ok_or_else(|| format!("Auto-detected encoding '{name}' is not supported"))?
     };
 
     let (decoded, _actual_encoding, had_errors) = enc.decode(bytes);
@@ -113,7 +112,7 @@ pub fn _decode_to_utf8(
     min_confidence: f64,
 ) -> PyResult<(String, bool)> {
     decode_to_utf8_impl(data.as_bytes(), encoding, min_confidence)
-        .map_err(|e| crate::TranslitError::new_err(e))
+        .map_err(crate::TranslitError::new_err)
 }
 
 #[cfg(test)]

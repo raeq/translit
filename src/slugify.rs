@@ -135,7 +135,7 @@ pub fn _slugify(
     let compiled_regex = regex_pattern
         .map(compile_regex)
         .transpose()
-        .map_err(|e| crate::TranslitError::new_err(e))?;
+        .map_err(crate::TranslitError::new_err)?;
 
     let config = SlugConfig {
         separator: separator.to_owned(),
@@ -147,7 +147,7 @@ pub fn _slugify(
         regex_pattern: compiled_regex,
         replacements,
         allow_unicode,
-        lang: lang.map(|s| s.to_owned()),
+        lang: lang.map(std::borrow::ToOwned::to_owned),
         entities,
         decimal,
         hexadecimal,
@@ -480,7 +480,7 @@ pub fn _slugify_batch(
     let compiled_regex = regex_pattern
         .map(compile_regex)
         .transpose()
-        .map_err(|e| crate::TranslitError::new_err(e))?;
+        .map_err(crate::TranslitError::new_err)?;
 
     let config = SlugConfig {
         separator: separator.to_owned(),
@@ -555,7 +555,7 @@ impl _Slugifier {
         let compiled_regex = regex_pattern
             .map(compile_regex)
             .transpose()
-            .map_err(|e| crate::TranslitError::new_err(e))?;
+            .map_err(crate::TranslitError::new_err)?;
 
         let stopset: HashSet<String> = stopwords.iter().cloned().collect();
         Ok(Self {
@@ -569,7 +569,7 @@ impl _Slugifier {
                 regex_pattern: compiled_regex,
                 replacements,
                 allow_unicode,
-                lang: lang.map(|s| s.to_owned()),
+                lang: lang.map(std::borrow::ToOwned::to_owned),
                 entities,
                 decimal,
                 hexadecimal,
@@ -694,7 +694,7 @@ impl _UniqueSlugifier {
                 let suffix = format!("{}{counter}", self.inner.config.separator);
                 if suffix.len() >= self.inner.config.max_length {
                     // Suffix alone exceeds max_length — use the suffix truncated.
-                    candidate = suffix[..self.inner.config.max_length].to_owned();
+                    suffix[..self.inner.config.max_length].clone_into(&mut candidate);
                 } else {
                     let avail = self.inner.config.max_length - suffix.len();
                     let boundary = floor_char_boundary(&base, avail);

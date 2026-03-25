@@ -47,8 +47,17 @@ missing_docs = "warn"
 [lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
-# Allow these pedantic lints that don't add value for our codebase
-too_many_arguments = "allow"
+# PyO3 constraints — these patterns are required by the PyO3 API
+needless_pass_by_value = "allow"  # PyO3 extracts Python types by value
+unused_self = "allow"             # #[pymethods] require &self even when unused
+unnecessary_wraps = "allow"       # PyO3 functions must return PyResult
+should_implement_trait = "allow"  # ErrorMode::from_str returns PyResult, not FromStr
+implicit_hasher = "allow"         # #[pyfunction] requires concrete HashMap
+used_underscore_items = "allow"   # _prefix convention for Python-private functions
+struct_excessive_bools = "allow"  # Pipeline config structs mirror Python kwargs
+fn_params_excessive_bools = "allow"
+too_many_arguments = "allow"      # PyO3 function signatures mirror Python APIs
+# Pedantic lints that don't add value for this codebase
 too_many_lines = "allow"
 similar_names = "allow"
 module_name_repetitions = "allow"
@@ -56,46 +65,13 @@ must_use_candidate = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 return_self_not_must_use = "allow"
-# These are from PyO3 patterns we can't avoid
-needless_pass_by_value = "allow"
-unused_self = "allow"
-struct_excessive_bools = "allow"
 doc_markdown = "allow"
 cast_possible_truncation = "allow"
 cast_sign_loss = "allow"
 cast_lossless = "allow"
-# PyO3 #[pyfunction] signatures require concrete HashMap, can't generalize hasher
-implicit_hasher = "allow"
-# ErrorMode::from_str returns PyResult, not compatible with std::str::FromStr
-should_implement_trait = "allow"
-# PyO3 functions use _prefix for Python-private naming convention
-used_underscore_items = "allow"
-# PyO3 functions must return PyResult even for infallible operations
-unnecessary_wraps = "allow"
-# Pedantic style preferences that don't improve correctness
-redundant_closure_for_method_calls = "allow"
-match_same_arms = "allow"
-if_not_else = "allow"
-unnested_or_patterns = "allow"
-# once_cell::Lazy is still widely used; LazyLock migration is a separate task
+# once_cell::Lazy — LazyLock migration is a separate task
 type_complexity = "allow"
 non_std_lazy_statics = "allow"
-# Suppress LazyLock suggestion — once_cell migration is a separate task
-assigning_clones = "allow"
-# Allow these patterns that are clearer in our codebase
-if_same_then_else = "allow"
-single_match_else = "allow"
-manual_range_contains = "allow"
-explicit_counter_loop = "allow"
-fn_params_excessive_bools = "allow"
-redundant_closure = "allow"
-# Newer clippy pedantic lints that trigger on CI's latest Rust
-empty_line_after_doc_comments = "allow"
-needless_lifetimes = "allow"
-doc_link_with_quotes = "allow"
-items_after_statements = "allow"
-inefficient_to_string = "allow"
-enum_glob_use = "allow"
 
 [profile.release]
 lto = true

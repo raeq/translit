@@ -174,7 +174,7 @@ static COMPAT_JAMO: &[&str] = &[
 /// function never allocates.  O(1) via flat array indexing.
 pub fn lookup_compat_jamo(ch: char) -> Option<&'static str> {
     let cp = ch as u32;
-    if cp >= COMPAT_JAMO_BASE && cp <= COMPAT_JAMO_END {
+    if (COMPAT_JAMO_BASE..=COMPAT_JAMO_END).contains(&cp) {
         Some(COMPAT_JAMO[(cp - COMPAT_JAMO_BASE) as usize])
     } else {
         None
@@ -187,7 +187,7 @@ pub fn romanize_hangul(ch: char) -> Option<String> {
     let code = ch as u32;
 
     // Precomposed Hangul syllables (U+AC00–U+D7A3)
-    if code >= HANGUL_BASE && code <= HANGUL_END {
+    if (HANGUL_BASE..=HANGUL_END).contains(&code) {
         let index = code - HANGUL_BASE;
         let cho = (index / (JUNGSEONG_COUNT * JONGSEONG_COUNT)) as usize;
         let jung = ((index % (JUNGSEONG_COUNT * JONGSEONG_COUNT)) / JONGSEONG_COUNT) as usize;
@@ -201,7 +201,7 @@ pub fn romanize_hangul(ch: char) -> Option<String> {
     }
 
     // Compatibility Jamo (U+3131–U+3163) — delegate to O(1) lookup
-    lookup_compat_jamo(ch).map(|s| s.to_string())
+    lookup_compat_jamo(ch).map(std::string::ToString::to_string)
 }
 
 #[cfg(test)]

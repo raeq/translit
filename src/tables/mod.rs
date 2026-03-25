@@ -177,7 +177,7 @@ pub fn lookup_confusable(ch: char, target_script: &str) -> Option<&'static str> 
 
 /// Return all available language codes.
 pub fn list_langs() -> Vec<String> {
-    let mut langs: Vec<String> = BUILTIN_LANGS.iter().map(|s| s.to_string()).collect();
+    let mut langs: Vec<String> = BUILTIN_LANGS.iter().map(|s| (*s).to_string()).collect();
 
     // Add user-registered languages
     let table = crate::recover_lock(LANG_TABLES.read());

@@ -167,12 +167,7 @@ pub fn _sanitize_filename(
     let mut prev_was_sep = true;
 
     for ch in stem.chars() {
-        if illegal_chars.contains(&ch) || ch.is_control() {
-            if !prev_was_sep && !separator.is_empty() {
-                result.push_str(separator);
-                prev_was_sep = true;
-            }
-        } else if ch.is_whitespace() {
+        if illegal_chars.contains(&ch) || ch.is_control() || ch.is_whitespace() {
             if !prev_was_sep && !separator.is_empty() {
                 result.push_str(separator);
                 prev_was_sep = true;
@@ -193,7 +188,7 @@ pub fn _sanitize_filename(
         let trim_start = result
             .chars()
             .take_while(|c| *c == '.' || *c == ' ')
-            .map(|c| c.len_utf8())
+            .map(char::len_utf8)
             .sum::<usize>();
         if trim_start > 0 {
             result.drain(..trim_start);
@@ -205,7 +200,7 @@ pub fn _sanitize_filename(
             .chars()
             .rev()
             .take_while(|c| *c == '.' || *c == ' ')
-            .map(|c| c.len_utf8())
+            .map(char::len_utf8)
             .sum::<usize>();
         if trim_end > 0 {
             result.truncate(result.len() - trim_end);

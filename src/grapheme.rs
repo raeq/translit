@@ -24,7 +24,9 @@ pub fn _grapheme_len(text: &str) -> usize {
 #[pyfunction]
 #[pyo3(signature = (text,))]
 pub fn _grapheme_split(text: &str) -> Vec<String> {
-    text.graphemes(true).map(|g| g.to_owned()).collect()
+    text.graphemes(true)
+        .map(std::borrow::ToOwned::to_owned)
+        .collect()
 }
 
 /// Truncate text to at most `max_graphemes` user-perceived characters.
@@ -38,13 +40,11 @@ pub fn _grapheme_split(text: &str) -> Vec<String> {
 #[pyo3(signature = (text, max_graphemes))]
 pub fn _grapheme_truncate(text: &str, max_graphemes: usize) -> String {
     let mut result = String::with_capacity(text.len());
-    let mut count = 0;
-    for g in text.graphemes(true) {
+    for (count, g) in text.graphemes(true).enumerate() {
         if count >= max_graphemes {
             break;
         }
         result.push_str(g);
-        count += 1;
     }
     result
 }

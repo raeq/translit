@@ -348,7 +348,7 @@ pub fn _set_emoji_provider(provider: Option<PyObject>) {
 /// Strip modifier suffixes (": light skin tone", etc.) from a CLDR short name
 /// when `strip_modifiers` is true.
 #[inline]
-fn strip_modifier_suffix<'a>(name: &'a str, strip_modifiers: bool) -> &'a str {
+fn strip_modifier_suffix(name: &str, strip_modifiers: bool) -> &str {
     if strip_modifiers {
         if let Some(base_end) = name.find(": ") {
             return &name[..base_end];

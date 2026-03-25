@@ -114,45 +114,42 @@ pub fn transliterate_impl<'a>(
                 .or_else(|| tables::lookup_default(ch).map(Cow::Borrowed))
         };
 
-        match mapped.as_deref() {
-            Some(s) => {
-                if is_cjk
-                    && !s.is_empty()
-                    && prev_class != ScriptClass::None
-                    && needs_cjk_space(prev_class, char_class)
-                {
-                    if let Some(last) = last_appended {
-                        if last.is_alphanumeric() {
-                            result.push(' ');
-                            last_appended = Some(' ');
-                        }
+        if let Some(s) = mapped.as_deref() {
+            if is_cjk
+                && !s.is_empty()
+                && prev_class != ScriptClass::None
+                && needs_cjk_space(prev_class, char_class)
+            {
+                if let Some(last) = last_appended {
+                    if last.is_alphanumeric() {
+                        result.push(' ');
+                        last_appended = Some(' ');
                     }
                 }
-                result.push_str(s);
-                // Track last char of the appended transliteration string
-                if let Some(c) = s.chars().next_back() {
-                    last_appended = Some(c);
-                }
-                prev_class = char_class;
             }
-            None => {
-                match error_mode {
-                    ErrorMode::Replace => {
-                        // An empty replace_with is intentionally equivalent to
-                        // ErrorMode::Ignore — the char is silently dropped.
-                        // This matches Unidecode's default behaviour and is
-                        // used by the unidecode() compat shim.
-                        result.push_str(replace_with);
-                        last_appended = replace_with.chars().next_back();
-                    }
-                    ErrorMode::Ignore => {}
-                    ErrorMode::Preserve => {
-                        result.push(ch);
-                        last_appended = Some(ch);
-                    }
-                }
-                prev_class = ScriptClass::Other;
+            result.push_str(s);
+            // Track last char of the appended transliteration string
+            if let Some(c) = s.chars().next_back() {
+                last_appended = Some(c);
             }
+            prev_class = char_class;
+        } else {
+            match error_mode {
+                ErrorMode::Replace => {
+                    // An empty replace_with is intentionally equivalent to
+                    // ErrorMode::Ignore — the char is silently dropped.
+                    // This matches Unidecode's default behaviour and is
+                    // used by the unidecode() compat shim.
+                    result.push_str(replace_with);
+                    last_appended = replace_with.chars().next_back();
+                }
+                ErrorMode::Ignore => {}
+                ErrorMode::Preserve => {
+                    result.push(ch);
+                    last_appended = Some(ch);
+                }
+            }
+            prev_class = ScriptClass::Other;
         }
     }
 
@@ -217,17 +214,13 @@ fn classify_char(ch: char) -> ScriptClass {
 /// NOT inserted between consecutive kana (they concatenate to form words).
 #[inline]
 fn needs_cjk_space(prev: ScriptClass, curr: ScriptClass) -> bool {
-    use ScriptClass::*;
-    match (prev, curr) {
-        (Ideograph, Ideograph) => true,
-        (Hangul, Hangul) => true,
-        (Kana, Kana) => false,
-        (Ideograph, Kana) | (Kana, Ideograph) => true,
-        (Ideograph, Hangul) | (Hangul, Ideograph) => true,
-        (Hangul, Kana) | (Kana, Hangul) => true,
-        (Latin, _) | (Other, _) => true,
-        _ => false,
-    }
+    use ScriptClass::{Hangul, Ideograph, Kana, Latin, Other};
+    matches!(
+        (prev, curr),
+        (Ideograph | Kana | Hangul, Ideograph | Hangul)
+            | (Ideograph | Hangul, Kana)
+            | (Latin | Other, _)
+    )
 }
 
 /// Check if a character is a CJK Unified Ideograph (Han character).
@@ -369,6 +362,7 @@ pub fn _transliterate_batch(
 #[pyfunction]
 #[pyo3(signature = (texts,))]
 pub fn _strip_accents_batch(texts: Vec<String>) -> PyResult<Vec<String>> {
+    use unicode_normalization::UnicodeNormalization;
     if texts.len() > crate::MAX_BATCH_SIZE {
         return translit_err!(
             "batch too large ({} items); maximum is {} items",
@@ -376,7 +370,6 @@ pub fn _strip_accents_batch(texts: Vec<String>) -> PyResult<Vec<String>> {
             crate::MAX_BATCH_SIZE
         );
     }
-    use unicode_normalization::UnicodeNormalization;
     Ok(texts
         .into_iter()
         .map(|text| {

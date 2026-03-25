@@ -301,7 +301,7 @@ fn unescape_rust_str(s: &str) -> String {
         if ch == '\\' {
             match chars.next() {
                 Some('"') => out.push('"'),
-                Some('\\') => out.push('\\'),
+                None | Some('\\') => out.push('\\'),
                 Some('n') => out.push('\n'),
                 Some('r') => out.push('\r'),
                 Some('t') => out.push('\t'),
@@ -309,7 +309,6 @@ fn unescape_rust_str(s: &str) -> String {
                     out.push('\\');
                     out.push(other);
                 }
-                None => out.push('\\'),
             }
         } else {
             out.push(ch);

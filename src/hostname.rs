@@ -5,8 +5,8 @@ use crate::{confusables, scripts};
 
 /// Check if a bracketed string is a valid IPv6 literal per RFC 3986 §3.2.2.
 ///
-/// Requires: starts with '[', ends with ']', content contains ':',
-/// only hex digits / colons / dots / '%' (zone ID), and no more than 7 colons.
+/// Requires: starts with `[`, ends with `]`, content contains `:`,
+/// only hex digits / colons / dots / `%` (zone ID), and no more than 7 colons.
 fn is_ipv6_literal(normalized: &str) -> bool {
     if !(normalized.starts_with('[') && normalized.ends_with(']')) {
         return false;
@@ -95,15 +95,15 @@ pub fn _is_safe_hostname(hostname: &str) -> PyResult<(bool, SafeHostnameDetails)
 
         // Mixed-script within a single label is suspicious
         if label_scripts.len() > 1 {
-            has_mixed = true;
-
-            // High-risk script combinations (visually confusable with Latin).
             const HIGH_RISK_PAIRS: &[(&str, &str)] = &[
                 ("Cyrillic", "Latin"),
                 ("Greek", "Latin"),
                 ("Armenian", "Latin"),
             ];
 
+            has_mixed = true;
+
+            // High-risk script combinations (visually confusable with Latin).
             let script_set: std::collections::HashSet<&str> =
                 label_scripts.iter().copied().collect();
 

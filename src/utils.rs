@@ -1,5 +1,4 @@
 /// Shared utility functions used across multiple modules.
-
 /// Find the largest byte index `<= index` that lies on a UTF-8 char boundary.
 ///
 /// Equivalent to the nightly-only `str::floor_char_boundary()`.

@@ -24,7 +24,7 @@ include!(concat!(env!("OUT_DIR"), "/translit_langs_phf.rs"));
 #[inline]
 pub fn lookup(ch: char) -> Option<&'static str> {
     let cp = ch as u32;
-    if cp >= 0x80 && cp < 0x10000 {
+    if (0x80..0x10000).contains(&cp) {
         // BMP: direct array index, no hashing
         DEFAULT_BMP[(cp - 0x80) as usize]
     } else {
@@ -45,10 +45,8 @@ pub fn lookup_iso9(ch: char) -> Option<&'static str> {
 pub fn lookup_lang(lang: &str, ch: char) -> Option<&'static str> {
     let table: Option<&phf::Map<char, &'static str>> = match lang {
         "de" => Some(&LANG_DE),
-        "no" | "nb" | "nn" => Some(&LANG_NO),
-        "da" => Some(&LANG_NO), // Danish uses same rules as Norwegian
-        "sv" => Some(&LANG_SV),
-        "fi" => Some(&LANG_SV), // Finnish uses same rules as Swedish
+        "no" | "nb" | "nn" | "da" => Some(&LANG_NO), // Danish uses same rules as Norwegian
+        "sv" | "fi" => Some(&LANG_SV),               // Finnish uses same rules as Swedish
         "is" => Some(&LANG_IS),
         "et" => Some(&LANG_ET),
         "fr" => Some(&LANG_FR),
