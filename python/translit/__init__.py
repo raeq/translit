@@ -1393,8 +1393,8 @@ class TextPipeline:
         strip_accents: bool = False,
         fold_case: bool = False,
         collapse_whitespace: bool = False,
-        strip_control: bool = True,
-        strip_zero_width: bool = True,
+        strip_control: bool | None = None,
+        strip_zero_width: bool | None = None,
         demojize: bool = False,
     ) -> None:
         self._inner = _TextPipeline(
@@ -1434,12 +1434,11 @@ class TextPipeline:
         """Return a human-readable description of the pipeline.
 
         Examples:
-            >>> pipe = TextPipeline(normalize="NFC", fold_case=True, collapse_whitespace=True)
+            >>> pipe = TextPipeline(normalize="NFC", fold_case=True)
             >>> print(pipe.explain())
-            TextPipeline with 3 steps:
+            TextPipeline with 2 steps:
               1. normalize (NFC)
               2. fold_case
-              3. collapse_whitespace
         """
         step_list = self.steps
         if not step_list:

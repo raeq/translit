@@ -93,7 +93,9 @@ the next step expects:
 4. **Strip accents** — remove combining diacritical marks
 5. **Transliterate** — convert remaining non-ASCII to ASCII
 6. **Fold case** — Unicode-aware lowercasing (ß→ss, İ→i̇)
-7. **Collapse whitespace** — merge runs of whitespace, strip control chars
+7. **Strip control** — remove control characters (auto-enabled with collapse_whitespace)
+8. **Strip zero-width** — remove invisible characters (auto-enabled with collapse_whitespace)
+9. **Collapse whitespace** — merge runs of whitespace to single spaces
 
 ### Choosing Your Pipeline
 

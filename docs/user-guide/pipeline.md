@@ -113,9 +113,9 @@ for text in large_dataset:
 | `confusables` | `bool` | `False` | Normalize confusable homoglyphs to Latin |
 | `strip_accents` | `bool` | `False` | Remove diacritical marks |
 | `fold_case` | `bool` | `False` | Unicode case folding |
-| `collapse_whitespace` | `bool` | `False` | Normalize whitespace, strip control/zero-width chars |
-| `strip_control` | `bool` | `True` | Strip control characters (with `collapse_whitespace`) |
-| `strip_zero_width` | `bool` | `True` | Strip zero-width characters (with `collapse_whitespace`) |
+| `collapse_whitespace` | `bool` | `False` | Normalize whitespace to single spaces |
+| `strip_control` | `bool \| None` | `None` | Strip control characters. Defaults to `True` when `collapse_whitespace=True`, `False` otherwise. Can be used independently. |
+| `strip_zero_width` | `bool \| None` | `None` | Strip zero-width characters. Defaults to `True` when `collapse_whitespace=True`, `False` otherwise. Can be used independently. |
 
 ### Fixed execution order
 
@@ -123,10 +123,13 @@ Operations always execute in this order, regardless of how you specify them:
 
 1. **Normalize** — Unicode normalization
 2. **Confusables** — Replace homoglyphs
-3. **Strip accents** — Remove combining marks
-4. **Transliterate** — Convert to ASCII
-5. **Fold case** — Case folding
-6. **Collapse whitespace** — Whitespace normalization
+3. **Demojize** — Expand emoji to text
+4. **Strip accents** — Remove combining marks
+5. **Transliterate** — Convert to ASCII
+6. **Fold case** — Case folding
+7. **Strip control** — Remove control characters
+8. **Strip zero-width** — Remove zero-width/invisible characters
+9. **Collapse whitespace** — Whitespace normalization
 
 ## When to use which
 

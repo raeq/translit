@@ -307,7 +307,7 @@ warehouse_pipe("Ｈｅｌｌｏ Ｗörld")   # → "hello world"
 
 The pipeline always executes steps in a fixed optimal order regardless of
 flag order:
-normalize → confusables → demojize → strip_accents → transliterate → fold_case → collapse_whitespace.
+normalize → confusables → demojize → strip_accents → transliterate → fold_case → strip_control → strip_zero_width → collapse_whitespace.
 
 ### Common Pipeline Configurations
 

@@ -75,8 +75,8 @@ class _TextPipeline:
         strip_accents: bool = False,
         fold_case: bool = False,
         collapse_whitespace: bool = False,
-        strip_control: bool = True,
-        strip_zero_width: bool = True,
+        strip_control: bool | None = None,
+        strip_zero_width: bool | None = None,
         demojize: bool = False,
     ) -> None: ...
     def process(self, text: str) -> str: ...

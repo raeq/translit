@@ -24,6 +24,8 @@ Steps are represented as a `u16` bitflag set using the `bitflags` crate:
 | 4 | Fold case |
 | 5 | Collapse whitespace |
 | 6 | Demojize |
+| 7 | Strip control |
+| 8 | Strip zero-width |
 
 The constructor accepts boolean keyword arguments (`transliterate=True`, `fold_case=True`, etc.) and ORs the corresponding flags into the step set. Checking whether a step is enabled is a single bitmask test — no branching on string keys or dictionary lookups.
 
@@ -37,7 +39,9 @@ Regardless of the order in which constructor arguments are specified, `process()
 4. **Strip accents** — NFD decompose + remove combining marks.
 5. **Transliterate** — Unicode → ASCII.
 6. **Fold case** — after transliteration so it operates on ASCII/Latin output.
-7. **Collapse whitespace** — final cleanup of runs and control characters.
+7. **Strip control** — remove control characters (U+0000–U+001F except tab/newline, U+007F–U+009F).
+8. **Strip zero-width** — remove zero-width spaces, joiners, and invisible math operators.
+9. **Collapse whitespace** — final cleanup of whitespace runs. When combined with strip_control/strip_zero_width, uses an optimized single-pass implementation.
 
 **Why this order matters**: confusable normalization must precede transliteration because the confusable table maps Unicode→Unicode (Cyrillic а → Latin a), and transliteration would destroy the script distinction. Demojize must precede transliteration because transliteration would drop emoji codepoints (they have no ASCII mapping). Case folding comes after transliteration so that language-specific transliterations (e.g., German ü → ue) are folded correctly.
 
@@ -51,7 +55,7 @@ The `demojize` step uses `emoji::demojize_rust()` — a Python-provider-free var
 
 ## Configuration capture
 
-All configuration is captured at construction time and stored as struct fields: `normalize_form`, `lang`, `strict_iso9`, `strip_control`, `strip_zero_width`. The constructor validates the normalization form string eagerly (rejecting invalid values immediately) so that `process()` never encounters bad configuration at call time.
+All configuration is captured at construction time. The `normalize_form`, `lang`, and `strict_iso9` are stored as struct fields. The `strip_control` and `strip_zero_width` options are encoded directly into the bitflag set as `STRIP_CONTROL` and `STRIP_ZERO_WIDTH` flags. The constructor validates the normalization form string eagerly (rejecting invalid values immediately) so that `process()` never encounters bad configuration at call time.
 
 This makes `TextPipeline` safe to share across threads (it implements `Send` via PyO3's `#[pyclass]`) and efficient for repeated calls — there is no per-call configuration parsing.
 

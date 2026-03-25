@@ -7,6 +7,29 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `strip_control` and `strip_zero_width` now work as independent pipeline steps
+  without requiring `collapse_whitespace=True`. Previously they were silently
+  ignored when `collapse_whitespace` was disabled.
+- `strip_control_chars()` and `strip_zero_width_chars()` standalone Rust
+  functions for filtering without whitespace collapsing.
+- Rust integration tests: `tests/integration_transliterate.rs` (14 tests),
+  `tests/integration_slugify.rs` (10 tests), `tests/integration_whitespace.rs`
+  (12 tests).
+
+### Changed
+- `TextPipeline` parameters `strip_control` and `strip_zero_width` changed from
+  `bool` (default `True`) to `bool | None` (default `None`). When `None`, they
+  inherit from `collapse_whitespace` — `True` if `collapse_whitespace=True`,
+  `False` otherwise. Set explicitly to `True` for standalone use without
+  `collapse_whitespace`. This is backward compatible: existing code that passes
+  `collapse_whitespace=True` gets the same behavior as before.
+- `steps()` now reports `strip_control` and `strip_zero_width` as separate
+  entries when active, giving full visibility into pipeline behavior.
+- Pipeline step order updated: `normalize → confusables → demojize →
+  strip_accents → transliterate → fold_case → strip_control →
+  strip_zero_width → collapse_whitespace`.
+
 ## [0.1.2] — 2026-03-25
 
 ### Added

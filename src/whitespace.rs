@@ -46,12 +46,24 @@ pub fn _collapse_whitespace(text: &str, strip_control: bool, strip_zero_width: b
     result
 }
 
+/// Strip control characters from text (excluding newline and tab).
+pub fn strip_control_chars(text: &str) -> String {
+    text.chars()
+        .filter(|&ch| !ch.is_control() || ch == '\n' || ch == '\t')
+        .collect()
+}
+
+/// Strip zero-width and invisible characters from text.
+pub fn strip_zero_width_chars(text: &str) -> String {
+    text.chars().filter(|&ch| !is_zero_width(ch)).collect()
+}
+
 /// Check if a character is invisible/zero-width and should be stripped.
 ///
 /// Covers zero-width joiners/spaces, the word joiner family, and the
 /// invisible math operators (U+2061–2064) which render identically to
 /// zero-width characters and can be abused for text spoofing.
-fn is_zero_width(ch: char) -> bool {
+pub(crate) fn is_zero_width(ch: char) -> bool {
     matches!(
         ch,
         // ── Zero-width spaces / joiners ─────────────────

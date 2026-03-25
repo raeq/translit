@@ -61,7 +61,7 @@ catalog_key("Müller", lang="de")      # => "mueller"
 
 ### Pipeline steps
 
-`collapse_whitespace` (strip control + strip zero-width)
+`strip_control` → `strip_zero_width` → `collapse_whitespace`
 
 ```python
 from translit import display_clean

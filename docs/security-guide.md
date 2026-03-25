@@ -132,9 +132,10 @@ collapse_whitespace("admin\u2060user")     # → "adminuser"
 
 ### What strip_control Strips
 
-The `collapse_whitespace` function also strips C0 control characters
-(U+0000–U+001F except tab/newline/carriage-return, which become spaces)
-and DEL (U+007F) when `strip_control=True` (the default in `TextPipeline`):
+The `strip_control` step strips C0 control characters
+(U+0000–U+001F except tab/newline/carriage-return)
+and DEL (U+007F). It is automatically enabled when `collapse_whitespace=True`
+(the default behavior), but can also be used independently:
 
 ```python
 from translit import TextPipeline
