@@ -6,10 +6,13 @@ Complete reference for all public functions, classes, and types in translit.
 
 | Module | Description |
 |---|---|
-| [Core Transforms](transforms.md) | 8 functions for text transformation |
-| [Predicates](predicates.md) | 5 functions for text inspection |
-| [Classes](classes.md) | Slugifier, UniqueSlugifier, TextPipeline, + compat aliases |
-| [Enums & Types](enums.md) | Script, NF, type aliases |
+| [Core Transforms](transforms.md) | Text transformation functions |
+| [Precompiled Pipelines](pipelines.md) | Ready-to-use multi-step pipelines |
+| [Predicates](predicates.md) | Text inspection functions |
+| [Grapheme Clusters](graphemes.md) | User-perceived character operations |
+| [Encoding](encoding.md) | Byte sequence detection and decoding |
+| [Classes](classes.md) | Text, Slugifier, UniqueSlugifier, TextPipeline |
+| [Enums & Types](enums.md) | Script, NF, EmojiProvider, type aliases |
 | [Language Profiles](language-profiles.md) | Language listing and registration |
 | [Exceptions](exceptions.md) | TranslitError |
 
@@ -21,6 +24,15 @@ All public symbols are available from the top-level package:
 from translit import transliterate, slugify, Script, LANG_DE
 ```
 
+Domain-specific namespaces are also available:
+
+```python
+from translit.security import is_confusable, security_clean
+from translit.normalization import fold_case, strip_accents
+from translit.codec import decode_to_utf8, detect_encoding
+from translit.files import sanitize_filename
+```
+
 ## Compatibility aliases
 
 translit provides drop-in aliases for several legacy libraries:
@@ -28,6 +40,9 @@ translit provides drop-in aliases for several legacy libraries:
 ```python
 # Unidecode / text-unidecode
 from translit import unidecode
+
+# str.casefold() / sklearn
+from translit import casefold, remove_accents
 
 # awesome-slugify
 from translit import Slugify, UniqueSlugify

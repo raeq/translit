@@ -1,6 +1,6 @@
 # Core Transforms
 
-Eight functions that transform text. All are pure functions — they never mutate the input.
+Functions that transform text. All are pure functions — they never mutate the input.
 
 ## transliterate
 
@@ -50,9 +50,27 @@ Eight functions that transform text. All are pure functions — they never mutat
 
 ---
 
+## demojize
+
+::: translit.demojize
+
+---
+
+## set_emoji_provider
+
+::: translit.set_emoji_provider
+
+---
+
+## strip_bidi
+
+::: translit.strip_bidi
+
+---
+
 ## Batch APIs
 
-The batch functions process multiple strings in a single Rust call, amortizing the Python → Rust boundary overhead (~4 µs per call). They return a `list[str]` in the same order as the input.
+The batch functions process multiple strings in a single Rust call, amortizing the Python → Rust boundary overhead (~240 ns per call). They return a `list[str]` in the same order as the input.
 
 ### transliterate_batch
 
@@ -85,3 +103,22 @@ slugify_batch(titles, lang="de")
 ```
 
 For large datasets, batch APIs are significantly faster than calling the scalar function in a Python loop. See [Performance](../performance.md) for benchmarks.
+
+## Compatibility aliases
+
+The following aliases are provided for migration convenience:
+
+| Alias | Target | Matches |
+|---|---|---|
+| `unidecode` | `transliterate` | Unidecode / text-unidecode |
+| `ascii_fold` | `transliterate` | Elasticsearch ICU folding |
+| `casefold` | `fold_case` | `str.casefold()` |
+| `remove_accents` | `strip_accents` | sklearn / ML ecosystems |
+
+```python
+from translit import unidecode, casefold, remove_accents
+
+unidecode("café")        # => "cafe"
+casefold("Straße")       # => "strasse"
+remove_accents("café")   # => "cafe"
+```

@@ -1,6 +1,76 @@
 # Classes
 
-Stateful objects for repeated or specialized text processing.
+Stateful objects and builders for repeated or specialized text processing.
+
+## Text
+
+::: translit.Text
+
+### Usage
+
+```python
+from translit import Text
+
+result = (
+    Text("Ünïcödé Café ☕")
+    .normalize("NFKC")
+    .transliterate()
+    .strip_accents()
+    .fold_case()
+    .value
+)
+# => "unicode cafe hot beverage"
+```
+
+Each transform method returns a **new** `Text` instance (immutable semantics, matching Python `str`). Predicates return their native type (`bool`, `list`) and do not chain.
+
+### Chainable transforms
+
+All core transforms are available as methods:
+
+| Method | Returns | Description |
+|---|---|---|
+| `.normalize(form=)` | `Text` | Unicode normalization |
+| `.normalize_confusables()` | `Text` | Replace confusable homoglyphs |
+| `.strip_accents()` | `Text` | Remove diacritical marks |
+| `.transliterate(lang=, ...)` | `Text` | Unicode → ASCII |
+| `.fold_case()` | `Text` | Full Unicode case folding |
+| `.collapse_whitespace()` | `Text` | Normalize whitespace |
+| `.slugify(...)` | `Text` | Generate URL-safe slug |
+| `.sanitize_filename(...)` | `Text` | Safe filename |
+| `.demojize(...)` | `Text` | Emoji → text descriptions |
+| `.strip_bidi()` | `Text` | Strip bidi overrides |
+| `.security_clean()` | `Text` | Security pipeline |
+| `.ml_normalize(...)` | `Text` | ML/NLP pipeline |
+| `.display_clean()` | `Text` | Display cleanup pipeline |
+| `.catalog_key(...)` | `Text` | Catalog key pipeline |
+| `.grapheme_truncate(n)` | `Text` | Truncate to n graphemes |
+
+### Non-chaining predicates
+
+| Method | Returns | Description |
+|---|---|---|
+| `.is_ascii()` | `bool` | All characters are ASCII |
+| `.is_normalized(form=)` | `bool` | Already in normalization form |
+| `.is_confusable()` | `bool` | Contains confusable homoglyphs |
+| `.is_mixed_script()` | `bool` | Multiple Unicode scripts |
+| `.detect_scripts()` | `list[Script]` | Scripts present |
+| `.grapheme_len()` | `int` | User-perceived character count |
+| `.grapheme_split()` | `list[str]` | Split into grapheme clusters |
+
+### Result extraction
+
+Use `.value` or `str()` to extract the underlying string:
+
+```python
+text = Text("café").strip_accents()
+text.value   # => "cafe"
+str(text)    # => "cafe"
+```
+
+`Text` supports `==`, `hash()`, `len()`, and `bool()` — comparing against the underlying string value.
+
+---
 
 ## Slugifier
 
@@ -75,7 +145,7 @@ pipe("  Héllo Wörld  ")  # => "hello world"
 
 Operations execute in this fixed order regardless of construction order:
 
-1. Normalize → 2. Confusables → 3. Strip accents → 4. Transliterate → 5. Fold case → 6. Collapse whitespace
+1. Normalize → 2. Confusables → 3. Demojize → 4. Strip accents → 5. Transliterate → 6. Fold case → 7. Collapse whitespace
 
 ### Performance
 

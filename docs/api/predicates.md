@@ -1,6 +1,6 @@
 # Predicates
 
-Five functions that inspect text and return boolean or structured results without modifying the input.
+Functions that inspect text and return boolean or structured results without modifying the input.
 
 ## detect_scripts
 
@@ -29,3 +29,33 @@ Five functions that inspect text and return boolean or structured results withou
 ## is_normalized
 
 ::: translit.is_normalized
+
+---
+
+## is_safe_hostname
+
+::: translit.is_safe_hostname
+
+### SafeHostnameDetails
+
+The second element of the tuple returned by `is_safe_hostname()`:
+
+| Attribute | Type | Description |
+|---|---|---|
+| `safe` | `bool` | `True` if no homoglyph spoofing detected |
+| `scripts` | `list[str]` | Unicode scripts found across all labels |
+| `mixed_script` | `bool` | `True` if multiple scripts detected |
+| `has_confusables` | `bool` | `True` if confusable homoglyphs found |
+| `canonical` | `str` | Latin-normalized form of the hostname |
+
+```python
+from translit import is_safe_hostname
+
+safe, details = is_safe_hostname("google.com")
+# safe = True, details.canonical = "google.com"
+
+safe, details = is_safe_hostname("gооgle.com")  # Cyrillic о's
+# safe = False, details.mixed_script = True, details.has_confusables = True
+```
+
+A hostname is considered unsafe if it contains mixed high-risk scripts (Cyrillic+Latin, Greek+Latin) or confusable homoglyphs.
