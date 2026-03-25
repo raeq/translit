@@ -9,6 +9,7 @@ description = "Fast Unicode transliteration (including CJK), slugification, and 
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Richard Quinn", email = "quinn.richard@gmail.com" },
 ]
@@ -16,11 +17,17 @@ keywords = [
     "unicode", "transliteration", "slug", "ascii", "text", "normalization",
     "CJK", "Chinese", "pinyin", "Japanese", "Korean", "hangul", "romanization",
     "unidecode", "slugify", "filename", "sanitize",
+    "homoglyph", "confusable", "grapheme", "encoding",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
     "Typing :: Typed",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
@@ -33,11 +40,18 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Text Processing",
     "Topic :: Text Processing :: Linguistic",
+    "Topic :: Text Processing :: Filters",
+    "Topic :: Text Processing :: General",
+    "Topic :: Text Processing :: Indexing",
+    "Topic :: Software Development :: Internationalization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Natural Language :: English",
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest>=8.0",
+    "pytest-cov>=5.0",
     "hypothesis>=6.100",
     "mypy>=1.10",
 ]
@@ -45,6 +59,7 @@ dev = [
     "translit[test]",
     "ruff>=0.4",
     "maturin>=1.7,<2",
+    "pre-commit>=3.0",
 ]
 bench = [
     "pyperf>=2.6",
@@ -55,7 +70,7 @@ bench = [
     "pathvalidate>=3.0",
 ]
 docs = [
-    "mkdocs-material>=9.5",
+    "mkdocs>=1.6",
     "mkdocstrings[python]>=0.24",
     "pymdown-extensions>=10.0",
 ]
@@ -65,6 +80,7 @@ Homepage = "https://github.com/raeq/translit"
 Repository = "https://github.com/raeq/translit"
 Documentation = "https://translit.readthedocs.io/"
 Issues = "https://github.com/raeq/translit/issues"
+Changelog = "https://github.com/raeq/translit/blob/main/CHANGELOG.md"
 
 [tool.maturin]
 python-source = "python"

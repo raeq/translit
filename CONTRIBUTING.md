@@ -4,7 +4,7 @@ Thank you for your interest in contributing!
 
 ## Prerequisites
 
-- Rust stable toolchain (`rustup update stable`)
+- Rust stable toolchain (>= 1.70): `rustup update stable`
 - Python 3.9+
 - `maturin` for building the Python extension: `pip install maturin[patchelf]`
 
@@ -13,8 +13,10 @@ Thank you for your interest in contributing!
 ```bash
 git clone https://github.com/raeq/translit.git
 cd translit
+python -m venv .venv && source .venv/bin/activate
 maturin develop          # build Rust extension in-place
-pip install -e ".[test,dev]"
+pip install -e ".[dev]"  # installs test + dev dependencies
+pre-commit install       # set up pre-commit hooks
 ```
 
 ## Running tests
@@ -23,11 +25,14 @@ pip install -e ".[test,dev]"
 # Python tests
 pytest tests/ -v
 
+# With coverage
+pytest tests/ --cov=translit --cov-report=term-missing
+
 # Including type checks (requires Python 3.10+)
 pytest tests/test_typing.py -v
 
 # Rust tests
-cargo test
+cargo test --no-default-features
 
 # Doctests
 pytest --doctest-modules python/translit/__init__.py python/translit/_compat.py
@@ -37,12 +42,21 @@ pytest --doctest-modules python/translit/__init__.py python/translit/_compat.py
 
 ```bash
 # Rust
-cargo fmt
-cargo clippy --all-targets -- -D warnings
+cargo fmt --check
+cargo clippy --no-default-features -- -D warnings
 
 # Python
 ruff check python/ tests/
+ruff format --check python/ tests/
 mypy python/translit/__init__.py --ignore-missing-imports
+```
+
+## Building documentation
+
+```bash
+pip install -e ".[docs]"
+mkdocs serve              # local preview at http://127.0.0.1:8000
+mkdocs build              # build static site to site/
 ```
 
 ## Submitting changes

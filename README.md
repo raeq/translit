@@ -70,7 +70,7 @@ This is context-free, character-by-character transliteration, the same approach 
 ```python
 from translit import security_clean, ml_normalize, catalog_key
 
-# Security: NFKC → confusables → collapse whitespace → strip bidi
+# Security: NFKC → confusables → strip bidi → collapse whitespace
 security_clean("ℝ𝕖𝕒𝕝 𝕥𝕖𝕩𝕥")  # → "Real text"
 
 # ML/NLP: NFKC → emoji→text → transliterate → strip accents → fold case
@@ -157,25 +157,48 @@ print(list_langs())
 transliterate("Юрий", strict_iso9=True)  # → "Jurij"
 ```
 
+## Performance
+
+translit is compiled Rust with O(1) compile-time perfect hash tables — no regex, no per-character Python iteration, no runtime data loading.
+
+| Operation | Throughput | vs. legacy |
+|---|---|---|
+| Transliterate (Latin) | 693M chars/sec | **58×** faster than Unidecode |
+| Transliterate (Cyrillic) | 196M chars/sec | **27×** faster than Unidecode |
+| Slugify | 1.12M slugs/sec | **10–24×** faster than python-slugify |
+| Batch transliterate (100 strings) | 2.7× faster than loop | — |
+
+See [docs/performance.md](docs/performance.md) for full benchmark methodology and results.
+
 ## Drop-in replacement
 
-`unidecode()` is a direct alias for `transliterate()` with default settings:
+translit provides compatibility aliases for painless migration from existing libraries:
 
 ```python
-from translit import unidecode
+from translit import unidecode, casefold, remove_accents
 
-unidecode("café")  # → "cafe"
+unidecode("café")        # → "cafe"       (alias for transliterate)
+casefold("Straße")       # → "strasse"    (alias for fold_case)
+remove_accents("café")   # → "cafe"       (alias for strip_accents)
 ```
+
+`sanitize_filename()` also accepts `replacement_text` and `max_len` kwargs for pathvalidate compatibility, and `is_confusable()` accepts `greedy` for confusable_homoglyphs compatibility. See [migration guides](docs/migration/) for details.
 
 ## Documentation
 
 - [User Guide](docs/user-guide/)
 - [API Reference](docs/api/)
-- [Data Engineering Guide](docs/data-engineer-guide.md)
-- [ML / LLM Pipeline Guide](docs/ml-pipeline-guide.md)
-- [Security Guide](docs/security-guide.md)
 - [Limitations](docs/limitations.md)
 - [Migration from python-slugify / anyascii / Unidecode](docs/migration/)
+
+**Guides by role:**
+
+- [For Data Engineers](docs/data-engineer-guide.md) — ETL normalization, deduplication, batch processing
+- [For ML / LLM Pipelines](docs/ml-pipeline-guide.md) — Text preprocessing, emoji handling, TextPipeline
+- [For Web Developers](docs/web-developer-guide.md) — URL slugs, filename sanitization, form cleaning
+- [For Security Engineers](docs/security-guide.md) — Homoglyph detection, IDN validation, input canonicalization
+- [For Librarians & Catalogers](docs/librarian-guide.md) — Catalog keys, title dedup, sort normalization
+- [For Scholars & Linguists](docs/scholarly-guide.md) — ISO 9, script analysis, transliteration profiles
 
 ## Architecture
 
