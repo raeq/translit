@@ -113,7 +113,6 @@ jobs:
       - name: List built artifacts
         run: ls -lh dist/
       - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          command: upload
-          args: --non-interactive dist/*
+          skip-existing: true
