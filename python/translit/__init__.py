@@ -1438,7 +1438,7 @@ class TextPipeline:
             >>> pipe = TextPipeline(normalize="NFC", fold_case=True, collapse_whitespace=True)
             >>> print(pipe.explain())
             TextPipeline with 3 steps:
-              1. normalize (form=NFC)
+              1. normalize (NFC)
               2. fold_case
               3. collapse_whitespace
         """
