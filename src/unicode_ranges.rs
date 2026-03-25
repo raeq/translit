@@ -36,3 +36,8 @@ pub const KATAKANA: std::ops::RangeInclusive<u32> = 0x30A0..=0x30FF;
 
 /// Half-width Katakana (U+FF65–U+FF9F)
 pub const KATAKANA_HALFWIDTH: std::ops::RangeInclusive<u32> = 0xFF65..=0xFF9F;
+
+// ── Indic (Brahmic) ─────────────────────────────────────────────────────────
+
+/// Indic Brahmic scripts: Devanagari through Malayalam (U+0900–U+0D7F)
+pub const INDIC: std::ops::RangeInclusive<u32> = 0x0900..=0x0D7F;

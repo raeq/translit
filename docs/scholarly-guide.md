@@ -153,7 +153,7 @@ pipe("Щука")  # → "shhuka"
 
 ## Language-Specific Transliteration
 
-translit ships 37 language profiles. Each profile provides override
+translit ships 50 language profiles. Each profile provides override
 mappings for characters whose standard romanization differs from the
 pan-script defaults.
 
@@ -186,10 +186,10 @@ pan-script defaults.
 | `zh` | Chinese   | Hanzi → pinyin                                  |
 | `ko` | Korean    | Hangul → romanization                           |
 
-Full list of 37 codes: `ar`, `bg`, `ca`, `cs`, `cy`, `da`, `de`, `el`,
-`es`, `et`, `fi`, `fr`, `ga`, `hr`, `hu`, `is`, `it`, `ja`, `ko`, `lt`,
-`lv`, `mt`, `nl`, `no`, `pl`, `pt`, `ro`, `ru`, `sk`, `sl`, `sq`, `sr`,
-`sv`, `tr`, `uk`, `vi`, `zh`.
+Full list of 50 codes: `ar`, `as`, `bg`, `bn`, `ca`, `cs`, `cy`, `da`, `de`, `el`,
+`es`, `et`, `fi`, `fr`, `ga`, `gu`, `hi`, `hr`, `hu`, `is`, `it`, `ja`, `kn`, `ko`, `lt`,
+`lv`, `ml`, `mr`, `mt`, `ne`, `nl`, `no`, `or`, `pa`, `pl`, `pt`, `ro`, `ru`, `sa`, `sk`,
+`sl`, `sq`, `sr`, `sv`, `ta`, `te`, `tr`, `uk`, `vi`, `zh`.
 
 ### Runtime Language Registration
 
@@ -243,6 +243,73 @@ Text("ﾊﾞﾅﾅ").normalize(form="NFKC").transliterate().value  # → "banana
 
 The katakana prolonged sound mark ー (U+30FC) transliterates to a hyphen:
 `ラーメン → ra-men`, `トーキョー → to-kiyo-`.
+
+---
+
+## Indic Script Transliteration
+
+translit supports transliteration of 9 Brahmic scripts covering ~2 billion speakers.
+All Brahmic scripts share a common alphasyllabic structure at consistent Unicode offsets,
+enabling systematic romanization with virama/mātrā-aware processing.
+
+### Coverage
+
+| Script     | Block           | Entries | Example                    |
+|------------|-----------------|---------|----------------------------|
+| Devanagari | U+0900–U+097F   | ~89     | नमस्ते → namaste           |
+| Bengali    | U+0980–U+09FF   | ~83     | কলকাতা → kalakata          |
+| Gurmukhi   | U+0A00–U+0A7F   | ~76     | ਪੰਜਾਬੀ → panjabi           |
+| Gujarati   | U+0A80–U+0AFF   | ~77     | ગુજરાતી → gujarati         |
+| Odia       | U+0B00–U+0B7F   | ~78     | ଓଡିଆ → odia               |
+| Tamil      | U+0B80–U+0BFF   | ~55     | தமிழ் → tamizh             |
+| Telugu     | U+0C00–U+0C7F   | ~80     | తెలుగు → telugu            |
+| Kannada    | U+0C80–U+0CFF   | ~80     | ಕನ್ನಡ → kannada            |
+| Malayalam  | U+0D00–U+0D7F   | ~82     | മലയാളം → malayalam         |
+
+### Virama and Mātrā Handling
+
+Brahmic consonants carry an inherent vowel "a". The engine detects virama
+(halant) and dependent vowel signs (mātrā) to strip the inherent "a" before
+appending the replacement:
+
+```python
+from translit import transliterate
+
+transliterate("क")    # → "ka"  (bare consonant, inherent 'a')
+transliterate("क्")   # → "k"   (virama suppresses 'a')
+transliterate("की")   # → "ki"  (mātrā replaces 'a' with 'i')
+transliterate("नमस्ते")  # → "namaste"
+```
+
+### Comparison with Standards
+
+translit's Indic output is **ASCII-only** (no diacritics), intended for search
+normalization, URL slugs, and text processing. For scholarly work requiring
+diacritical marks, compare with:
+
+| Standard     | Output         | Example          |
+|-------------|----------------|------------------|
+| translit    | ASCII          | namaste          |
+| IAST        | Diacritical    | namastē          |
+| ISO 15919   | Diacritical    | namastē          |
+| UNGEGN      | Diacritical    | namastē          |
+| ITRANS      | ASCII          | namaste          |
+
+### Per-Script Notes
+
+- **Tamil**: Does not have aspirated consonants (kha, gha, etc.) — those
+  offsets are unassigned in Unicode. Includes unique ழ → "zha".
+- **Bengali**: Includes special forms ড় → "ra", ঢ় → "rha", য় → "ya",
+  and ৎ → "t".
+- **Malayalam**: Includes chillu (atomic consonant) forms at U+0D7A–U+0D7F.
+
+### Supported Languages
+
+13 Indic language codes are registered: `as` (Assamese), `bn` (Bengali),
+`gu` (Gujarati), `hi` (Hindi), `kn` (Kannada), `ml` (Malayalam),
+`mr` (Marathi), `ne` (Nepali), `or` (Odia), `pa` (Punjabi),
+`sa` (Sanskrit), `ta` (Tamil), `te` (Telugu). All use the default
+transliteration table.
 
 ---
 

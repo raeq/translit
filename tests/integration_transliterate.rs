@@ -212,3 +212,120 @@ fn latin_before_cjk_gets_space() {
         "Latin prefix should be preserved: {result:?}"
     );
 }
+
+// --- Indic (Brahmic scripts) ---
+
+#[test]
+fn devanagari_bare_consonant() {
+    let result =
+        transliterate::transliterate_impl("क", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "ka");
+}
+
+#[test]
+fn devanagari_virama() {
+    let result =
+        transliterate::transliterate_impl("क्", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "k");
+}
+
+#[test]
+fn devanagari_matra() {
+    let result =
+        transliterate::transliterate_impl("की", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "ki");
+}
+
+#[test]
+fn devanagari_namaste() {
+    let result =
+        transliterate::transliterate_impl("नमस्ते", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "namaste");
+}
+
+#[test]
+fn bengali_basic() {
+    let result =
+        transliterate::transliterate_impl("কলকাতা", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "kalakata");
+}
+
+#[test]
+fn tamil_basic() {
+    let result =
+        transliterate::transliterate_impl("தமிழ்", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "tamizh");
+}
+
+#[test]
+fn indic_digits() {
+    let result =
+        transliterate::transliterate_impl("१२३", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "123");
+}
+
+#[test]
+fn indic_mixed_with_latin() {
+    let result =
+        transliterate::transliterate_impl("Hello नमस्ते", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "Hello namaste");
+}
+
+#[test]
+fn indic_all_scripts_produce_ascii() {
+    let samples = [
+        "नमस्ते",   // Devanagari
+        "কলকাতা",  // Bengali
+        "தமிழ்",   // Tamil
+        "తెలుగు",  // Telugu
+        "ગુજરાતી", // Gujarati
+        "ಕನ್ನಡ",   // Kannada
+        "മലയാളം",  // Malayalam
+        "ଓଡ଼ିଆ",   // Odia
+        "ਗੁਰਮੁਖੀ",  // Gurmukhi
+    ];
+    for sample in &samples {
+        let result =
+            transliterate::transliterate_impl(sample, None, ErrorMode::Ignore, "", false, false);
+        assert!(
+            result.is_ascii(),
+            "Expected ASCII for {sample:?}, got: {result:?}"
+        );
+        assert!(!result.is_empty(), "Expected non-empty for {sample:?}");
+    }
+}
+
+#[test]
+fn devanagari_dilli() {
+    let result =
+        transliterate::transliterate_impl("दिल्ली", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "dilli");
+}
+
+#[test]
+fn devanagari_mumbai() {
+    let result =
+        transliterate::transliterate_impl("मुम्बई", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "mumbai");
+}
+
+#[test]
+fn devanagari_consecutive_consonants() {
+    let result =
+        transliterate::transliterate_impl("कल", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "kala");
+}
+
+#[test]
+fn devanagari_independent_vowels() {
+    let result =
+        transliterate::transliterate_impl("अइउ", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "aiu");
+}
+
+#[test]
+fn devanagari_multiword() {
+    let result =
+        transliterate::transliterate_impl("नमस्ते दुनिया", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "namaste duniya");
+}

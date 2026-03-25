@@ -404,7 +404,7 @@ transliterate("Київ", lang="uk")       # → "Kyiv"  (Ukrainian KMU 2010)
 transliterate("Київ")                  # → "Kiiv"  (default pan-Cyrillic)
 ```
 
-37 language profiles are available. See `list_langs()` for the full set.
+50 language profiles are available. See `list_langs()` for the full set.
 
 ---
 

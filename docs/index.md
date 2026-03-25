@@ -14,7 +14,7 @@ translit is a single, MIT-licensed Python package that replaces a constellation 
 | **License** | Mixed (GPL, Artistic, MIT) | MIT |
 | **API surface** | 8+ packages, 8+ APIs | One package, one API |
 | **Unicode coverage** | Varies widely | Comprehensive, consistent tables |
-| **Language awareness** | Limited or none | 37 built-in language profiles |
+| **Language awareness** | Limited or none | 50 built-in language profiles |
 | **Type safety** | Partial or missing | Full py.typed + stub coverage |
 
 ---
@@ -86,14 +86,14 @@ pipe("  Héllo\u200b Wörld  ")  # => "hello world"
 
 ## Feature overview
 
-- **[Transliteration](user-guide/transliteration.md)** — Unicode → ASCII with 37 language profiles
+- **[Transliteration](user-guide/transliteration.md)** — Unicode → ASCII with 50 language profiles
 - **[Slugification](user-guide/slugification.md)** — URL-safe slug generation, drop-in python-slugify replacement
 - **[Normalization](user-guide/normalization.md)** — NFC / NFD / NFKC / NFKD Unicode normalization
 - **[Confusable detection](user-guide/confusables.md)** — TR39 homoglyph detection and normalization
 - **[Filename sanitization](user-guide/filenames.md)** — Cross-platform safe filenames
 - **[Text cleaning](user-guide/text-cleaning.md)** — Accent stripping, full Unicode case folding (1,557 CaseFolding.txt mappings), whitespace collapse
 - **[Text pipeline](user-guide/pipeline.md)** — Composable, pre-compiled multi-step processing
-- **[Language support](user-guide/language-support.md)** — 37 built-in profiles, extensible via `register_lang()`
+- **[Language support](user-guide/language-support.md)** — 50 built-in profiles, extensible via `register_lang()`
 
 ---
 

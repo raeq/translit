@@ -123,3 +123,18 @@ LANG_JA: str = "ja"  # Japanese
 LANG_KO: str = "ko"  # Korean
 LANG_RU: str = "ru"  # Russian
 LANG_ZH: str = "zh"  # Chinese
+
+# Language code constants — Indic
+LANG_AS: str = "as"  # Assamese
+LANG_BN: str = "bn"  # Bengali
+LANG_GU: str = "gu"  # Gujarati
+LANG_HI: str = "hi"  # Hindi
+LANG_KN: str = "kn"  # Kannada
+LANG_ML: str = "ml"  # Malayalam
+LANG_MR: str = "mr"  # Marathi
+LANG_NE: str = "ne"  # Nepali
+LANG_OR: str = "or"  # Odia
+LANG_PA: str = "pa"  # Punjabi
+LANG_SA: str = "sa"  # Sanskrit
+LANG_TA: str = "ta"  # Tamil
+LANG_TE: str = "te"  # Telugu

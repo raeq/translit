@@ -297,6 +297,13 @@ LANG_SMOKE_TESTS: dict[str, tuple[str, str]] = {
     "tr": ("İstanbul", "Istanbul"),
     "uk": ("Київ", "Kyiv"),
     "vi": ("Hà Nội", "Ha Noi"),
+    "hi": ("नमस्ते", "namaste"),
+    "bn": ("কলকাতা", "kalakata"),
+    "ta": ("தமிழ்", "tamizh"),
+    "te": ("తెలుగు", "telugu"),
+    "gu": ("ગુજરાતી", "gujarati"),
+    "kn": ("ಕನ್ನಡ", "kannada"),
+    "ml": ("മലയാളം", "malayalam"),
 }
 
 
@@ -325,11 +332,13 @@ class TestLanguageProfileRegistry:
     """Tests for the language profile system."""
 
     def test_list_langs_returns_all_builtin(self) -> None:
-        """list_langs() must include all 37 built-in languages."""
+        """list_langs() must include all 50 built-in languages."""
         langs = list_langs()
         expected_langs = {
             "ar",
+            "as",
             "bg",
+            "bn",
             "ca",
             "cs",
             "cy",
@@ -341,26 +350,37 @@ class TestLanguageProfileRegistry:
             "fi",
             "fr",
             "ga",
+            "gu",
+            "hi",
             "hr",
             "hu",
             "is",
             "it",
             "ja",
+            "kn",
             "ko",
             "lt",
             "lv",
+            "ml",
+            "mr",
             "mt",
+            "ne",
             "nl",
             "no",
+            "or",
+            "pa",
             "pl",
             "pt",
             "ro",
             "ru",
+            "sa",
             "sk",
             "sl",
             "sq",
             "sr",
             "sv",
+            "ta",
+            "te",
             "tr",
             "uk",
             "vi",
@@ -391,6 +411,200 @@ class TestLanguageProfileRegistry:
             result = transliterate("hello world 123", lang=lang)
             assert result == "hello world 123", (
                 f"lang={lang!r}: ASCII passthrough failed, got {result!r}"
+            )
+
+
+class TestIndicTransliteration:
+    """Tests for Indic (Brahmic) script transliteration."""
+
+    # --- Devanagari (Hindi) ---
+
+    def test_devanagari_bare_consonant(self) -> None:
+        assert transliterate("क") == "ka"
+
+    def test_devanagari_virama(self) -> None:
+        assert transliterate("क्") == "k"
+
+    def test_devanagari_matra(self) -> None:
+        assert transliterate("की") == "ki"
+        assert transliterate("कू") == "ku"
+
+    def test_devanagari_namaste(self) -> None:
+        assert transliterate("नमस्ते") == "namaste"
+
+    def test_devanagari_dilli(self) -> None:
+        assert transliterate("दिल्ली") == "dilli"
+
+    def test_devanagari_mumbai(self) -> None:
+        assert transliterate("मुम्बई") == "mumbai"
+
+    def test_devanagari_digits(self) -> None:
+        assert transliterate("१२३") == "123"
+        assert transliterate("०") == "0"
+        assert transliterate("९") == "9"
+
+    # --- Bengali ---
+
+    def test_bengali_basic(self) -> None:
+        assert transliterate("কলকাতা") == "kalakata"
+
+    def test_bengali_digits(self) -> None:
+        assert transliterate("১২৩") == "123"
+
+    # --- Tamil ---
+
+    def test_tamil_basic(self) -> None:
+        assert transliterate("தமிழ்") == "tamizh"
+
+    def test_tamil_digits(self) -> None:
+        assert transliterate("௧௨௩") == "123"
+
+    # --- Telugu ---
+
+    def test_telugu_basic(self) -> None:
+        assert transliterate("తెలుగు") == "telugu"
+
+    # --- Gujarati ---
+
+    def test_gujarati_basic(self) -> None:
+        assert transliterate("ગુજરાતી") == "gujarati"
+
+    # --- Kannada ---
+
+    def test_kannada_basic(self) -> None:
+        result = transliterate("ಕನ್ನಡ")
+        assert result == "kannada"
+
+    # --- Malayalam ---
+
+    def test_malayalam_basic(self) -> None:
+        result = transliterate("മലയാളം")
+        assert result == "malayalam"
+
+    # --- Odia ---
+
+    def test_odia_basic(self) -> None:
+        result = transliterate("ଓଡ଼ିଆ")
+        assert result.startswith("o")
+        assert result.isascii()
+
+    # --- Gurmukhi (Punjabi) ---
+
+    def test_gurmukhi_basic(self) -> None:
+        result = transliterate("ਗੁਰਮੁਖੀ")
+        assert result.isascii()
+        assert result.startswith("g")
+
+    # --- Devanagari independent vowels ---
+
+    def test_devanagari_independent_vowels(self) -> None:
+        assert transliterate("अ") == "a"
+        assert transliterate("आ") == "aa"
+        assert transliterate("इ") == "i"
+        assert transliterate("उ") == "u"
+        assert transliterate("ए") == "e"
+        assert transliterate("ओ") == "o"
+        assert transliterate("औ") == "au"
+
+    def test_devanagari_all_matras(self) -> None:
+        assert transliterate("का") == "ka"
+        assert transliterate("के") == "ke"
+        assert transliterate("को") == "ko"
+        assert transliterate("कै") == "kai"
+        assert transliterate("कौ") == "kau"
+        assert transliterate("कु") == "ku"
+        assert transliterate("कृ") == "kr"
+
+    def test_devanagari_isolated_clusters(self) -> None:
+        assert transliterate("स्त") == "sta"
+        assert transliterate("ल्ल") == "lla"
+        assert transliterate("क्ष") == "ksha"
+
+    def test_devanagari_consecutive_consonants_keep_inherent_a(self) -> None:
+        assert transliterate("कल") == "kala"
+        assert transliterate("नम") == "nama"
+
+    def test_devanagari_anusvara(self) -> None:
+        result = transliterate("हिंदी")
+        assert result.isascii()
+        assert result.startswith("hi")
+
+    def test_devanagari_visarga(self) -> None:
+        result = transliterate("दुःख")
+        assert result.isascii()
+        assert "h" in result
+
+    def test_devanagari_nuqta(self) -> None:
+        result = transliterate("क़")
+        assert result.isascii()
+        result2 = transliterate("ज़")
+        assert result2.isascii()
+
+    def test_bare_matra_no_crash(self) -> None:
+        result = transliterate("\u093F")
+        assert isinstance(result, str)
+
+    def test_bare_virama_no_crash(self) -> None:
+        result = transliterate("\u094D")
+        assert isinstance(result, str)
+
+    def test_devanagari_multiword(self) -> None:
+        assert transliterate("नमस्ते दुनिया") == "namaste duniya"
+
+    # --- Indic digit tests ---
+
+    def test_telugu_digits(self) -> None:
+        assert transliterate("౧౨౩") == "123"
+
+    def test_gujarati_digits(self) -> None:
+        assert transliterate("૧૨૩") == "123"
+
+    def test_kannada_digits(self) -> None:
+        assert transliterate("೧೨೩") == "123"
+
+    def test_malayalam_digits(self) -> None:
+        assert transliterate("൧൨൩") == "123"
+
+    def test_gurmukhi_digits(self) -> None:
+        assert transliterate("੧੨੩") == "123"
+
+    def test_odia_digits(self) -> None:
+        assert transliterate("୧୨୩") == "123"
+
+    # --- Bengali conjunct ---
+
+    def test_bengali_conjunct(self) -> None:
+        result = transliterate("ক্ষ")
+        assert result.isascii()
+        assert len(result) > 0
+
+    # --- Mixed script ---
+
+    def test_mixed_latin_devanagari(self) -> None:
+        assert transliterate("Hello नमस्ते") == "Hello namaste"
+
+    # --- Cross-script consistency ---
+
+    def test_all_indic_produce_ascii(self) -> None:
+        """All Indic script samples should transliterate to pure ASCII."""
+        samples = [
+            "नमस्ते",       # Devanagari
+            "কলকাতা",      # Bengali
+            "தமிழ்",       # Tamil
+            "తెలుగు",      # Telugu
+            "ગુજરાતી",     # Gujarati
+            "ಕನ್ನಡ",       # Kannada
+            "മലയാളം",      # Malayalam
+            "ଓଡ଼ିଆ",       # Odia
+            "ਗੁਰਮੁਖੀ",     # Gurmukhi
+        ]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), (
+                f"Expected ASCII for {sample!r}, got {result!r}"
+            )
+            assert len(result) > 0, (
+                f"Expected non-empty result for {sample!r}"
             )
 
 

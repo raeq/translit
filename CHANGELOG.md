@@ -150,7 +150,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 - Initial release.
-- Unicode transliteration for 37 language profiles.
+- Unicode transliteration for 50 language profiles.
 - Slugification, normalization, confusable detection, filename sanitization.
 - Emoji demojization with ZWJ sequence support.
 - Backward-compatible layers for Unidecode and awesome-slugify.

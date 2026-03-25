@@ -30,6 +30,8 @@ enum ScriptClass {
     Kana,
     /// ASCII / Latin character.
     Latin,
+    /// Indic Brahmic scripts (Devanagari, Bengali, Tamil, etc.).
+    Indic,
     /// Any other script (Cyrillic, Arabic, etc.).
     Other,
 }
@@ -87,9 +89,14 @@ pub fn transliterate_impl<'a>(
     let mut prev_class = ScriptClass::None;
     // Track last char appended to `result` — avoids O(n) `result.chars().last()` scan.
     let mut last_appended: Option<char> = None;
+    // Indic virama/mātrā context: when the previous character was an Indic
+    // consonant (whose table entry includes the inherent "a"), a following
+    // virama or dependent vowel must strip that trailing "a" first.
+    let mut last_was_indic_consonant = false;
 
     for ch in text.chars() {
         if ch.is_ascii() {
+            last_was_indic_consonant = false;
             // Insert space when transitioning from ideograph/Hangul to ASCII alnum
             if matches!(prev_class, ScriptClass::Ideograph | ScriptClass::Hangul)
                 && ch.is_alphanumeric()
@@ -142,6 +149,31 @@ pub fn transliterate_impl<'a>(
                     }
                 }
             }
+            // Indic virama/mātrā handling: strip the inherent "a" from
+            // the previous consonant when followed by virama or a dependent
+            // vowel sign.
+            if char_class == ScriptClass::Indic {
+                let role = indic_char_role(ch as u32);
+                match role {
+                    IndicRole::Virama | IndicRole::DependentVowel
+                        if last_was_indic_consonant =>
+                    {
+                        // Pop the trailing inherent 'a' from the previous consonant
+                        if result.ends_with('a') {
+                            result.pop();
+                        }
+                        last_was_indic_consonant = false;
+                    }
+                    IndicRole::Consonant => {
+                        last_was_indic_consonant = true;
+                    }
+                    _ => {
+                        last_was_indic_consonant = false;
+                    }
+                }
+            } else {
+                last_was_indic_consonant = false;
+            }
             result.push_str(s);
             // Track last char of the appended transliteration string
             if let Some(c) = s.chars().next_back() {
@@ -149,6 +181,7 @@ pub fn transliterate_impl<'a>(
             }
             prev_class = char_class;
         } else {
+            last_was_indic_consonant = false;
             match error_mode {
                 ErrorMode::Replace => {
                     // An empty replace_with is intentionally equivalent to
@@ -212,6 +245,8 @@ fn classify_char(ch: char) -> ScriptClass {
         ScriptClass::Hangul
     } else if is_kana(ch) {
         ScriptClass::Kana
+    } else if is_indic(ch) {
+        ScriptClass::Indic
     } else {
         ScriptClass::Other
     }
@@ -234,12 +269,12 @@ fn classify_char(ch: char) -> ScriptClass {
 /// constraint rather than using a wildcard.
 #[inline]
 fn needs_cjk_space(prev: ScriptClass, curr: ScriptClass) -> bool {
-    use ScriptClass::{Hangul, Ideograph, Kana, Latin, Other};
+    use ScriptClass::{Hangul, Ideograph, Indic, Kana, Latin, Other};
     matches!(
         (prev, curr),
         (Ideograph | Kana | Hangul, Ideograph | Hangul)
             | (Ideograph | Hangul, Kana)
-            | (Latin | Other, Ideograph | Hangul | Kana)
+            | (Latin | Other | Indic, Ideograph | Hangul | Kana)
     )
 }
 
@@ -255,6 +290,43 @@ fn is_cjk_ideograph(ch: char) -> bool {
 fn is_hangul(ch: char) -> bool {
     let cp = ch as u32;
     ur::HANGUL_SYLLABLES.contains(&cp) || ur::HANGUL_COMPAT_JAMO.contains(&cp)
+}
+
+/// Check if a character is in the Indic Brahmic range (Devanagari through Malayalam).
+#[inline]
+fn is_indic(ch: char) -> bool {
+    ur::INDIC.contains(&(ch as u32))
+}
+
+/// Role of an Indic character for virama/mātrā context handling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum IndicRole {
+    /// Not a special Indic role (independent vowel, modifier, digit, etc.)
+    None,
+    /// Consonant (carries inherent "a" in the transliteration table).
+    Consonant,
+    /// Dependent vowel sign (mātrā) — replaces the inherent "a".
+    DependentVowel,
+    /// Virama (halant) — suppresses the inherent "a".
+    Virama,
+}
+
+/// Classify an Indic codepoint's role based on its offset within the script block.
+///
+/// All Brahmic scripts share a common structural layout at consistent Unicode
+/// offsets (modulo 0x80), so a single function handles all 9 scripts.
+#[inline]
+fn indic_char_role(cp: u32) -> IndicRole {
+    if !(0x0900..=0x0D7F).contains(&cp) {
+        return IndicRole::None;
+    }
+    let offset = cp & 0x7F;
+    match offset {
+        0x15..=0x39 | 0x58..=0x5F => IndicRole::Consonant,
+        0x3E..=0x4C => IndicRole::DependentVowel,
+        0x4D => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
 }
 
 /// Check if a character is Hiragana or Katakana.

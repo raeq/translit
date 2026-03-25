@@ -8,7 +8,7 @@ Unicode text infrastructure for Python: transliteration, normalization, and safe
 
 ## Features
 
-- **Transliteration**: Unicode → ASCII for Latin, Cyrillic, Greek, CJK (Chinese pinyin, Korean romanization, Japanese kana), and 37 language-specific profiles
+- **Transliteration**: Unicode → ASCII for Latin, Cyrillic, Greek, CJK (Chinese pinyin, Korean romanization, Japanese kana), and 50 language-specific profiles
 - **Slugification**: URL-safe slugs with python-slugify parameter compatibility
 - **Filename sanitization**: Cross-platform safe filenames with NFC normalization, path traversal protection, and Windows reserved name handling
 - **Text normalization**: NFC/NFD/NFKC/NFKD, confusable homoglyph detection (TR39), full Unicode case folding (1,557 CaseFolding.txt mappings via PHF), whitespace collapse
@@ -142,7 +142,15 @@ Transliteration applies different policies depending on the script. This table d
 | Japanese (Kana) | Romanization | Modified Hepburn | `ひらがな` → `hiragana` |
 | Japanese (Kanji) | Romanization | Falls back to Chinese pinyin readings | `東京` → `dong jing` |
 | Arabic | Transliteration | Buckwalter-derived | `مرحبا` → `mrhba` |
-| Devanagari | Transliteration | IAST-derived | `नमस्ते` → `namaste` |
+| Devanagari | Transliteration | UNGEGN/IAST-derived | `नमस्ते` → `namaste` |
+| Bengali | Transliteration | UNGEGN-derived | `কলকাতা` → `kalakata` |
+| Tamil | Transliteration | UNGEGN-derived | `தமிழ்` → `tamizh` |
+| Telugu | Transliteration | UNGEGN-derived | `తెలుగు` → `telugu` |
+| Gujarati | Transliteration | UNGEGN-derived | `ગુજરાતી` → `gujarati` |
+| Kannada | Transliteration | UNGEGN-derived | `ಕನ್ನಡ` → `kannada` |
+| Malayalam | Transliteration | UNGEGN-derived | `മലയാളം` → `malayalam` |
+| Odia | Transliteration | UNGEGN-derived | `ଓଡିଆ` → `odia` |
+| Gurmukhi | Transliteration | UNGEGN-derived | `ਪੰਜਾਬੀ` → `panjabi` |
 | Georgian | Transliteration | National romanization | `თბილისი` → `tbilisi` |
 | Armenian | Transliteration | BGN/PCGN | `Երևան` → `Erevan` |
 
@@ -152,16 +160,17 @@ Language-specific profiles (e.g., `lang="de"`) apply **sparse overrides** on top
 
 ## Language profiles
 
-37 built-in language profiles with ISO 9:1995 scholarly Cyrillic support:
+50 built-in language profiles with ISO 9:1995 scholarly Cyrillic support and 9 Indic scripts:
 
 ```python
 from translit import list_langs, transliterate
 
 print(list_langs())
-# ['ar', 'bg', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'es', 'et',
-#  'fi', 'fr', 'ga', 'hr', 'hu', 'is', 'it', 'ja', 'ko', 'lt',
-#  'lv', 'mt', 'nl', 'no', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl',
-#  'sq', 'sr', 'sv', 'tr', 'uk', 'vi', 'zh']
+# ['ar', 'as', 'bg', 'bn', 'ca', 'cs', 'cy', 'da', 'de', 'el',
+#  'es', 'et', 'fi', 'fr', 'ga', 'gu', 'hi', 'hr', 'hu', 'is',
+#  'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'mt', 'ne',
+#  'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'sk',
+#  'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'tr', 'uk', 'vi', 'zh']
 
 # ISO 9:1995 scholarly transliteration
 transliterate("Юрий", strict_iso9=True)  # → "Jurij"
