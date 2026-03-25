@@ -235,11 +235,9 @@ Then run with your local image name:
 docker run translit-rs slugify "Hello World"
 ```
 
-To pin a specific version of translit-rs during the build:
-
-```bash
-docker build --build-arg TRANSLIT_VERSION=0.1.3 -t translit-rs .
-```
+!!! note
+    The build compiles the Rust extension from source using maturin, so it requires
+    an internet connection (to download the Rust toolchain) and takes a few minutes.
 
 ## Troubleshooting
 

@@ -1,14 +1,23 @@
-# Stage 1: Install translit-rs wheel into a venv
+# Stage 1: Build the wheel from source
 FROM python:3.12-slim AS build
 
-ARG TRANSLIT_VERSION
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl build-essential && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal && \
+    rm -rf /var/lib/apt/lists/*
+ENV PATH="/root/.cargo/bin:$PATH"
+
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN pip install --no-cache-dir translit-rs${TRANSLIT_VERSION:+==$TRANSLIT_VERSION}
+RUN pip install --no-cache-dir maturin
 
-# Copy the CLI entrypoint (not included in the PyPI wheel)
-COPY python/translit/__main__.py /opt/venv/lib/python3.12/site-packages/translit/__main__.py
+COPY Cargo.toml Cargo.lock build.rs pyproject.toml ./
+COPY src/ src/
+COPY python/ python/
+
+RUN maturin build --release --interpreter python --out /tmp/wheels && \
+    pip install --no-cache-dir /tmp/wheels/*.whl
 
 # Stage 2: Minimal runtime image
 FROM python:3.12-slim
