@@ -134,6 +134,10 @@ LANG_KA: str = "ka"  # Georgian
 # Language code constants — South Asian (non-Indic)
 LANG_SI: str = "si"  # Sinhala
 
+# Language code constants — Southeast Asian (Tai)
+LANG_LO: str = "lo"  # Lao
+LANG_TH: str = "th"  # Thai
+
 # Language code constants — Indic
 LANG_AS: str = "as"  # Assamese
 LANG_BN: str = "bn"  # Bengali

@@ -2068,6 +2068,177 @@ FB4F	al
 0DED	7
 0DEE	8
 0DEF	9
+# --- Thai (U+0E00-U+0E7F) --- RTGS romanization ---
+# Consonants
+0E01	k
+0E02	kh
+0E03	kh
+0E04	kh
+0E05	kh
+0E06	kh
+0E07	ng
+0E08	ch
+0E09	ch
+0E0A	ch
+0E0B	s
+0E0C	ch
+0E0D	y
+0E0E	d
+0E0F	t
+0E10	th
+0E11	th
+0E12	th
+0E13	n
+0E14	d
+0E15	t
+0E16	th
+0E17	th
+0E18	th
+0E19	n
+0E1A	b
+0E1B	p
+0E1C	ph
+0E1D	f
+0E1E	ph
+0E1F	f
+0E20	ph
+0E21	m
+0E22	y
+0E23	r
+0E24	rue
+0E25	l
+0E26	lue
+0E27	w
+0E28	s
+0E29	s
+0E2A	s
+0E2B	h
+0E2C	l
+0E2D	o
+0E2E	h
+# Vowels
+0E30	a
+0E31	a
+0E32	a
+0E33	am
+0E34	i
+0E35	i
+0E36	ue
+0E37	ue
+0E38	u
+0E39	u
+# Virama-like (phinthu)
+0E3A
+# Currency
+0E3F	B
+# Leading vowels
+0E40	e
+0E41	ae
+0E42	o
+0E43	ai
+0E44	ai
+# Signs (silent)
+0E45
+0E46
+0E47
+# Tone marks (dropped in RTGS)
+0E48
+0E49
+0E4A
+0E4B
+# Other marks
+0E4C
+0E4D	m
+0E4E
+0E4F
+# Digits
+0E50	0
+0E51	1
+0E52	2
+0E53	3
+0E54	4
+0E55	5
+0E56	6
+0E57	7
+0E58	8
+0E59	9
+# Punctuation
+0E5A
+0E5B
+# --- Lao (U+0E80-U+0EFF) --- BGN/PCGN romanization ---
+# Consonants
+0E81	k
+0E82	kh
+0E84	kh
+0E87	ng
+0E88	ch
+0E8A	s
+0E8D	ny
+0E94	d
+0E95	t
+0E96	th
+0E97	th
+0E99	n
+0E9A	b
+0E9B	p
+0E9C	ph
+0E9D	f
+0E9E	ph
+0E9F	f
+0EA1	m
+0EA2	y
+0EA3	r
+0EA5	l
+0EA7	w
+0EAA	s
+0EAB	h
+0EAD	o
+0EAE	h
+# Vowels
+0EB0	a
+0EB1	a
+0EB2	a
+0EB3	am
+0EB4	i
+0EB5	i
+0EB6	ue
+0EB7	ue
+0EB8	u
+0EB9	u
+# Semivowel / vowel signs
+0EBB	o
+0EBC	l
+0EBD	y
+# Leading vowels
+0EC0	e
+0EC1	ae
+0EC2	o
+0EC3	ai
+0EC4	ai
+# Repetition
+0EC6
+# Tone marks (dropped in BGN/PCGN)
+0EC8
+0EC9
+0ECA
+0ECB
+# Other marks
+0ECC
+0ECD	m
+# Digits
+0ED0	0
+0ED1	1
+0ED2	2
+0ED3	3
+0ED4	4
+0ED5	5
+0ED6	6
+0ED7	7
+0ED8	8
+0ED9	9
+# Composite consonants
+0EDC	hn
+0EDD	hm
 # --- Armenian (U+0530-U+058F) --- BGN/PCGN romanization ---
 0531	A
 0532	B

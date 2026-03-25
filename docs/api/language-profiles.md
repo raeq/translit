@@ -13,10 +13,11 @@ from translit import list_langs
 
 langs = list_langs()
 print(langs)
-# => ['ar', 'bg', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'es', 'et',
-#     'fi', 'fr', 'ga', 'hr', 'hu', 'is', 'it', 'ja', 'ko', 'lt',
-#     'lv', 'mt', 'nl', 'no', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl',
-#     'sq', 'sr', 'sv', 'tr', 'uk', 'vi', 'zh']
+# => ['ar', 'as', 'bg', 'bn', 'ca', 'cs', 'cy', 'da', 'de', 'el',
+#     'es', 'et', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy',
+#     'is', 'it', 'ja', 'ka', 'kn', 'ko', 'lo', 'lt', 'lv', 'ml', 'mr', 'mt',
+#     'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'si',
+#     'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh']
 ```
 
 Returns both built-in and user-registered language codes, sorted alphabetically.

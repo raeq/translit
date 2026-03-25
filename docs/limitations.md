@@ -57,7 +57,6 @@ The [South Asian languages survey (2025)](https://arxiv.org/html/2509.11570v1) c
 - **Cherokee** (U+13A0–U+13FF)
 - **Canadian Aboriginal Syllabics** (U+1400–U+167F)
 - **Mongolian** (U+1800–U+18AF)
-- **Lao** (U+0E80–U+0EFF)
 - Most CJK Extension blocks (B through I)
 
 The `register_lang()` API allows users to add custom mappings for these scripts at runtime.

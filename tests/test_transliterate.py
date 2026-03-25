@@ -308,6 +308,8 @@ LANG_SMOKE_TESTS: dict[str, tuple[str, str]] = {
     "hy": ("Հայաստան", "Hayastan"),
     "ka": ("თბილისი", "tbilisi"),
     "si": ("සිංහල", "simhala"),
+    "th": ("กรุงเทพ", "krungethph"),
+    "lo": ("ລາວ", "law"),
 }
 
 
@@ -336,7 +338,7 @@ class TestLanguageProfileRegistry:
     """Tests for the language profile system."""
 
     def test_list_langs_returns_all_builtin(self) -> None:
-        """list_langs() must include all 51 built-in languages."""
+        """list_langs() must include all 56 built-in languages."""
         langs = list_langs()
         expected_langs = {
             "ar",
@@ -366,6 +368,7 @@ class TestLanguageProfileRegistry:
             "ka",
             "kn",
             "ko",
+            "lo",
             "lt",
             "lv",
             "ml",
@@ -389,6 +392,7 @@ class TestLanguageProfileRegistry:
             "sv",
             "ta",
             "te",
+            "th",
             "tr",
             "uk",
             "vi",
@@ -740,6 +744,117 @@ class TestArmenianTransliteration:
 
     def test_armenian_mixed_with_latin(self) -> None:
         assert transliterate("Hello Երևան") == "Hello Eryevan"
+
+
+class TestThaiTransliteration:
+    """Tests for Thai script transliteration (RTGS)."""
+
+    def test_thai_consonants(self) -> None:
+        assert transliterate("ก") == "k"
+        assert transliterate("ข") == "kh"
+        assert transliterate("ง") == "ng"
+        assert transliterate("จ") == "ch"
+
+    def test_thai_vowels(self) -> None:
+        assert transliterate("ะ") == "a"
+        assert transliterate("า") == "a"
+        assert transliterate("ิ") == "i"
+        assert transliterate("ุ") == "u"
+
+    def test_thai_leading_vowels(self) -> None:
+        assert transliterate("เ") == "e"
+        assert transliterate("แ") == "ae"
+        assert transliterate("โ") == "o"
+        assert transliterate("ไ") == "ai"
+
+    def test_thai_tone_marks_dropped(self) -> None:
+        """Tone marks should be dropped in RTGS romanization."""
+        assert transliterate("น้ำ") == "nam"
+        assert transliterate("ก่") == "k"
+        assert transliterate("ก้") == "k"
+        assert transliterate("ก๊") == "k"
+        assert transliterate("ก๋") == "k"
+
+    def test_thai_digits(self) -> None:
+        assert transliterate("๐๑๒๓๔๕๖๗๘๙") == "0123456789"
+
+    def test_thai_word_bangkok(self) -> None:
+        result = transliterate("กรุงเทพ")
+        assert result.isascii()
+        assert "k" in result  # ก = k
+
+    def test_thai_word_thailand(self) -> None:
+        result = transliterate("ประเทศไทย")
+        assert result.isascii()
+
+    def test_thai_produces_ascii(self) -> None:
+        samples = ["กรุงเทพ", "ประเทศไทย", "สวัสดี", "ภาษาไทย"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0
+
+    def test_thai_mixed_with_latin(self) -> None:
+        result = transliterate("Hello กรุงเทพ")
+        assert "Hello" in result
+        assert result.isascii()
+
+    def test_thai_baht_sign(self) -> None:
+        assert transliterate("฿") == "B"
+
+
+class TestLaoTransliteration:
+    """Tests for Lao script transliteration (BGN/PCGN)."""
+
+    def test_lao_consonants(self) -> None:
+        assert transliterate("ກ") == "k"
+        assert transliterate("ຂ") == "kh"
+        assert transliterate("ງ") == "ng"
+        assert transliterate("ຈ") == "ch"
+
+    def test_lao_vowels(self) -> None:
+        assert transliterate("ະ") == "a"
+        assert transliterate("າ") == "a"
+        assert transliterate("ິ") == "i"
+        assert transliterate("ຸ") == "u"
+
+    def test_lao_leading_vowels(self) -> None:
+        assert transliterate("ເ") == "e"
+        assert transliterate("ແ") == "ae"
+        assert transliterate("ໂ") == "o"
+        assert transliterate("ໄ") == "ai"
+
+    def test_lao_tone_marks_dropped(self) -> None:
+        """Tone marks should be dropped in BGN/PCGN romanization."""
+        # Lao tone marks: U+0EC8-0ECB
+        assert transliterate("ກ\u0EC8") == "k"
+        assert transliterate("ກ\u0EC9") == "k"
+
+    def test_lao_word_lao(self) -> None:
+        assert transliterate("ລາວ") == "law"
+
+    def test_lao_word_vientiane(self) -> None:
+        result = transliterate("ວຽງຈັນ")
+        assert result.isascii()
+
+    def test_lao_digits(self) -> None:
+        assert transliterate("໐໑໒໓໔໕໖໗໘໙") == "0123456789"
+
+    def test_lao_produces_ascii(self) -> None:
+        samples = ["ລາວ", "ວຽງຈັນ", "ສະບາຍດີ"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0
+
+    def test_lao_mixed_with_latin(self) -> None:
+        result = transliterate("Hello ລາວ")
+        assert "Hello" in result
+        assert result.isascii()
+
+    def test_lao_composite_consonants(self) -> None:
+        assert transliterate("ໜ") == "hn"
+        assert transliterate("ໝ") == "hm"
 
 
 class TestHebrewTransliteration:

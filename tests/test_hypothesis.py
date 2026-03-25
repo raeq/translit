@@ -613,6 +613,71 @@ class TestArmenianTransliterationProperties:
             assert SLUG_PATTERN.match(result), f"Bad slug from Armenian: {result!r}"
 
 
+_thai_text = st.text(
+    alphabet=st.sampled_from(
+        [chr(c) for c in range(0x0E01, 0x0E3B)]
+        + [chr(c) for c in range(0x0E40, 0x0E4C)]
+    ),
+    min_size=1, max_size=20,
+)
+_lao_text = st.text(
+    alphabet=st.sampled_from(
+        [chr(c) for c in range(0x0E81, 0x0EAF) if chr(c).isprintable()]
+        + [chr(c) for c in range(0x0EB0, 0x0EBA)]
+        + [chr(c) for c in range(0x0EC0, 0x0EC5)]
+    ),
+    min_size=1, max_size=20,
+)
+
+
+class TestThaiTransliterationProperties:
+    """Property-based tests for Thai script transliteration."""
+
+    @given(text=_thai_text)
+    @settings(max_examples=300)
+    def test_thai_produces_ascii(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Thai: {result!r}"
+
+    @given(text=_thai_text)
+    @settings(max_examples=300)
+    def test_thai_idempotent(self, text: str) -> None:
+        once = transliterate(text, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
+
+    @given(text=_thai_text)
+    @settings(max_examples=300)
+    def test_thai_slugify_valid(self, text: str) -> None:
+        result = slugify(text)
+        if result:
+            assert SLUG_PATTERN.match(result), f"Bad slug from Thai: {result!r}"
+
+
+class TestLaoTransliterationProperties:
+    """Property-based tests for Lao script transliteration."""
+
+    @given(text=_lao_text)
+    @settings(max_examples=300)
+    def test_lao_produces_ascii(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Lao: {result!r}"
+
+    @given(text=_lao_text)
+    @settings(max_examples=300)
+    def test_lao_idempotent(self, text: str) -> None:
+        once = transliterate(text, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
+
+    @given(text=_lao_text)
+    @settings(max_examples=300)
+    def test_lao_slugify_valid(self, text: str) -> None:
+        result = slugify(text)
+        if result:
+            assert SLUG_PATTERN.match(result), f"Bad slug from Lao: {result!r}"
+
+
 class TestHebrewTransliterationProperties:
     """Property-based tests for Hebrew script transliteration."""
 

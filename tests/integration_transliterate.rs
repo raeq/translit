@@ -535,6 +535,142 @@ fn armenian_produces_ascii() {
 }
 
 // ===========================================================================
+// Thai example tests
+// ===========================================================================
+
+#[test]
+fn thai_consonants() {
+    let result =
+        transliterate::transliterate_impl("\u{0E01}", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "k");
+}
+
+#[test]
+fn thai_bangkok() {
+    let result = transliterate::transliterate_impl(
+        "\u{0E01}\u{0E23}\u{0E38}\u{0E07}\u{0E40}\u{0E17}\u{0E1E}",
+        None,
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    assert!(result.is_ascii(), "Expected ASCII, got: {result:?}");
+    assert!(result.contains('k'), "Expected 'k' in result: {result:?}");
+}
+
+#[test]
+fn thai_tone_marks_dropped() {
+    // น้ำ = น(n) + ้(tone mark) + ำ(am) → "nam"
+    let result = transliterate::transliterate_impl(
+        "\u{0E19}\u{0E49}\u{0E33}",
+        None,
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    assert_eq!(result, "nam");
+}
+
+#[test]
+fn thai_digits() {
+    let result = transliterate::transliterate_impl(
+        "\u{0E50}\u{0E51}\u{0E52}\u{0E53}\u{0E54}\u{0E55}\u{0E56}\u{0E57}\u{0E58}\u{0E59}",
+        None,
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    assert_eq!(result, "0123456789");
+}
+
+#[test]
+fn thai_produces_ascii() {
+    let samples = [
+        "\u{0E01}\u{0E23}\u{0E38}\u{0E07}\u{0E40}\u{0E17}\u{0E1E}",
+        "\u{0E1B}\u{0E23}\u{0E30}\u{0E40}\u{0E17}\u{0E28}\u{0E44}\u{0E17}\u{0E22}",
+        "\u{0E20}\u{0E32}\u{0E29}\u{0E32}\u{0E44}\u{0E17}\u{0E22}",
+    ];
+    for sample in &samples {
+        let result =
+            transliterate::transliterate_impl(sample, None, ErrorMode::Ignore, "", false, false);
+        assert!(
+            result.is_ascii(),
+            "Expected ASCII for {sample:?}, got: {result:?}"
+        );
+        assert!(!result.is_empty(), "Expected non-empty for {sample:?}");
+    }
+}
+
+// ===========================================================================
+// Lao example tests
+// ===========================================================================
+
+#[test]
+fn lao_word_lao() {
+    let result = transliterate::transliterate_impl(
+        "\u{0EA5}\u{0EB2}\u{0EA7}",
+        None,
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    assert_eq!(result, "law");
+}
+
+#[test]
+fn lao_consonants() {
+    let result =
+        transliterate::transliterate_impl("\u{0E81}", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(result, "k");
+}
+
+#[test]
+fn lao_digits() {
+    let result = transliterate::transliterate_impl(
+        "\u{0ED0}\u{0ED1}\u{0ED2}\u{0ED3}\u{0ED4}\u{0ED5}\u{0ED6}\u{0ED7}\u{0ED8}\u{0ED9}",
+        None,
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
+    assert_eq!(result, "0123456789");
+}
+
+#[test]
+fn lao_composite_consonants() {
+    assert_eq!(
+        transliterate::transliterate_impl("\u{0EDC}", None, ErrorMode::Ignore, "", false, false,),
+        "hn"
+    );
+    assert_eq!(
+        transliterate::transliterate_impl("\u{0EDD}", None, ErrorMode::Ignore, "", false, false,),
+        "hm"
+    );
+}
+
+#[test]
+fn lao_produces_ascii() {
+    let samples = [
+        "\u{0EA5}\u{0EB2}\u{0EA7}",
+        "\u{0EA7}\u{0EBD}\u{0E87}\u{0E88}\u{0EB1}\u{0E99}",
+    ];
+    for sample in &samples {
+        let result =
+            transliterate::transliterate_impl(sample, None, ErrorMode::Ignore, "", false, false);
+        assert!(
+            result.is_ascii(),
+            "Expected ASCII for {sample:?}, got: {result:?}"
+        );
+        assert!(!result.is_empty(), "Expected non-empty for {sample:?}");
+    }
+}
+
+// ===========================================================================
 // Property-based tests (proptest)
 // ===========================================================================
 
@@ -589,6 +725,16 @@ fn georgian_text() -> BoxedStrategy<String> {
 /// Generate Armenian text (U+0530-U+058F).
 fn armenian_text() -> BoxedStrategy<String> {
     chars_in_range(0x0531, 0x0587)
+}
+
+/// Generate Thai text (U+0E01-U+0E4B, consonants + vowels + tone marks).
+fn thai_text() -> BoxedStrategy<String> {
+    chars_in_range(0x0E01, 0x0E4B)
+}
+
+/// Generate Lao text (U+0E81-U+0ECD).
+fn lao_text() -> BoxedStrategy<String> {
+    chars_in_range(0x0E81, 0x0ECD)
 }
 
 /// Generate extended Latin text (U+00C0-U+024F).
@@ -749,6 +895,44 @@ proptest! {
 
     #[test]
     fn prop_armenian_idempotent(s in armenian_text()) {
+        let once = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
+        prop_assert_eq!(&once, &twice);
+    }
+}
+
+// --- Thai property tests ---
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(500))]
+
+    #[test]
+    fn prop_thai_produces_ascii(s in thai_text()) {
+        let result = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Thai: {:?}", result);
+    }
+
+    #[test]
+    fn prop_thai_idempotent(s in thai_text()) {
+        let once = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
+        prop_assert_eq!(&once, &twice);
+    }
+}
+
+// --- Lao property tests ---
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(500))]
+
+    #[test]
+    fn prop_lao_produces_ascii(s in lao_text()) {
+        let result = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Lao: {:?}", result);
+    }
+
+    #[test]
+    fn prop_lao_idempotent(s in lao_text()) {
         let once = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
         let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
         prop_assert_eq!(&once, &twice);

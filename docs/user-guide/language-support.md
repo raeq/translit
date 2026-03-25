@@ -1,6 +1,6 @@
 # Language Support
 
-translit ships with 54 built-in language profiles that provide language-specific transliteration rules. You can also register custom profiles at runtime.
+translit ships with 56 built-in language profiles that provide language-specific transliteration rules. You can also register custom profiles at runtime.
 
 ## Built-in languages
 
@@ -76,6 +76,13 @@ translit ships with 54 built-in language profiles that provide language-specific
 
 All 10 Brahmic scripts use virama/mātrā-aware transliteration: consonants carry an inherent "a" that is suppressed by virama (halant) or replaced by dependent vowel marks.
 
+### Southeast Asian (Tai) languages
+
+| Code | Language | Script | Example |
+|---|---|---|---|
+| `lo` | Lao | Lao | ລາວ → lao |
+| `th` | Thai | Thai | สวัสดี → sawatdi |
+
 ### East Asian & other non-European languages
 
 | Code | Language | Notes |
@@ -144,9 +151,9 @@ from translit import list_langs
 print(list_langs())
 # => ['ar', 'as', 'bg', 'bn', 'ca', 'cs', 'cy', 'da', 'de', 'el',
 #     'es', 'et', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy',
-#     'is', 'it', 'ja', 'ka', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'mt',
+#     'is', 'it', 'ja', 'ka', 'kn', 'ko', 'lo', 'lt', 'lv', 'ml', 'mr', 'mt',
 #     'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'si',
-#     'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'tr', 'uk', 'vi', 'zh']
+#     'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh']
 ```
 
 ## Custom language profiles
