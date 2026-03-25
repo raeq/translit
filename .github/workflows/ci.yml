@@ -55,6 +55,7 @@ jobs:
       - name: Run tests
         run: pytest tests/ --ignore=tests/test_typing.py -q --tb=short --cov=translit --cov-report=xml --cov-report=term-missing
       - name: Run doctests
+        shell: bash
         run: |
           TRANSLIT_DIR=$(python -c "import translit, os; print(os.path.dirname(translit.__file__))")
           pytest --doctest-modules "$TRANSLIT_DIR/__init__.py" "$TRANSLIT_DIR/_compat.py" -q
