@@ -7,6 +7,8 @@ changes, these tests MUST be updated intentionally.
 from __future__ import annotations
 
 import pytest
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 from translit import sanitize_filename
 
@@ -276,10 +278,6 @@ class TestUtf8SafeTruncation:
 # These tests use Hypothesis to verify structural invariants that must hold
 # for ALL inputs, catching any code path that silently drops extensions,
 # exceeds max_length, or produces reserved filenames.
-
-from hypothesis import given, settings, HealthCheck
-from hypothesis import strategies as st
-
 
 WINDOWS_RESERVED = [
     "CON", "PRN", "AUX", "NUL",

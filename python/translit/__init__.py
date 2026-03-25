@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import unicodedata as _unicodedata
 import warnings as _warnings
 from collections.abc import Iterable
 
@@ -307,14 +306,13 @@ def normalize(
         'fi'
 
     Note:
-        Standalone calls delegate to CPython's ``unicodedata.normalize()``
-        (a C extension that operates directly on Python's internal string
-        buffer) which is faster than crossing the PyO3 boundary.  The Rust
-        implementation (``_normalize``) is still used by precompiled
-        pipelines and batch APIs where it runs inside Rust without
-        boundary-crossing overhead.
+        Both standalone and batch calls use the Rust ``_normalize``
+        implementation to ensure consistent Unicode table versions.
+        This avoids mismatches between CPython's ``unicodedata`` tables
+        and the Rust ``unicode-normalization`` crate's tables (e.g.
+        codepoints assigned in Unicode 16.0 but unassigned in 15.1).
 
-        The Rust batch/pipeline path enforces a **10 MiB input limit** and a
+        The Rust path enforces a **10 MiB input limit** and a
         **50 MiB output limit** per string to bound worst-case memory from
         pathological Unicode expansion (e.g. NFKD can expand a single
         codepoint into up to 18 characters).
@@ -324,7 +322,7 @@ def normalize(
     # Fast path: ASCII is already in all normalization forms.
     if text.isascii():
         return text
-    return _unicodedata.normalize(form, text)
+    return _normalize(text, form=form)
 
 
 def normalize_confusables(

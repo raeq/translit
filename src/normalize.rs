@@ -66,17 +66,36 @@ pub fn _normalize(text: &str, form: &str) -> PyResult<String> {
 }
 
 /// Check if text is already in the specified normalization form.
+///
+/// Uses the `unicode-normalization` quick-check first.  If the quick-check
+/// returns `false` we fall back to a full normalize-and-compare, because the
+/// crate's quick-check tables can be stricter than the normalizer itself for
+/// certain unassigned codepoints (e.g. U+1CCD6 in Unicode 15/16 gaps).
 #[pyfunction]
 #[pyo3(signature = (text, *, form="NFC"))]
 pub fn _is_normalized(text: &str, form: &str) -> PyResult<bool> {
     validate_form(form)?;
-    match form {
-        "NFC" => Ok(unicode_normalization::is_nfc(text)),
-        "NFD" => Ok(unicode_normalization::is_nfd(text)),
-        "NFKC" => Ok(unicode_normalization::is_nfkc(text)),
-        "NFKD" => Ok(unicode_normalization::is_nfkd(text)),
+    let quick = match form {
+        "NFC" => unicode_normalization::is_nfc(text),
+        "NFD" => unicode_normalization::is_nfd(text),
+        "NFKC" => unicode_normalization::is_nfkc(text),
+        "NFKD" => unicode_normalization::is_nfkd(text),
         _ => unreachable!(),
+    };
+    if quick {
+        return Ok(true);
     }
+    // Quick-check said no — verify with a full normalization pass.
+    // If normalizing produces the same bytes, the text is already normalized
+    // and the quick-check gave a false negative (Unicode version gap).
+    let normalized: String = match form {
+        "NFC" => text.nfc().collect(),
+        "NFD" => text.nfd().collect(),
+        "NFKC" => text.nfkc().collect(),
+        "NFKD" => text.nfkd().collect(),
+        _ => unreachable!(),
+    };
+    Ok(normalized == text)
 }
 
 /// Batch normalization: process a list of strings in a single PyO3 boundary crossing.
