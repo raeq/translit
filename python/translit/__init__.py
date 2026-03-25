@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings as _warnings
 import unicodedata as _unicodedata
 from collections.abc import Iterable
 
@@ -102,6 +103,26 @@ from translit._translit import (
 )
 from translit._types import NF, EmojiProvider, ErrorMode, NormalizationForm, Platform
 
+# --- Resource limits (must match Rust-side constants) ---
+_MAX_BATCH_SIZE: int = 100_000
+_MAX_GRAPHEME_SPLIT_INPUT: int = 10 * 1024 * 1024  # 10 MiB
+
+
+def _validate_batch(texts: object, func_name: str) -> None:
+    """Validate that texts is a list[str] within batch size limits."""
+    if not isinstance(texts, list):
+        raise TypeError(f"{func_name}() expects list[str], got {type(texts).__name__}")
+    if len(texts) > _MAX_BATCH_SIZE:
+        raise TranslitError(
+            f"batch too large ({len(texts)} items); maximum is {_MAX_BATCH_SIZE} items"
+        )
+    for i, t in enumerate(texts):
+        if not isinstance(t, str):
+            raise TypeError(
+                f"{func_name}() element {i} must be str, got {type(t).__name__}"
+            )
+
+
 # --- Core transforms ---
 
 
@@ -152,6 +173,8 @@ def transliterate(
         >>> transliterate("★", errors="preserve")
         '★'
     """
+    if not isinstance(text, str):
+        raise TypeError(f"transliterate() expects str, got {type(text).__name__}")
     # Fast path: pure ASCII needs no transliteration (~30 ns vs ~4 µs PyO3 call).
     if text.isascii():
         return text
@@ -227,6 +250,10 @@ def slugify(
         >>> slugify("Very Long Title Here", max_length=10, word_boundary=True)
         'very-long'
     """
+    if not isinstance(text, str):
+        raise TypeError(f"slugify() expects str, got {type(text).__name__}")
+    if max_length < 0:
+        raise ValueError(f"max_length must be non-negative, got {max_length}")
     return _slugify(
         text,
         separator=separator,
@@ -234,9 +261,9 @@ def slugify(
         max_length=max_length,
         word_boundary=word_boundary,
         save_order=save_order,
-        stopwords=tuple(stopwords),
+        stopwords=stopwords if isinstance(stopwords, (tuple, list)) else tuple(stopwords),
         regex_pattern=regex_pattern,
-        replacements=tuple(replacements),
+        replacements=replacements if isinstance(replacements, (tuple, list)) else tuple(replacements),
         allow_unicode=allow_unicode,
         lang=lang,
         entities=entities,
@@ -274,7 +301,14 @@ def normalize(
         implementation (``_normalize``) is still used by precompiled
         pipelines and batch APIs where it runs inside Rust without
         boundary-crossing overhead.
+
+        The Rust batch/pipeline path enforces a **10 MiB input limit** and a
+        **50 MiB output limit** per string to bound worst-case memory from
+        pathological Unicode expansion (e.g. NFKD can expand a single
+        codepoint into up to 18 characters).
     """
+    if not isinstance(text, str):
+        raise TypeError(f"normalize() expects str, got {type(text).__name__}")
     # Fast path: ASCII is already in all normalization forms.
     if text.isascii():
         return text
@@ -308,6 +342,8 @@ def normalize_confusables(
         >>> normalize_confusables("раypal")  # Cyrillic р/а look like Latin p/a
         'paypal'
     """
+    if not isinstance(text, str):
+        raise TypeError(f"normalize_confusables() expects str, got {type(text).__name__}")
     return _normalize_confusables(text, target_script=target_script)
 
 
@@ -356,6 +392,10 @@ def sanitize_filename(
         >>> sanitize_filename("résumé.docx", lang="fr")
         'resume.docx'
     """
+    if not isinstance(text, str):
+        raise TypeError(f"sanitize_filename() expects str, got {type(text).__name__}")
+    if max_length < 0:
+        raise ValueError(f"max_length must be non-negative, got {max_length}")
     return _sanitize_filename(
         text,
         separator=separator,
@@ -386,6 +426,8 @@ def strip_accents(text: str) -> str:
         >>> strip_accents("hello")  # pure ASCII: fast path, no-op
         'hello'
     """
+    if not isinstance(text, str):
+        raise TypeError(f"strip_accents() expects str, got {type(text).__name__}")
     # Fast path: ASCII has no diacritical marks.
     if text.isascii():
         return text
@@ -423,6 +465,10 @@ def fold_case(text: str) -> str:
         >>> fold_case("ﬁnd")
         'find'
     """
+    if not isinstance(text, str):
+        raise TypeError(f"fold_case() expects str, got {type(text).__name__}")
+    if text.isascii():
+        return text.lower()
     return _fold_case(text)
 
 
@@ -455,6 +501,8 @@ def collapse_whitespace(
         >>> collapse_whitespace("a\\u200Bb\\u200Bc")  # zero-width spaces
         'abc'
     """
+    if not isinstance(text, str):
+        raise TypeError(f"collapse_whitespace() expects str, got {type(text).__name__}")
     return _collapse_whitespace(
         text, strip_control=strip_control, strip_zero_width=strip_zero_width
     )
@@ -501,6 +549,8 @@ def demojize(
         >>> demojize("I ❤️ Python 🐍")
         'I red heart Python snake'
     """
+    if not isinstance(text, str):
+        raise TypeError(f"demojize() expects str, got {type(text).__name__}")
     return _demojize(
         text,
         strip_modifiers=strip_modifiers,
@@ -524,6 +574,11 @@ def set_emoji_provider(provider: EmojiProvider | None = None) -> None:
     Examples:
         >>> set_emoji_provider(None)  # reset to default provider
     """
+    if provider is not None and not callable(getattr(provider, "lookup", None)):
+        raise TypeError(
+            "EmojiProvider must have a callable lookup() method; "
+            f"got {type(provider).__name__}"
+        )
     _set_emoji_provider(provider)
 
 
@@ -564,7 +619,13 @@ def transliterate_batch(
         ['cafe', 'naive', 'resume']
         >>> transliterate_batch(["München", "Zürich"], lang="de")
         ['Muenchen', 'Zuerich']
+
+    Note:
+        All input strings and output strings are held in memory
+        simultaneously. For very large batches (millions of strings),
+        consider chunking to control peak memory usage.
     """
+    _validate_batch(texts, "transliterate_batch")
     return _transliterate_batch(
         texts,
         lang=lang,
@@ -620,7 +681,13 @@ def slugify_batch(
     Examples:
         >>> slugify_batch(["Hello World", "Foo Bar"])
         ['hello-world', 'foo-bar']
+
+    Note:
+        All input strings and output strings are held in memory
+        simultaneously. For very large batches (millions of strings),
+        consider chunking to control peak memory usage.
     """
+    _validate_batch(texts, "slugify_batch")
     return _slugify_batch(
         texts,
         separator=separator,
@@ -628,9 +695,9 @@ def slugify_batch(
         max_length=max_length,
         word_boundary=word_boundary,
         save_order=save_order,
-        stopwords=list(stopwords),
+        stopwords=stopwords if isinstance(stopwords, (tuple, list)) else list(stopwords),
         regex_pattern=regex_pattern,
-        replacements=list(replacements),
+        replacements=replacements if isinstance(replacements, (tuple, list)) else list(replacements),
         allow_unicode=allow_unicode,
         lang=lang,
         entities=entities,
@@ -659,6 +726,7 @@ def normalize_batch(
         >>> normalize_batch(["e\u0301", "n\u0303o"], form="NFC")
         ['é', 'ño']
     """
+    _validate_batch(texts, "normalize_batch")
     return _normalize_batch(texts, form=form)
 
 
@@ -677,6 +745,7 @@ def strip_accents_batch(texts: list[str]) -> list[str]:
         >>> strip_accents_batch(["café", "naïve", "résumé"])
         ['cafe', 'naive', 'resume']
     """
+    _validate_batch(texts, "strip_accents_batch")
     return _strip_accents_batch(texts)
 
 
@@ -686,11 +755,11 @@ def strip_accents_batch(texts: list[str]) -> list[str]:
 def security_clean(text: str) -> str:
     """Security-focused text canonicalization.
 
-    Pipeline: NFKC → confusables → collapse_whitespace → strip bidi/format
+    Pipeline: NFKC → confusables → strip bidi/format → collapse_whitespace
 
     Collapses fullwidth bypasses, neutralizes homoglyph spoofing, strips
-    zero-width injections and control chars, and removes dangerous bidi
-    overrides and soft hyphens that could enable text reordering attacks.
+    dangerous bidi overrides and soft hyphens, then normalizes whitespace
+    (collapsing runs, stripping control chars and zero-width injections).
 
     Args:
         text: Input string (user-submitted, network-received, etc.).
@@ -866,6 +935,11 @@ def grapheme_split(text: str) -> list[str]:
         >>> len(grapheme_split("👨‍👩‍👧‍👦!"))  # family emoji + "!"
         2
     """
+    if len(text) > _MAX_GRAPHEME_SPLIT_INPUT:
+        raise TranslitError(
+            f"input too large ({len(text)} bytes); maximum for grapheme_split() "
+            f"is {_MAX_GRAPHEME_SPLIT_INPUT} bytes"
+        )
     return _grapheme_split(text)
 
 
@@ -889,6 +963,8 @@ def grapheme_truncate(text: str, max_graphemes: int) -> str:
         >>> grapheme_truncate("café", 3)
         'caf'
     """
+    if max_graphemes < 0:
+        raise ValueError(f"max_graphemes must be non-negative, got {max_graphemes}")
     return _grapheme_truncate(text, max_graphemes)
 
 
@@ -998,10 +1074,19 @@ def decode_to_utf8(
         >>> had_errors
         False
     """
+    if not (0.0 <= min_confidence <= 1.0):
+        raise ValueError(
+            f"min_confidence must be between 0.0 and 1.0, got {min_confidence}"
+        )
     return _decode_to_utf8(data, encoding=encoding, min_confidence=min_confidence)
 
 
 # --- Predicates ---
+
+
+# Cache mapping script name → Script enum member for O(1) lookup
+# instead of O(N) enum scan on each call to detect_scripts().
+_SCRIPT_BY_NAME: dict[str, Script] = {s.value: s for s in Script}
 
 
 def detect_scripts(text: str) -> list[Script]:
@@ -1019,15 +1104,14 @@ def detect_scripts(text: str) -> list[Script]:
         >>> detect_scripts("Hello Мир")
         [Script.LATIN, Script.CYRILLIC]
     """
-    import warnings
-
     raw = _detect_scripts(text)
     result = []
     for name in raw:
-        try:
-            result.append(Script(name))
-        except ValueError:
-            warnings.warn(
+        script = _SCRIPT_BY_NAME.get(name)
+        if script is not None:
+            result.append(script)
+        else:
+            _warnings.warn(
                 f"Rust detected script {name!r} which is not in the Script enum; "
                 f"upgrade translit or report this as a bug",
                 stacklevel=2,

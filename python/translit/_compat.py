@@ -50,19 +50,41 @@ ascii_fold = strip_accents
 # ---------------------------------------------------------------------------
 
 
+# Simple renames: awesome-slugify name → translit name.
+_AWESOME_PARAM_RENAMES: dict[str, str] = {
+    "to_lower": "lowercase",
+    "unique_check": "check",
+}
+
+# Parameters that emit deprecation warnings when used.
+_AWESOME_DEPRECATED_PARAMS: dict[str, str] = {
+    "translate": (
+        "awesome-slugify's translate parameter is ignored; "
+        "translit always uses its built-in transliteration engine. "
+        "Use the lang parameter for language-specific transliteration."
+    ),
+    "fold_abbrs": "awesome-slugify's fold_abbrs is not supported in translit.",
+    "uids": (
+        "The 'uids' parameter is only supported by UniqueSlugify; "
+        "it is ignored by Slugify."
+    ),
+}
+
+
 def _resolve_awesome_params(
     kwargs: dict[str, Any],
 ) -> dict[str, Any]:
     """Map awesome-slugify parameter names to translit equivalents.
 
     Accepted awesome-slugify params and their translit mappings:
-        to_lower   -> lowercase
-        stop_words -> stopwords
-        safe_chars -> (absorbed into regex_pattern)
-        capitalize -> (post-processing flag, returned separately)
-        pretranslate -> replacements  (if dict)
-        translate  -> (ignored with deprecation warning)
-        fold_abbrs -> (ignored with deprecation warning)
+        to_lower     -> lowercase
+        stop_words   -> stopwords  (coerced to tuple)
+        safe_chars   -> _safe_chars  (post-processing, not passed to Rust)
+        capitalize   -> _capitalize  (post-processing flag)
+        pretranslate -> replacements  (if dict; callable raises NotImplementedError)
+        translate    -> (ignored with DeprecationWarning)
+        fold_abbrs   -> (ignored with DeprecationWarning)
+        unique_check -> check
 
     Returns a dict of translit-native kwargs plus a '_capitalize' key.
     """
@@ -70,17 +92,19 @@ def _resolve_awesome_params(
     capitalize = False
 
     for key, value in kwargs.items():
-        if key == "to_lower":
-            result["lowercase"] = value
+        # Simple renames
+        if key in _AWESOME_PARAM_RENAMES:
+            result[_AWESOME_PARAM_RENAMES[key]] = value
+        # Coerced rename
         elif key == "stop_words":
             result["stopwords"] = tuple(value) if not isinstance(value, tuple) else value
+        # Post-processing flags (not passed to Rust)
         elif key == "safe_chars":
             if value:
-                # safe_chars='.-' means those chars should survive slugification.
-                # We implement this by storing it for post-call restoration.
                 result["_safe_chars"] = value
         elif key == "capitalize":
             capitalize = value
+        # Complex transform
         elif key == "pretranslate":
             if isinstance(value, dict):
                 result["replacements"] = tuple(value.items())
@@ -89,27 +113,17 @@ def _resolve_awesome_params(
                     "awesome-slugify's callable pretranslate is not supported; "
                     "use a dict or translit's replacements parameter instead."
                 )
-        elif key == "translate":
-            if value is not None:
+        # Deprecated params
+        elif key in _AWESOME_DEPRECATED_PARAMS:
+            # translate/fold_abbrs only warn when they carry a truthy value;
+            # uids always warns (handled by UniqueSlugify, not here).
+            should_warn = key == "uids" or bool(value) if key == "fold_abbrs" else value is not None
+            if should_warn:
                 warnings.warn(
-                    "awesome-slugify's translate parameter is ignored; "
-                    "translit always uses its built-in transliteration engine. "
-                    "Use the lang parameter for language-specific transliteration.",
+                    _AWESOME_DEPRECATED_PARAMS[key],
                     DeprecationWarning,
                     stacklevel=3,
                 )
-        elif key == "fold_abbrs":
-            if value:
-                warnings.warn(
-                    "awesome-slugify's fold_abbrs is not supported in translit.",
-                    DeprecationWarning,
-                    stacklevel=3,
-                )
-        elif key == "uids":
-            # UniqueSlugify parameter — mapped to check
-            pass
-        elif key == "unique_check":
-            result["check"] = value
         else:
             # Pass through native translit params unchanged
             result[key] = value
@@ -149,6 +163,14 @@ class Slugify:
 
         self._kwargs: dict[str, Any] = resolved
         self._inner: _Slugifier = _Slugifier(**resolved)
+        self._dirty: bool = False
+
+    def _ensure_inner(self) -> _Slugifier:
+        """Rebuild the inner _Slugifier only if a property was changed."""
+        if self._dirty:
+            self._inner = _Slugifier(**self._kwargs)
+            self._dirty = False
+        return self._inner
 
     # --- awesome-slugify attribute-style configuration ---
 
@@ -160,7 +182,7 @@ class Slugify:
     def to_lower(self, value: bool) -> None:
         self._to_lower = value
         self._kwargs["lowercase"] = value
-        self._inner = _Slugifier(**self._kwargs)
+        self._dirty = True
 
     @property
     def stop_words(self) -> tuple[str, ...]:
@@ -170,7 +192,7 @@ class Slugify:
     def stop_words(self, value: tuple[str, ...] | list[str]) -> None:
         self._stop_words = tuple(value) if not isinstance(value, tuple) else value
         self._kwargs["stopwords"] = self._stop_words
-        self._inner = _Slugifier(**self._kwargs)
+        self._dirty = True
 
     @property
     def max_length(self) -> int | None:
@@ -180,7 +202,7 @@ class Slugify:
     def max_length(self, value: int | None) -> None:
         self._max_length_val = value if value is not None else 0
         self._kwargs["max_length"] = self._max_length_val
-        self._inner = _Slugifier(**self._kwargs)
+        self._dirty = True
 
     @property
     def separator(self) -> str:
@@ -190,7 +212,7 @@ class Slugify:
     def separator(self, value: str) -> None:
         self._separator_val = value
         self._kwargs["separator"] = value
-        self._inner = _Slugifier(**self._kwargs)
+        self._dirty = True
 
     @property
     def safe_chars(self) -> str:
@@ -210,7 +232,21 @@ class Slugify:
             self._kwargs.pop("replacements", None)
         elif isinstance(value, dict):
             self._kwargs["replacements"] = tuple(value.items())
-        self._inner = _Slugifier(**self._kwargs)
+        else:
+            raise TypeError(
+                f"pretranslate must be dict[str, str] or None, got {type(value).__name__}"
+            )
+        self._dirty = True
+
+    def _apply_post_processing(
+        self, text: str, result: str, capitalize: bool, safe_chars: str
+    ) -> str:
+        """Apply safe-char restoration and capitalization after slugification."""
+        if safe_chars:
+            result = _restore_safe_chars(text, result, safe_chars, self._separator_val)
+        if capitalize and result:
+            result = result[0].upper() + result[1:]
+        return result
 
     def __call__(self, text: str, **kwargs: Any) -> str:
         if kwargs:
@@ -224,15 +260,9 @@ class Slugify:
         else:
             cap = self._capitalize
             safe = self._safe_chars
-            result = str(self._inner.slugify(text))
+            result = str(self._ensure_inner().slugify(text))
 
-        if safe:
-            result = _restore_safe_chars(text, result, safe, self._separator_val)
-
-        if cap and result:
-            result = result[0].upper() + result[1:]
-
-        return result
+        return self._apply_post_processing(text, result, cap, safe)
 
     def __repr__(self) -> str:
         return f"Slugify(separator={self._separator_val!r}, to_lower={self._to_lower!r})"
@@ -258,19 +288,8 @@ class UniqueSlugify(Slugify):
         uids = kwargs.pop("uids", None)
         unique_check_fn = kwargs.pop("unique_check", None)
 
-        # awesome-slugify defaults to to_lower=False
-        if "to_lower" not in kwargs and "lowercase" not in kwargs:
-            kwargs.setdefault("lowercase", False)
-        resolved = _resolve_awesome_params(kwargs)
-        self._capitalize = resolved.pop("_capitalize", False)
-        self._safe_chars = resolved.pop("_safe_chars", "")
-
-        self._to_lower: bool = bool(resolved.get("lowercase", False))
-        self._stop_words: tuple[str, ...] = tuple(resolved.get("stopwords", ()))
-        self._max_length_val: int = int(resolved.get("max_length", 0))
-        self._separator_val: str = str(resolved.get("separator", "-"))
-
-        self._kwargs: dict[str, Any] = resolved
+        # Delegate common setup (param resolution, property init) to parent.
+        super().__init__(**kwargs)
 
         check: Callable[[str], bool] | None = None
         if unique_check_fn is not None:
@@ -285,25 +304,18 @@ class UniqueSlugify(Slugify):
             else:
                 check = unique_check_fn
         elif uids is not None:
-            _uids_set = uids
+            _uids_set = uids if isinstance(uids, (set, frozenset)) else set(uids)
 
             def _check_not_in_uids(text: str) -> bool:
                 return text not in _uids_set
 
             check = _check_not_in_uids
 
-        self._unique_inner: _UniqueSlugifier = _UniqueSlugifier(check=check, **resolved)
+        self._unique_inner: _UniqueSlugifier = _UniqueSlugifier(check=check, **self._kwargs)
 
     def __call__(self, text: str, **kwargs: Any) -> str:
         result: str = str(self._unique_inner.slugify(text))
-
-        if self._safe_chars:
-            result = _restore_safe_chars(text, result, self._safe_chars, self._separator_val)
-
-        if self._capitalize and result:
-            result = result[0].upper() + result[1:]
-
-        return result
+        return self._apply_post_processing(text, result, self._capitalize, self._safe_chars)
 
     def reset(self) -> None:
         """Clear the internal set of seen slugs."""
@@ -311,6 +323,14 @@ class UniqueSlugify(Slugify):
 
     def __repr__(self) -> str:
         return "UniqueSlugify()"
+
+
+def _find_next_safe_char(original: str, safe_set: frozenset[str], start: int) -> int:
+    """Return the index of the next safe char in original from start, or -1."""
+    for i in range(start, len(original)):
+        if original[i] in safe_set:
+            return i
+    return -1
 
 
 def _restore_safe_chars(original: str, slug: str, safe_chars: str, separator: str) -> str:
@@ -321,22 +341,48 @@ def _restore_safe_chars(original: str, slug: str, safe_chars: str, separator: st
     we approximate it by replacing separator sequences that correspond to safe
     char positions in the original text.
 
+    Args:
+        original: The original input text before slugification.
+        slug: The slugified result.
+        safe_chars: Characters to restore (e.g. ".-").
+        separator: The slug separator (e.g. "-").
+
     This is an approximation — it handles the common cases (e.g. preserving dots
     in filenames, dashes in version strings) but may not match awesome-slugify
     exactly for all edge cases.
     """
-    # Simple case: if no safe chars appear in original, nothing to restore
-    if not any(c in original for c in safe_chars):
+    safe_set = frozenset(safe_chars)
+    # Quick check: if no safe chars appear in original, nothing to restore
+    if not safe_set.intersection(original):
+        return slug
+    # With an empty separator, there are no separator sequences to match
+    # against safe chars — restoration is not possible.
+    if not separator:
         return slug
 
-    # For each safe char, if the original had it, attempt to restore it
-    # by re-running a lighter approach: just ensure those chars survive
-    for ch in safe_chars:
-        if ch in original and ch not in slug:
-            # Replace separator with the safe char where it appeared in original
-            slug = slug.replace(separator + separator, separator)
+    # Walk original and slug in parallel: when the slug has a separator
+    # where the original had a safe char, restore the safe char.
+    parts: list[str] = []
+    sep_len = len(separator)
+    original_pos = 0
+    slug_pos = 0
 
-    return slug
+    while slug_pos < len(slug):
+        # Check if we're at a separator in the slug
+        if slug[slug_pos : slug_pos + sep_len] == separator:
+            safe_idx = _find_next_safe_char(original, safe_set, original_pos)
+            if safe_idx >= 0:
+                parts.append(original[safe_idx])
+                original_pos = safe_idx + 1
+            else:
+                parts.append(separator)
+            slug_pos += sep_len
+        else:
+            parts.append(slug[slug_pos])
+            original_pos += 1
+            slug_pos += 1
+
+    return "".join(parts)
 
 
 # ---------------------------------------------------------------------------
