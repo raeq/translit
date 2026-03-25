@@ -310,6 +310,10 @@ LANG_SMOKE_TESTS: dict[str, tuple[str, str]] = {
     "si": ("සිංහල", "simhala"),
     "th": ("กรุงเทพ", "krungethph"),
     "lo": ("ລາວ", "law"),
+    "am": ("ኢትዮጵያ", "ityopya"),
+    "bo": ("བོད", "boda"),
+    "km": ("កម្ពុជា", "kampucha"),
+    "my": ("မြန်မာ", "mrnma"),
 }
 
 
@@ -338,13 +342,15 @@ class TestLanguageProfileRegistry:
     """Tests for the language profile system."""
 
     def test_list_langs_returns_all_builtin(self) -> None:
-        """list_langs() must include all 56 built-in languages."""
+        """list_langs() must include all 60 built-in languages."""
         langs = list_langs()
         expected_langs = {
+            "am",
             "ar",
             "as",
             "bg",
             "bn",
+            "bo",
             "ca",
             "cs",
             "cy",
@@ -366,6 +372,7 @@ class TestLanguageProfileRegistry:
             "it",
             "ja",
             "ka",
+            "km",
             "kn",
             "ko",
             "lo",
@@ -374,6 +381,7 @@ class TestLanguageProfileRegistry:
             "ml",
             "mr",
             "mt",
+            "my",
             "ne",
             "nl",
             "no",
@@ -855,6 +863,174 @@ class TestLaoTransliteration:
     def test_lao_composite_consonants(self) -> None:
         assert transliterate("ໜ") == "hn"
         assert transliterate("ໝ") == "hm"
+
+
+class TestEthiopicTransliteration:
+    """Tests for Ethiopic (Ge'ez/Amharic) script transliteration."""
+
+    def test_ethiopic_syllable_orders(self) -> None:
+        """First consonant (h) through all 7 vowel orders."""
+        assert transliterate("ሀ") == "he"   # order 1 (ä)
+        assert transliterate("ሁ") == "hu"   # order 2
+        assert transliterate("ሂ") == "hi"   # order 3
+        assert transliterate("ሃ") == "ha"   # order 4
+        assert transliterate("ሄ") == "he"   # order 5 (é)
+        assert transliterate("ህ") == "h"    # order 6 (ə/bare)
+        assert transliterate("ሆ") == "ho"   # order 7
+
+    def test_ethiopic_ethiopia(self) -> None:
+        assert transliterate("ኢትዮጵያ") == "ityopya"
+
+    def test_ethiopic_addis_ababa(self) -> None:
+        assert transliterate("አዲስ አበባ") == "edis ebeba"
+
+    def test_ethiopic_digits(self) -> None:
+        assert transliterate("፩") == "1"
+        assert transliterate("፪") == "2"
+        assert transliterate("፱") == "9"
+
+    def test_ethiopic_punctuation(self) -> None:
+        assert transliterate("።") == "."
+        assert transliterate("፣") == ","
+        assert transliterate("፧") == "?"
+
+    def test_ethiopic_produces_ascii(self) -> None:
+        samples = ["ኢትዮጵያ", "አዲስ አበባ", "ሰላም", "ኤርትራ"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0
+
+    def test_ethiopic_mixed_with_latin(self) -> None:
+        assert transliterate("hello ሰላም") == "hello selam"
+
+
+class TestMyanmarTransliteration:
+    """Tests for Myanmar (Burmese) script transliteration."""
+
+    def test_myanmar_consonants(self) -> None:
+        assert transliterate("က") == "ka"
+        assert transliterate("ခ") == "kha"
+        assert transliterate("ဂ") == "ga"
+
+    def test_myanmar_word(self) -> None:
+        result = transliterate("မြန်မာ")
+        assert result.isascii()
+        assert len(result) > 0
+
+    def test_myanmar_virama(self) -> None:
+        """Asat (U+103A) strips inherent vowel."""
+        assert transliterate("န်") == "n"
+
+    def test_myanmar_dependent_vowels(self) -> None:
+        """Dependent vowel replaces inherent 'a'."""
+        assert transliterate("ကိ") == "ki"
+        assert transliterate("ကု") == "ku"
+
+    def test_myanmar_medials(self) -> None:
+        """Medial consonants strip inherent vowel from preceding consonant."""
+        result = transliterate("ကြ")  # ka + medial ra
+        assert result == "kr"
+
+    def test_myanmar_digits(self) -> None:
+        assert transliterate("၀") == "0"
+        assert transliterate("၉") == "9"
+
+    def test_myanmar_punctuation(self) -> None:
+        assert transliterate("၊") == ","
+        assert transliterate("။") == "."
+
+    def test_myanmar_produces_ascii(self) -> None:
+        samples = ["မြန်မာ", "ရန်ကုန်", "မန္တလေး"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0
+
+    def test_myanmar_mixed_with_latin(self) -> None:
+        result = transliterate("hello မြန်မာ")
+        assert "hello" in result
+        assert result.isascii()
+
+
+class TestKhmerTransliteration:
+    """Tests for Khmer (Cambodian) script transliteration."""
+
+    def test_khmer_consonants(self) -> None:
+        assert transliterate("ក") == "ka"
+        assert transliterate("ខ") == "kha"
+
+    def test_khmer_cambodia(self) -> None:
+        assert transliterate("កម្ពុជា") == "kampucha"
+
+    def test_khmer_coeng(self) -> None:
+        """Coeng (U+17D2) stacks consonants — strips inherent vowel."""
+        assert transliterate("ក្រ") == "kra"  # ka + coeng + ra
+
+    def test_khmer_dependent_vowels(self) -> None:
+        assert transliterate("កិ") == "ke"
+        assert transliterate("កុ") == "ku"
+
+    def test_khmer_digits(self) -> None:
+        assert transliterate("០") == "0"
+        assert transliterate("៩") == "9"
+
+    def test_khmer_produces_ascii(self) -> None:
+        samples = ["កម្ពុជា", "ភ្នំពេញ", "សៀមរាប"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0
+
+    def test_khmer_mixed_with_latin(self) -> None:
+        result = transliterate("hello កម្ពុជា")
+        assert "hello" in result
+        assert result.isascii()
+
+
+class TestTibetanTransliteration:
+    """Tests for Tibetan script transliteration."""
+
+    def test_tibetan_consonants(self) -> None:
+        assert transliterate("ཀ") == "ka"
+        assert transliterate("ཁ") == "kha"
+        assert transliterate("ག") == "ga"
+
+    def test_tibetan_tibet(self) -> None:
+        result = transliterate("བོད")
+        assert result == "boda"
+
+    def test_tibetan_vowel_signs(self) -> None:
+        """Vowel signs replace inherent 'a'."""
+        assert transliterate("ཀི") == "ki"
+        assert transliterate("ཀུ") == "ku"
+        assert transliterate("ཀེ") == "ke"
+        assert transliterate("ཀོ") == "ko"
+
+    def test_tibetan_om(self) -> None:
+        assert transliterate("ༀ") == "om"
+
+    def test_tibetan_digits(self) -> None:
+        assert transliterate("༠") == "0"
+        assert transliterate("༩") == "9"
+
+    def test_tibetan_produces_ascii(self) -> None:
+        samples = ["བོད", "ལྷ་ས", "ༀ"]
+        for sample in samples:
+            result = transliterate(sample, errors="ignore")
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0
+
+    def test_tibetan_subjoined(self) -> None:
+        """Subjoined consonants (stacking) produce transliteration."""
+        result = transliterate("ལྷ")  # la + subjoined ha
+        assert result.isascii()
+        assert len(result) > 0
+
+    def test_tibetan_mixed_with_latin(self) -> None:
+        result = transliterate("hello བོད")
+        assert "hello" in result
+        assert result.isascii()
 
 
 class TestHebrewTransliteration:

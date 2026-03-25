@@ -1157,3 +1157,242 @@ proptest! {
         prop_assert!(result.is_ascii(), "Non-ASCII at Latin/Thai boundary: {:?}", result);
     }
 }
+
+// ── Ethiopic tests ──────────────────────────────────────────────────────────
+
+#[test]
+fn ethiopic_syllable_orders() {
+    let r = |s| {
+        transliterate::transliterate_impl(s, None, ErrorMode::Ignore, "", false, false).into_owned()
+    };
+    assert_eq!(r("ሀ"), "he"); // order 1
+    assert_eq!(r("ሁ"), "hu"); // order 2
+    assert_eq!(r("ሂ"), "hi"); // order 3
+    assert_eq!(r("ሃ"), "ha"); // order 4
+    assert_eq!(r("ህ"), "h"); // order 6 (bare)
+    assert_eq!(r("ሆ"), "ho"); // order 7
+}
+
+#[test]
+fn ethiopic_ethiopia() {
+    let result =
+        transliterate::transliterate_impl("ኢትዮጵያ", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "ityopya");
+}
+
+#[test]
+fn ethiopic_digits() {
+    let result =
+        transliterate::transliterate_impl("፩፪፫", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "123");
+}
+
+#[test]
+fn ethiopic_produces_ascii() {
+    let result =
+        transliterate::transliterate_impl("ኢትዮጵያ", None, ErrorMode::Ignore, "", false, false);
+    assert!(result.is_ascii());
+}
+
+// ── Myanmar tests ───────────────────────────────────────────────────────────
+
+#[test]
+fn myanmar_consonant() {
+    let result = transliterate::transliterate_impl("က", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "ka");
+}
+
+#[test]
+fn myanmar_virama_strips_a() {
+    let result = transliterate::transliterate_impl("န်", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "n");
+}
+
+#[test]
+fn myanmar_dependent_vowel() {
+    let result = transliterate::transliterate_impl("ကိ", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "ki");
+}
+
+#[test]
+fn myanmar_digits() {
+    let result =
+        transliterate::transliterate_impl("၀၁၉", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "019");
+}
+
+#[test]
+fn myanmar_produces_ascii() {
+    let result =
+        transliterate::transliterate_impl("မြန်မာ", None, ErrorMode::Ignore, "", false, false);
+    assert!(result.is_ascii());
+}
+
+// ── Khmer tests ─────────────────────────────────────────────────────────────
+
+#[test]
+fn khmer_consonant() {
+    let result = transliterate::transliterate_impl("ក", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "ka");
+}
+
+#[test]
+fn khmer_cambodia() {
+    let result =
+        transliterate::transliterate_impl("កម្ពុជា", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "kampucha");
+}
+
+#[test]
+fn khmer_coeng_stacks() {
+    let result = transliterate::transliterate_impl("ក្រ", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "kra");
+}
+
+#[test]
+fn khmer_digits() {
+    let result =
+        transliterate::transliterate_impl("០១៩", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "019");
+}
+
+#[test]
+fn khmer_produces_ascii() {
+    let result =
+        transliterate::transliterate_impl("កម្ពុជា", None, ErrorMode::Ignore, "", false, false);
+    assert!(result.is_ascii());
+}
+
+// ── Tibetan tests ───────────────────────────────────────────────────────────
+
+#[test]
+fn tibetan_consonant() {
+    let result = transliterate::transliterate_impl("ཀ", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "ka");
+}
+
+#[test]
+fn tibetan_vowel_sign() {
+    let result = transliterate::transliterate_impl("ཀི", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "ki");
+}
+
+#[test]
+fn tibetan_om() {
+    let result = transliterate::transliterate_impl("ༀ", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "om");
+}
+
+#[test]
+fn tibetan_digits() {
+    let result =
+        transliterate::transliterate_impl("༠༡༩", None, ErrorMode::Ignore, "", false, false);
+    assert_eq!(&*result, "019");
+}
+
+#[test]
+fn tibetan_produces_ascii() {
+    let result = transliterate::transliterate_impl("བོད", None, ErrorMode::Ignore, "", false, false);
+    assert!(result.is_ascii());
+}
+
+// ── Property tests for new scripts ──────────────────────────────────────────
+
+fn ethiopic_text() -> BoxedStrategy<String> {
+    let chars: Vec<char> = (0x1200u32..=0x1357)
+        .filter(|cp| {
+            let block_offset = cp & 0x07;
+            block_offset < 7 // skip labialized gap at offset 7
+        })
+        .filter_map(char::from_u32)
+        .collect();
+    proptest::collection::vec(proptest::sample::select(chars), 1..=20)
+        .prop_map(|v| v.into_iter().collect::<String>())
+        .boxed()
+}
+
+fn myanmar_text() -> BoxedStrategy<String> {
+    let chars: Vec<char> = (0x1000u32..=0x104B).filter_map(char::from_u32).collect();
+    proptest::collection::vec(proptest::sample::select(chars), 1..=20)
+        .prop_map(|v| v.into_iter().collect::<String>())
+        .boxed()
+}
+
+fn khmer_text() -> BoxedStrategy<String> {
+    let chars: Vec<char> = (0x1780u32..=0x17E9).filter_map(char::from_u32).collect();
+    proptest::collection::vec(proptest::sample::select(chars), 1..=20)
+        .prop_map(|v| v.into_iter().collect::<String>())
+        .boxed()
+}
+
+fn tibetan_text() -> BoxedStrategy<String> {
+    let chars: Vec<char> = (0x0F00u32..=0x0F6A)
+        .chain(0x0F71..=0x0F84)
+        .chain(0x0F90..=0x0FBC)
+        .filter_map(char::from_u32)
+        .filter(|c| c.is_alphanumeric() || !c.is_control())
+        .collect();
+    proptest::collection::vec(proptest::sample::select(chars), 1..=20)
+        .prop_map(|v| v.into_iter().collect::<String>())
+        .boxed()
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(300))]
+
+    // Ethiopic
+    #[test]
+    fn prop_ethiopic_produces_ascii(text in ethiopic_text()) {
+        let result = transliterate::transliterate_impl(&text, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Ethiopic: {:?}", result);
+    }
+
+    #[test]
+    fn prop_ethiopic_idempotent(text in ethiopic_text()) {
+        let once = transliterate::transliterate_impl(&text, None, ErrorMode::Ignore, "", false, false);
+        let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
+        prop_assert_eq!(&*once, &*twice);
+    }
+
+    // Myanmar
+    #[test]
+    fn prop_myanmar_produces_ascii(text in myanmar_text()) {
+        let result = transliterate::transliterate_impl(&text, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Myanmar: {:?}", result);
+    }
+
+    #[test]
+    fn prop_myanmar_idempotent(text in myanmar_text()) {
+        let once = transliterate::transliterate_impl(&text, None, ErrorMode::Ignore, "", false, false);
+        let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
+        prop_assert_eq!(&*once, &*twice);
+    }
+
+    // Khmer
+    #[test]
+    fn prop_khmer_produces_ascii(text in khmer_text()) {
+        let result = transliterate::transliterate_impl(&text, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Khmer: {:?}", result);
+    }
+
+    #[test]
+    fn prop_khmer_idempotent(text in khmer_text()) {
+        let once = transliterate::transliterate_impl(&text, None, ErrorMode::Ignore, "", false, false);
+        let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
+        prop_assert_eq!(&*once, &*twice);
+    }
+
+    // Tibetan
+    #[test]
+    fn prop_tibetan_produces_ascii(text in tibetan_text()) {
+        let result = transliterate::transliterate_impl(&text, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Tibetan: {:?}", result);
+    }
+
+    #[test]
+    fn prop_tibetan_idempotent(text in tibetan_text()) {
+        let once = transliterate::transliterate_impl(&text, None, ErrorMode::Ignore, "", false, false);
+        let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
+        prop_assert_eq!(&*once, &*twice);
+    }
+}

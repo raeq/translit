@@ -138,6 +138,16 @@ LANG_SI: str = "si"  # Sinhala
 LANG_LO: str = "lo"  # Lao
 LANG_TH: str = "th"  # Thai
 
+# Language code constants — Southeast Asian (Brahmic)
+LANG_KM: str = "km"  # Khmer
+LANG_MY: str = "my"  # Myanmar (Burmese)
+
+# Language code constants — Tibetan
+LANG_BO: str = "bo"  # Tibetan
+
+# Language code constants — Ethiopian
+LANG_AM: str = "am"  # Amharic
+
 # Language code constants — Indic
 LANG_AS: str = "as"  # Assamese
 LANG_BN: str = "bn"  # Bengali

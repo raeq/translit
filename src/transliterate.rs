@@ -290,10 +290,14 @@ fn is_hangul(ch: char) -> bool {
     ur::HANGUL_SYLLABLES.contains(&cp) || ur::HANGUL_COMPAT_JAMO.contains(&cp)
 }
 
-/// Check if a character is in the Indic Brahmic range (Devanagari through Malayalam).
+/// Check if a character is in any Brahmic abugida range (Indic, Tibetan, Myanmar, Khmer).
 #[inline]
 fn is_indic(ch: char) -> bool {
-    ur::INDIC.contains(&(ch as u32))
+    let cp = ch as u32;
+    ur::INDIC.contains(&cp)
+        || ur::TIBETAN.contains(&cp)
+        || ur::MYANMAR.contains(&cp)
+        || ur::KHMER.contains(&cp)
 }
 
 /// Role of an Indic character for virama/mātrā context handling.
@@ -309,15 +313,25 @@ enum IndicRole {
     Virama,
 }
 
-/// Classify an Indic codepoint's role based on its offset within the script block.
+/// Classify a Brahmic codepoint's role based on its offset within the script block.
 ///
-/// All Brahmic scripts share a common structural layout at consistent Unicode
+/// All core Indic scripts share a common structural layout at consistent Unicode
 /// offsets (modulo 0x80), so a single function handles the 9 core scripts.
-/// Sinhala (U+0D80–U+0DFF) uses different offsets and is handled separately.
+/// Sinhala, Tibetan, Myanmar, and Khmer use different offsets and are handled
+/// by dedicated sub-functions.
 #[inline]
 fn indic_char_role(cp: u32) -> IndicRole {
     if (0x0D80..=0x0DFF).contains(&cp) {
         return sinhala_char_role(cp);
+    }
+    if (0x0F00..=0x0FFF).contains(&cp) {
+        return tibetan_char_role(cp);
+    }
+    if (0x1000..=0x109F).contains(&cp) {
+        return myanmar_char_role(cp);
+    }
+    if (0x1780..=0x17FF).contains(&cp) {
+        return khmer_char_role(cp);
     }
     if !(0x0900..=0x0D7F).contains(&cp) {
         return IndicRole::None;
@@ -339,6 +353,51 @@ fn sinhala_char_role(cp: u32) -> IndicRole {
         0x0D9A..=0x0DC6 => IndicRole::Consonant,
         0x0DCF..=0x0DDF | 0x0DF2..=0x0DF3 => IndicRole::DependentVowel,
         0x0DCA => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Tibetan codepoint's role.
+///
+/// Tibetan consonants (U+0F40–U+0F69) and subjoined consonants (U+0F90–U+0FBC)
+/// carry an inherent 'a'. Vowel signs (U+0F71–U+0F7D) replace it.
+/// The halanta mark (U+0F84) suppresses it.
+#[inline]
+fn tibetan_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x0F40..=0x0F69 | 0x0F90..=0x0FBC => IndicRole::Consonant,
+        0x0F71..=0x0F7D => IndicRole::DependentVowel,
+        0x0F84 => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Myanmar codepoint's role.
+///
+/// Myanmar consonants (U+1000–U+1021) carry an inherent 'a'.
+/// Dependent vowels (U+102B–U+1035) and medial consonants (U+103B–U+103E) replace it.
+/// Virama (U+1039) and asat (U+103A) suppress it.
+#[inline]
+fn myanmar_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1000..=0x1021 => IndicRole::Consonant,
+        0x102B..=0x1035 | 0x103B..=0x103E => IndicRole::DependentVowel,
+        0x1039 | 0x103A => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Khmer codepoint's role.
+///
+/// Khmer consonants (U+1780–U+17A2) carry an inherent vowel.
+/// Dependent vowels (U+17B6–U+17C5) replace it.
+/// The coeng mark (U+17D2) stacks consonants (virama equivalent).
+#[inline]
+fn khmer_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1780..=0x17A2 => IndicRole::Consonant,
+        0x17B6..=0x17C5 => IndicRole::DependentVowel,
+        0x17D2 => IndicRole::Virama,
         _ => IndicRole::None,
     }
 }

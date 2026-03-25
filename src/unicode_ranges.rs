@@ -41,3 +41,18 @@ pub const KATAKANA_HALFWIDTH: std::ops::RangeInclusive<u32> = 0xFF65..=0xFF9F;
 
 /// Indic Brahmic scripts: Devanagari through Sinhala (U+0900–U+0DFF)
 pub const INDIC: std::ops::RangeInclusive<u32> = 0x0900..=0x0DFF;
+
+// ── Tibetan ─────────────────────────────────────────────────────────────────
+
+/// Tibetan block (U+0F00–U+0FFF)
+pub const TIBETAN: std::ops::RangeInclusive<u32> = 0x0F00..=0x0FFF;
+
+// ── Myanmar ─────────────────────────────────────────────────────────────────
+
+/// Myanmar block (U+1000–U+109F)
+pub const MYANMAR: std::ops::RangeInclusive<u32> = 0x1000..=0x109F;
+
+// ── Khmer ───────────────────────────────────────────────────────────────────
+
+/// Khmer block (U+1780–U+17FF)
+pub const KHMER: std::ops::RangeInclusive<u32> = 0x1780..=0x17FF;

@@ -50,10 +50,6 @@ The [IndoNLP 2025 shared task](https://arxiv.org/html/2501.05816) on reverse tra
 
 The [South Asian languages survey (2025)](https://arxiv.org/html/2509.11570v1) confirms that corpus coverage and script fidelity remain binding constraints for transliteration of languages with limited digital presence. Scripts with no transliteration mapping in translit (characters produce `[?]`):
 
-- **Tibetan** (U+0F00–U+0FFF)
-- **Myanmar/Burmese** (U+1000–U+109F)
-- **Khmer** (U+1780–U+17FF)
-- **Ethiopic/Ge'ez** (U+1200–U+137F)
 - **Cherokee** (U+13A0–U+13FF)
 - **Canadian Aboriginal Syllabics** (U+1400–U+167F)
 - **Mongolian** (U+1800–U+18AF)

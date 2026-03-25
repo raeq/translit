@@ -821,6 +821,275 @@ class TestHebrewTransliterationProperties:
 # 12. Multi-script mixture properties
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Ethiopic strategies
+# ---------------------------------------------------------------------------
+
+_ethiopic_text = st.text(
+    alphabet=st.sampled_from(
+        # Main syllabary: 7 orders per consonant in 8-wide blocks
+        [chr(base + i) for base in range(0x1200, 0x1358, 8) for i in range(7)]
+        # Labialized consonants (specific mapped offsets)
+        + [chr(base + o) for base in [0x1248, 0x1258, 0x1288, 0x12B0, 0x12C0, 0x1308]
+           for o in [0, 1, 3, 4]]
+        # Digits and punctuation
+        + [chr(c) for c in range(0x1361, 0x137C)]
+    ),
+    min_size=1, max_size=20,
+)
+# Use only the regular 7-order consonant blocks (skip labialized/special blocks)
+_ETHIOPIC_SKIP_BASES = {
+    0x1248, 0x1258, 0x1288, 0x12B0, 0x12C0, 0x1308, 0x1310, 0x1318,
+    0x12A0, 0x12D0,  # glottal/pharyngeal: order 6 maps to empty
+}
+_ethiopic_syllables = st.text(
+    alphabet=st.sampled_from(
+        [chr(base + i)
+         for base in range(0x1200, 0x1358, 8)
+         if base not in _ETHIOPIC_SKIP_BASES
+         for i in range(7)]
+    ),
+    min_size=1, max_size=20,
+)
+_ethiopic_digits = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x1369, 0x137C)]),
+    min_size=1, max_size=10,
+)
+
+# ---------------------------------------------------------------------------
+# Myanmar strategies
+# ---------------------------------------------------------------------------
+
+_myanmar_text = st.text(
+    alphabet=st.sampled_from(
+        [chr(c) for c in range(0x1000, 0x104C) if chr(c).isprintable()]
+    ),
+    min_size=1, max_size=20,
+)
+_myanmar_consonants = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x1000, 0x1022)]),
+    min_size=1, max_size=20,
+)
+_myanmar_digits = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x1040, 0x104A)]),
+    min_size=1, max_size=10,
+)
+
+# ---------------------------------------------------------------------------
+# Khmer strategies
+# ---------------------------------------------------------------------------
+
+_khmer_text = st.text(
+    alphabet=st.sampled_from(
+        [chr(c) for c in range(0x1780, 0x17EA) if chr(c).isprintable()]
+    ),
+    min_size=1, max_size=20,
+)
+_khmer_consonants = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x1780, 0x17A3)]),
+    min_size=1, max_size=20,
+)
+_khmer_digits = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x17E0, 0x17EA)]),
+    min_size=1, max_size=10,
+)
+
+# ---------------------------------------------------------------------------
+# Tibetan strategies
+# ---------------------------------------------------------------------------
+
+_tibetan_text = st.text(
+    alphabet=st.sampled_from(
+        [chr(c) for c in range(0x0F00, 0x0F6B) if chr(c).isprintable()]
+        + [chr(c) for c in range(0x0F71, 0x0F85) if chr(c).isprintable()]
+        + [chr(c) for c in range(0x0F90, 0x0FBD) if chr(c).isprintable()]
+    ),
+    min_size=1, max_size=20,
+)
+_tibetan_consonants = st.text(
+    alphabet=st.sampled_from(
+        [chr(c) for c in range(0x0F40, 0x0F6A) if chr(c).isprintable() and c != 0x0F48]
+    ),
+    min_size=1, max_size=20,
+)
+_tibetan_digits = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x0F20, 0x0F2A)]),
+    min_size=1, max_size=10,
+)
+
+
+class TestEthiopicTransliterationProperties:
+    """Property-based tests for Ethiopic (Ge'ez/Amharic) script transliteration."""
+
+    @given(text=_ethiopic_text)
+    @settings(max_examples=500)
+    def test_ethiopic_produces_ascii(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Ethiopic: {result!r}"
+
+    @given(text=_ethiopic_text)
+    @settings(max_examples=300)
+    def test_ethiopic_idempotent(self, text: str) -> None:
+        once = transliterate(text, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
+
+    @given(text=_ethiopic_syllables)
+    @settings(max_examples=300)
+    def test_ethiopic_syllables_nonempty(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert len(result) > 0, f"Empty result for Ethiopic syllables: {text!r}"
+
+    @given(text=_ethiopic_text)
+    @settings(max_examples=300)
+    def test_ethiopic_no_double_spaces(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert "  " not in result, f"Double space in: {result!r}"
+
+    @given(text=_ethiopic_digits)
+    @settings(max_examples=200)
+    def test_ethiopic_digits_are_arabic(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert all(c.isdigit() or c.isspace() for c in result), f"Non-digit from Ethiopic digits: {result!r}"
+
+    @given(text=_ethiopic_text)
+    @settings(max_examples=300)
+    def test_ethiopic_slugify_valid(self, text: str) -> None:
+        result = slugify(text)
+        if result:
+            assert SLUG_PATTERN.match(result), f"Bad slug from Ethiopic: {result!r}"
+
+
+class TestMyanmarTransliterationProperties:
+    """Property-based tests for Myanmar (Burmese) script transliteration."""
+
+    @given(text=_myanmar_text)
+    @settings(max_examples=500)
+    def test_myanmar_produces_ascii(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Myanmar: {result!r}"
+
+    @given(text=_myanmar_text)
+    @settings(max_examples=300)
+    def test_myanmar_idempotent(self, text: str) -> None:
+        once = transliterate(text, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
+
+    @given(text=_myanmar_consonants)
+    @settings(max_examples=300)
+    def test_myanmar_consonants_nonempty(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert len(result) > 0, f"Empty result for Myanmar consonants: {text!r}"
+
+    @given(text=_myanmar_text)
+    @settings(max_examples=300)
+    def test_myanmar_no_double_spaces(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert "  " not in result, f"Double space in: {result!r}"
+
+    @given(text=_myanmar_digits)
+    @settings(max_examples=200)
+    def test_myanmar_digits_are_arabic(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert all(c.isdigit() or c.isspace() for c in result), f"Non-digit from Myanmar digits: {result!r}"
+
+    @given(text=_myanmar_text)
+    @settings(max_examples=300)
+    def test_myanmar_slugify_valid(self, text: str) -> None:
+        result = slugify(text)
+        if result:
+            assert SLUG_PATTERN.match(result), f"Bad slug from Myanmar: {result!r}"
+
+
+class TestKhmerTransliterationProperties:
+    """Property-based tests for Khmer (Cambodian) script transliteration."""
+
+    @given(text=_khmer_text)
+    @settings(max_examples=500)
+    def test_khmer_produces_ascii(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Khmer: {result!r}"
+
+    @given(text=_khmer_text)
+    @settings(max_examples=300)
+    def test_khmer_idempotent(self, text: str) -> None:
+        once = transliterate(text, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
+
+    @given(text=_khmer_consonants)
+    @settings(max_examples=300)
+    def test_khmer_consonants_nonempty(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert len(result) > 0, f"Empty result for Khmer consonants: {text!r}"
+
+    @given(text=_khmer_text)
+    @settings(max_examples=300)
+    def test_khmer_no_double_spaces(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert "  " not in result, f"Double space in: {result!r}"
+
+    @given(text=_khmer_digits)
+    @settings(max_examples=200)
+    def test_khmer_digits_are_arabic(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert all(c.isdigit() or c.isspace() for c in result), f"Non-digit from Khmer digits: {result!r}"
+
+    @given(text=_khmer_text)
+    @settings(max_examples=300)
+    def test_khmer_slugify_valid(self, text: str) -> None:
+        result = slugify(text)
+        if result:
+            assert SLUG_PATTERN.match(result), f"Bad slug from Khmer: {result!r}"
+
+
+class TestTibetanTransliterationProperties:
+    """Property-based tests for Tibetan script transliteration."""
+
+    @given(text=_tibetan_text)
+    @settings(max_examples=500)
+    def test_tibetan_produces_ascii(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Tibetan: {result!r}"
+
+    @given(text=_tibetan_text)
+    @settings(max_examples=300)
+    def test_tibetan_idempotent(self, text: str) -> None:
+        once = transliterate(text, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
+
+    @given(text=_tibetan_consonants)
+    @settings(max_examples=300)
+    def test_tibetan_consonants_nonempty(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert len(result) > 0, f"Empty result for Tibetan consonants: {text!r}"
+
+    @given(text=_tibetan_text)
+    @settings(max_examples=300)
+    def test_tibetan_no_double_spaces(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert "  " not in result, f"Double space in: {result!r}"
+
+    @given(text=_tibetan_digits)
+    @settings(max_examples=200)
+    def test_tibetan_digits_are_arabic(self, text: str) -> None:
+        result = transliterate(text, errors="ignore")
+        assert all(c.isdigit() or c.isspace() for c in result), f"Non-digit from Tibetan digits: {result!r}"
+
+    @given(text=_tibetan_text)
+    @settings(max_examples=300)
+    def test_tibetan_slugify_valid(self, text: str) -> None:
+        result = slugify(text)
+        if result:
+            assert SLUG_PATTERN.match(result), f"Bad slug from Tibetan: {result!r}"
+
+
+# ---------------------------------------------------------------------------
+# 12. Multi-script mixture properties
+# ---------------------------------------------------------------------------
+
 _latin_text = st.text(
     alphabet=st.sampled_from(
         [chr(c) for c in range(0x0041, 0x007B) if chr(c).isalpha()]
@@ -1099,3 +1368,55 @@ class TestMultiScriptMixtureProperties:
         once = transliterate(mixed, errors="ignore")
         twice = transliterate(once, errors="ignore")
         assert once == twice
+
+    @given(latin=_latin_text, ethiopic=_ethiopic_text)
+    @settings(max_examples=300)
+    def test_latin_ethiopic_mixture_ascii(self, latin: str, ethiopic: str) -> None:
+        mixed = _interleave(latin, ethiopic)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Latin+Ethiopic: {result!r}"
+
+    @given(latin=_latin_text, myanmar=_myanmar_text)
+    @settings(max_examples=300)
+    def test_latin_myanmar_mixture_ascii(self, latin: str, myanmar: str) -> None:
+        mixed = _interleave(latin, myanmar)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Latin+Myanmar: {result!r}"
+
+    @given(latin=_latin_text, khmer=_khmer_text)
+    @settings(max_examples=300)
+    def test_latin_khmer_mixture_ascii(self, latin: str, khmer: str) -> None:
+        mixed = _interleave(latin, khmer)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Latin+Khmer: {result!r}"
+
+    @given(latin=_latin_text, tibetan=_tibetan_text)
+    @settings(max_examples=300)
+    def test_latin_tibetan_mixture_ascii(self, latin: str, tibetan: str) -> None:
+        mixed = _interleave(latin, tibetan)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Latin+Tibetan: {result!r}"
+
+    @given(
+        latin=_extended_latin,
+        cyrillic=_cyrillic_text,
+        indic=_any_indic_text,
+        hebrew=_hebrew_full,
+        cjk=_cjk_text,
+        thai=_thai_text,
+        ethiopic=_ethiopic_text,
+        myanmar=_myanmar_text,
+        khmer=_khmer_text,
+        tibetan=_tibetan_text,
+    )
+    @settings(max_examples=100)
+    def test_ten_script_mixture_ascii(
+        self, latin: str, cyrillic: str, indic: str, hebrew: str,
+        cjk: str, thai: str, ethiopic: str, myanmar: str, khmer: str,
+        tibetan: str,
+    ) -> None:
+        """Ten-script mixture → ASCII."""
+        mixed = _interleave(latin, cyrillic, indic, hebrew, cjk, thai,
+                           ethiopic, myanmar, khmer, tibetan)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from 10-script mix: {result!r}"
