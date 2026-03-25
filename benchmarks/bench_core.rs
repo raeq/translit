@@ -13,7 +13,8 @@ use _translit::grapheme::{_grapheme_len, _grapheme_split};
 use _translit::scripts::{_detect_scripts, _is_mixed_script};
 use _translit::slugify::{slugify_impl, SlugConfig};
 use _translit::tables::lookup_default;
-use _translit::transliterate::{transliterate_impl, ErrorMode};
+use _translit::transliterate::transliterate_impl;
+use _translit::ErrorMode;
 use _translit::whitespace::_collapse_whitespace;
 
 // ---------------------------------------------------------------------------
