@@ -12,11 +12,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 RUN pip install --no-cache-dir maturin
 
-COPY Cargo.toml Cargo.lock build.rs pyproject.toml ./
+COPY Cargo.toml build.rs pyproject.toml ./
 COPY src/ src/
 COPY python/ python/
 
-RUN maturin build --release --interpreter python --out /tmp/wheels && \
+RUN cargo generate-lockfile && \
+    maturin build --release --interpreter python --out /tmp/wheels && \
     pip install --no-cache-dir /tmp/wheels/*.whl
 
 # Stage 2: Minimal runtime image
