@@ -89,6 +89,13 @@ manual_range_contains = "allow"
 explicit_counter_loop = "allow"
 fn_params_excessive_bools = "allow"
 redundant_closure = "allow"
+# Newer clippy pedantic lints that trigger on CI's latest Rust
+empty_line_after_doc_comments = "allow"
+needless_lifetimes = "allow"
+doc_link_with_quotes = "allow"
+items_after_statements = "allow"
+inefficient_to_string = "allow"
+enum_glob_use = "allow"
 
 [profile.release]
 lto = true
