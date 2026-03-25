@@ -218,22 +218,19 @@ fn latin_before_cjk_gets_space() {
 
 #[test]
 fn devanagari_bare_consonant() {
-    let result =
-        transliterate::transliterate_impl("क", None, ErrorMode::Ignore, "", false, false);
+    let result = transliterate::transliterate_impl("क", None, ErrorMode::Ignore, "", false, false);
     assert_eq!(result, "ka");
 }
 
 #[test]
 fn devanagari_virama() {
-    let result =
-        transliterate::transliterate_impl("क्", None, ErrorMode::Ignore, "", false, false);
+    let result = transliterate::transliterate_impl("क्", None, ErrorMode::Ignore, "", false, false);
     assert_eq!(result, "k");
 }
 
 #[test]
 fn devanagari_matra() {
-    let result =
-        transliterate::transliterate_impl("की", None, ErrorMode::Ignore, "", false, false);
+    let result = transliterate::transliterate_impl("की", None, ErrorMode::Ignore, "", false, false);
     assert_eq!(result, "ki");
 }
 
@@ -276,13 +273,13 @@ fn indic_mixed_with_latin() {
 fn indic_all_scripts_produce_ascii() {
     let samples = [
         "नमस्ते",   // Devanagari
-        "কলকাতা",  // Bengali
+        "কলকাতা",   // Bengali
         "தமிழ்",   // Tamil
         "తెలుగు",  // Telugu
         "ગુજરાતી", // Gujarati
         "ಕನ್ನಡ",   // Kannada
         "മലയാളം",  // Malayalam
-        "ଓଡ଼ିଆ",   // Odia
+        "ଓଡ଼ିଆ",    // Odia
         "ਗੁਰਮੁਖੀ",  // Gurmukhi
     ];
     for sample in &samples {
@@ -312,8 +309,7 @@ fn devanagari_mumbai() {
 
 #[test]
 fn devanagari_consecutive_consonants() {
-    let result =
-        transliterate::transliterate_impl("कल", None, ErrorMode::Ignore, "", false, false);
+    let result = transliterate::transliterate_impl("कल", None, ErrorMode::Ignore, "", false, false);
     assert_eq!(result, "kala");
 }
 
@@ -342,11 +338,9 @@ fn hebrew_unpointed() {
 
 #[test]
 fn hebrew_final_forms() {
-    let result =
-        transliterate::transliterate_impl("ך", None, ErrorMode::Ignore, "", false, false);
+    let result = transliterate::transliterate_impl("ך", None, ErrorMode::Ignore, "", false, false);
     assert_eq!(result, "kh");
-    let result =
-        transliterate::transliterate_impl("ץ", None, ErrorMode::Ignore, "", false, false);
+    let result = transliterate::transliterate_impl("ץ", None, ErrorMode::Ignore, "", false, false);
     assert_eq!(result, "ts");
 }
 
@@ -368,8 +362,7 @@ fn hebrew_dagesh_presentation() {
     let result =
         transliterate::transliterate_impl("\u{FB31}", None, ErrorMode::Ignore, "", false, false);
     assert_eq!(result, "b");
-    let result =
-        transliterate::transliterate_impl("ב", None, ErrorMode::Ignore, "", false, false);
+    let result = transliterate::transliterate_impl("ב", None, ErrorMode::Ignore, "", false, false);
     assert_eq!(result, "v");
 }
 
@@ -386,7 +379,10 @@ fn hebrew_produces_ascii() {
     for sample in &samples {
         let result =
             transliterate::transliterate_impl(sample, None, ErrorMode::Ignore, "", false, false);
-        assert!(result.is_ascii(), "Expected ASCII for {sample:?}, got: {result:?}");
+        assert!(
+            result.is_ascii(),
+            "Expected ASCII for {sample:?}, got: {result:?}"
+        );
         assert!(!result.is_empty(), "Expected non-empty for {sample:?}");
     }
 }

@@ -155,9 +155,7 @@ pub fn transliterate_impl<'a>(
             if char_class == ScriptClass::Indic {
                 let role = indic_char_role(ch as u32);
                 match role {
-                    IndicRole::Virama | IndicRole::DependentVowel
-                        if last_was_indic_consonant =>
-                    {
+                    IndicRole::Virama | IndicRole::DependentVowel if last_was_indic_consonant => {
                         // Pop the trailing inherent 'a' from the previous consonant
                         if result.ends_with('a') {
                             result.pop();
