@@ -732,9 +732,24 @@ fn thai_text() -> BoxedStrategy<String> {
     chars_in_range(0x0E01, 0x0E4B)
 }
 
+/// Generate Thai consonants only (U+0E01-U+0E2E).
+fn thai_consonants_strat() -> BoxedStrategy<String> {
+    chars_in_range(0x0E01, 0x0E2E)
+}
+
+/// Generate Thai digits only (U+0E50-U+0E59).
+fn thai_digits_strat() -> BoxedStrategy<String> {
+    chars_in_range(0x0E50, 0x0E59)
+}
+
 /// Generate Lao text (U+0E81-U+0ECD).
 fn lao_text() -> BoxedStrategy<String> {
     chars_in_range(0x0E81, 0x0ECD)
+}
+
+/// Generate any Tai text (Thai or Lao).
+fn any_tai_text() -> BoxedStrategy<String> {
+    proptest::strategy::Union::new(vec![thai_text(), lao_text()]).boxed()
 }
 
 /// Generate extended Latin text (U+00C0-U+024F).
@@ -918,6 +933,25 @@ proptest! {
         let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
         prop_assert_eq!(&once, &twice);
     }
+
+    #[test]
+    fn prop_thai_consonants_nonempty(s in thai_consonants_strat()) {
+        let result = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(!result.is_empty(), "Empty result from Thai consonants: {:?}", s);
+    }
+
+    #[test]
+    fn prop_thai_no_double_spaces(s in thai_text()) {
+        let result = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(!result.contains("  "), "Double space in: {:?}", result);
+    }
+
+    #[test]
+    fn prop_thai_digits_are_arabic(s in thai_digits_strat()) {
+        let result = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.chars().all(|c| c.is_ascii_digit()), "Non-digit from Thai digits: {:?}", result);
+        prop_assert_eq!(result.len(), s.chars().count());
+    }
 }
 
 // --- Lao property tests ---
@@ -936,6 +970,12 @@ proptest! {
         let once = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
         let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
         prop_assert_eq!(&once, &twice);
+    }
+
+    #[test]
+    fn prop_lao_no_double_spaces(s in lao_text()) {
+        let result = transliterate::transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(!result.contains("  "), "Double space in: {:?}", result);
     }
 }
 
@@ -1001,27 +1041,73 @@ proptest! {
     }
 
     #[test]
-    fn prop_five_script_mixture_ascii(
-        latin in extended_latin_text(),
-        cyrillic in cyrillic_text(),
-        indic in any_indic_text(),
-        hebrew in hebrew_text(),
-        cjk in cjk_text(),
-    ) {
-        let mixed = format!("{latin} {cyrillic} {indic} {hebrew} {cjk}");
+    fn prop_latin_thai_mixture_ascii(latin in extended_latin_text(), thai in thai_text()) {
+        let mixed = format!("{latin} {thai}");
         let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
-        prop_assert!(result.is_ascii(), "Non-ASCII from 5-script mix: {:?}", result);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Latin+Thai: {:?}", result);
     }
 
     #[test]
-    fn prop_five_script_mixture_idempotent(
+    fn prop_latin_lao_mixture_ascii(latin in extended_latin_text(), lao in lao_text()) {
+        let mixed = format!("{latin} {lao}");
+        let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Latin+Lao: {:?}", result);
+    }
+
+    #[test]
+    fn prop_thai_lao_mixture_ascii(thai in thai_text(), lao in lao_text()) {
+        let mixed = format!("{thai} {lao}");
+        let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Thai+Lao: {:?}", result);
+    }
+
+    #[test]
+    fn prop_indic_thai_mixture_ascii(indic in any_indic_text(), thai in thai_text()) {
+        let mixed = format!("{indic} {thai}");
+        let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Indic+Thai: {:?}", result);
+    }
+
+    #[test]
+    fn prop_cjk_tai_mixture_ascii(cjk in cjk_text(), tai in any_tai_text()) {
+        let mixed = format!("{cjk} {tai}");
+        let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from CJK+Tai: {:?}", result);
+    }
+
+    #[test]
+    fn prop_hebrew_tai_mixture_ascii(hebrew in hebrew_text(), tai in any_tai_text()) {
+        let mixed = format!("{hebrew} {tai}");
+        let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from Hebrew+Tai: {:?}", result);
+    }
+
+    #[test]
+    fn prop_seven_script_mixture_ascii(
         latin in extended_latin_text(),
         cyrillic in cyrillic_text(),
         indic in any_indic_text(),
         hebrew in hebrew_text(),
         cjk in cjk_text(),
+        thai in thai_text(),
+        lao in lao_text(),
     ) {
-        let mixed = format!("{latin} {cyrillic} {indic} {hebrew} {cjk}");
+        let mixed = format!("{latin} {cyrillic} {indic} {hebrew} {cjk} {thai} {lao}");
+        let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII from 7-script mix: {:?}", result);
+    }
+
+    #[test]
+    fn prop_seven_script_mixture_idempotent(
+        latin in extended_latin_text(),
+        cyrillic in cyrillic_text(),
+        indic in any_indic_text(),
+        hebrew in hebrew_text(),
+        cjk in cjk_text(),
+        thai in thai_text(),
+        lao in lao_text(),
+    ) {
+        let mixed = format!("{latin} {cyrillic} {indic} {hebrew} {cjk} {thai} {lao}");
         let once = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
         let twice = transliterate::transliterate_impl(&once, None, ErrorMode::Ignore, "", false, false);
         prop_assert_eq!(&once, &twice);
@@ -1047,5 +1133,27 @@ proptest! {
         let mixed = format!("{hebrew}{indic}");
         let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
         prop_assert!(result.is_ascii(), "Non-ASCII at Hebrew/Indic boundary: {:?}", result);
+    }
+
+    #[test]
+    fn prop_thai_indic_no_boundary_artifacts(
+        thai in thai_text(),
+        indic in devanagari_text(),
+    ) {
+        // Thai directly adjacent to Indic (no space)
+        let mixed = format!("{thai}{indic}");
+        let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII at Thai/Indic boundary: {:?}", result);
+    }
+
+    #[test]
+    fn prop_latin_thai_no_boundary_artifacts(
+        latin in extended_latin_text(),
+        thai in thai_text(),
+    ) {
+        // Latin directly adjacent to Thai (no space)
+        let mixed = format!("{latin}{thai}");
+        let result = transliterate::transliterate_impl(&mixed, None, ErrorMode::Ignore, "", false, false);
+        prop_assert!(result.is_ascii(), "Non-ASCII at Latin/Thai boundary: {:?}", result);
     }
 }

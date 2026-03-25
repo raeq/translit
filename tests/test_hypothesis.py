@@ -620,6 +620,15 @@ _thai_text = st.text(
     ),
     min_size=1, max_size=20,
 )
+_thai_consonants = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x0E01, 0x0E2F)]),
+    min_size=1, max_size=20,
+)
+_thai_tone_marks = st.sampled_from([chr(c) for c in range(0x0E48, 0x0E4C)])
+_thai_digits = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x0E50, 0x0E5A)]),
+    min_size=1, max_size=10,
+)
 _lao_text = st.text(
     alphabet=st.sampled_from(
         [chr(c) for c in range(0x0E81, 0x0EAF) if chr(c).isprintable()]
@@ -628,6 +637,23 @@ _lao_text = st.text(
     ),
     min_size=1, max_size=20,
 )
+_lao_consonants = st.text(
+    alphabet=st.sampled_from(
+        [chr(c) for c in [
+            0x0E81, 0x0E82, 0x0E84, 0x0E87, 0x0E88, 0x0E8A, 0x0E8D,
+            0x0E94, 0x0E95, 0x0E96, 0x0E97, 0x0E99, 0x0E9A, 0x0E9B,
+            0x0E9C, 0x0E9D, 0x0E9E, 0x0E9F, 0x0EA1, 0x0EA2, 0x0EA3,
+            0x0EA5, 0x0EA7, 0x0EAA, 0x0EAB, 0x0EAE,
+        ]]
+    ),
+    min_size=1, max_size=20,
+)
+_lao_tone_marks = st.sampled_from([chr(c) for c in range(0x0EC8, 0x0ECC)])
+_lao_digits = st.text(
+    alphabet=st.sampled_from([chr(c) for c in range(0x0ED0, 0x0EDA)]),
+    min_size=1, max_size=10,
+)
+_any_tai_text = st.one_of(_thai_text, _lao_text)
 
 
 class TestThaiTransliterationProperties:
@@ -645,6 +671,38 @@ class TestThaiTransliterationProperties:
         once = transliterate(text, errors="ignore")
         twice = transliterate(once, errors="ignore")
         assert once == twice
+
+    @given(text=_thai_consonants)
+    @settings(max_examples=300)
+    def test_thai_consonants_nonempty(self, text: str) -> None:
+        """Thai consonants always produce non-empty output."""
+        result = transliterate(text, errors="ignore")
+        assert len(result) > 0, f"Empty result from Thai consonants: {text!r}"
+
+    @given(text=_thai_text)
+    @settings(max_examples=300)
+    def test_thai_no_double_spaces(self, text: str) -> None:
+        """Thai text should not produce double spaces."""
+        result = transliterate(text, errors="ignore")
+        assert "  " not in result, f"Double space in: {result!r}"
+
+    @given(consonant=_thai_consonants, tone=_thai_tone_marks)
+    @settings(max_examples=200)
+    def test_thai_tone_marks_stripped(self, consonant: str, tone: str) -> None:
+        """Tone marks should not appear in output — consonant+tone = consonant alone."""
+        with_tone = transliterate(consonant + tone, errors="ignore")
+        without_tone = transliterate(consonant, errors="ignore")
+        assert with_tone == without_tone, (
+            f"Tone mark not stripped: {consonant+tone!r} → {with_tone!r} vs {without_tone!r}"
+        )
+
+    @given(text=_thai_digits)
+    @settings(max_examples=100)
+    def test_thai_digits_are_arabic(self, text: str) -> None:
+        """Thai digits (๐-๙) map to ASCII digits (0-9)."""
+        result = transliterate(text, errors="ignore")
+        assert result.isdigit(), f"Expected digits from Thai digits: {result!r}"
+        assert len(result) == len(text)
 
     @given(text=_thai_text)
     @settings(max_examples=300)
@@ -669,6 +727,38 @@ class TestLaoTransliterationProperties:
         once = transliterate(text, errors="ignore")
         twice = transliterate(once, errors="ignore")
         assert once == twice
+
+    @given(text=_lao_consonants)
+    @settings(max_examples=300)
+    def test_lao_consonants_nonempty(self, text: str) -> None:
+        """Lao consonants always produce non-empty output."""
+        result = transliterate(text, errors="ignore")
+        assert len(result) > 0, f"Empty result from Lao consonants: {text!r}"
+
+    @given(text=_lao_text)
+    @settings(max_examples=300)
+    def test_lao_no_double_spaces(self, text: str) -> None:
+        """Lao text should not produce double spaces."""
+        result = transliterate(text, errors="ignore")
+        assert "  " not in result, f"Double space in: {result!r}"
+
+    @given(consonant=_lao_consonants, tone=_lao_tone_marks)
+    @settings(max_examples=200)
+    def test_lao_tone_marks_stripped(self, consonant: str, tone: str) -> None:
+        """Tone marks should not appear in output — consonant+tone = consonant alone."""
+        with_tone = transliterate(consonant + tone, errors="ignore")
+        without_tone = transliterate(consonant, errors="ignore")
+        assert with_tone == without_tone, (
+            f"Tone mark not stripped: {consonant+tone!r} → {with_tone!r} vs {without_tone!r}"
+        )
+
+    @given(text=_lao_digits)
+    @settings(max_examples=100)
+    def test_lao_digits_are_arabic(self, text: str) -> None:
+        """Lao digits (໐-໙) map to ASCII digits (0-9)."""
+        result = transliterate(text, errors="ignore")
+        assert result.isdigit(), f"Expected digits from Lao digits: {result!r}"
+        assert len(result) == len(text)
 
     @given(text=_lao_text)
     @settings(max_examples=300)
@@ -922,3 +1012,90 @@ class TestMultiScriptMixtureProperties:
         ignore_result = transliterate(mixed, errors="ignore")
         preserve_result = transliterate(mixed, errors="preserve")
         assert len(preserve_result) >= len(ignore_result)
+
+    @given(latin=_latin_text, thai=_thai_text)
+    @settings(max_examples=300)
+    def test_latin_thai_mixture_ascii(self, latin: str, thai: str) -> None:
+        """Latin + Thai mixed text transliterates to ASCII."""
+        mixed = _interleave(latin, thai)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Latin+Thai: {result!r}"
+
+    @given(latin=_latin_text, lao=_lao_text)
+    @settings(max_examples=300)
+    def test_latin_lao_mixture_ascii(self, latin: str, lao: str) -> None:
+        """Latin + Lao mixed text transliterates to ASCII."""
+        mixed = _interleave(latin, lao)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Latin+Lao: {result!r}"
+
+    @given(thai=_thai_text, lao=_lao_text)
+    @settings(max_examples=300)
+    def test_thai_lao_mixture_ascii(self, thai: str, lao: str) -> None:
+        """Thai + Lao mixed text transliterates to ASCII."""
+        mixed = _interleave(thai, lao)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Thai+Lao: {result!r}"
+
+    @given(indic=_any_indic_text, thai=_thai_text)
+    @settings(max_examples=300)
+    def test_indic_thai_mixture_ascii(self, indic: str, thai: str) -> None:
+        """Indic + Thai mixed text transliterates to ASCII."""
+        mixed = _interleave(indic, thai)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Indic+Thai: {result!r}"
+
+    @given(cjk=_cjk_text, tai=_any_tai_text)
+    @settings(max_examples=300)
+    def test_cjk_tai_mixture_ascii(self, cjk: str, tai: str) -> None:
+        """CJK + Thai/Lao mixed text transliterates to ASCII."""
+        mixed = _interleave(cjk, tai)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from CJK+Tai: {result!r}"
+
+    @given(hebrew=_hebrew_full, tai=_any_tai_text)
+    @settings(max_examples=300)
+    def test_hebrew_tai_mixture_ascii(self, hebrew: str, tai: str) -> None:
+        """Hebrew + Thai/Lao mixed text transliterates to ASCII."""
+        mixed = _interleave(hebrew, tai)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from Hebrew+Tai: {result!r}"
+
+    @given(
+        latin=_extended_latin,
+        cyrillic=_cyrillic_text,
+        indic=_any_indic_text,
+        hebrew=_hebrew_full,
+        cjk=_cjk_text,
+        thai=_thai_text,
+        lao=_lao_text,
+    )
+    @settings(max_examples=200)
+    def test_seven_script_mixture_ascii(
+        self, latin: str, cyrillic: str, indic: str, hebrew: str,
+        cjk: str, thai: str, lao: str,
+    ) -> None:
+        """Seven-script mixture (Latin+Cyrillic+Indic+Hebrew+CJK+Thai+Lao) → ASCII."""
+        mixed = _interleave(latin, cyrillic, indic, hebrew, cjk, thai, lao)
+        result = transliterate(mixed, errors="ignore")
+        assert is_ascii(result), f"Non-ASCII from 7-script mix: {result!r}"
+
+    @given(
+        latin=_extended_latin,
+        cyrillic=_cyrillic_text,
+        indic=_any_indic_text,
+        hebrew=_hebrew_full,
+        cjk=_cjk_text,
+        thai=_thai_text,
+        lao=_lao_text,
+    )
+    @settings(max_examples=200)
+    def test_seven_script_mixture_idempotent(
+        self, latin: str, cyrillic: str, indic: str, hebrew: str,
+        cjk: str, thai: str, lao: str,
+    ) -> None:
+        """Seven-script mixture transliteration is idempotent."""
+        mixed = _interleave(latin, cyrillic, indic, hebrew, cjk, thai, lao)
+        once = transliterate(mixed, errors="ignore")
+        twice = transliterate(once, errors="ignore")
+        assert once == twice
