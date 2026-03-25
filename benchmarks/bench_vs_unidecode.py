@@ -4,8 +4,8 @@ Run after installing comparison libraries:
     pip install Unidecode text-unidecode anyascii
 """
 
-import time
 import sys
+import time
 
 
 def bench_library(name: str, func, text: str, iterations: int = 10_000) -> float:

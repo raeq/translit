@@ -6,7 +6,6 @@ Reads phf_map! and phf_set! macro invocations and outputs data as TSV files.
 """
 
 import re
-import sys
 from pathlib import Path
 
 

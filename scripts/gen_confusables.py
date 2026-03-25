@@ -109,39 +109,39 @@ def generate_rust(mappings: list[tuple[int, str]], version_line: str) -> str:
     mappings.sort(key=lambda x: x[0])
 
     lines = []
-    lines.append(f"//! Unicode TR39 confusable character mappings (non-Latin → Latin).")
-    lines.append(f"//!")
+    lines.append("//! Unicode TR39 confusable character mappings (non-Latin → Latin).")
+    lines.append("//!")
     lines.append(
-        f"//! Auto-generated from confusables.txt by scripts/gen_confusables.py."
+        "//! Auto-generated from confusables.txt by scripts/gen_confusables.py."
     )
     lines.append(f"//! {version_line}")
-    lines.append(f"//!")
+    lines.append("//!")
     lines.append(
         f"//! Contains {len(mappings)} mappings from non-Latin scripts to Latin"
     )
     lines.append(
-        f"//! equivalents. Uses compile-time perfect hash maps (`phf`) for O(1)"
+        "//! equivalents. Uses compile-time perfect hash maps (`phf`) for O(1)"
     )
     lines.append(
-        f"//! lookups. Covers Cyrillic, Greek, Armenian, Georgian, CJK compatibility,"
+        "//! lookups. Covers Cyrillic, Greek, Armenian, Georgian, CJK compatibility,"
     )
     lines.append(
-        f"//! mathematical symbols, fullwidth forms, and other confusable characters."
+        "//! mathematical symbols, fullwidth forms, and other confusable characters."
     )
-    lines.append(f"//!")
+    lines.append("//!")
     lines.append(
-        f"//! DO NOT EDIT — regenerate with: python scripts/gen_confusables.py"
+        "//! DO NOT EDIT — regenerate with: python scripts/gen_confusables.py"
     )
-    lines.append(f"")
-    lines.append(f"use phf::phf_map;")
-    lines.append(f"")
-    lines.append(f"/// Non-Latin → Latin confusable mappings (O(1) PHF lookup).")
-    lines.append(f"///")
+    lines.append("")
+    lines.append("use phf::phf_map;")
+    lines.append("")
+    lines.append("/// Non-Latin → Latin confusable mappings (O(1) PHF lookup).")
+    lines.append("///")
     lines.append(
-        f"/// Maps visually similar non-Latin characters to their Latin prototypes"
+        "/// Maps visually similar non-Latin characters to their Latin prototypes"
     )
-    lines.append(f"/// per Unicode Technical Report #39.")
-    lines.append(f"static TO_LATIN: phf::Map<char, &'static str> = phf_map! {{")
+    lines.append("/// per Unicode Technical Report #39.")
+    lines.append("static TO_LATIN: phf::Map<char, &'static str> = phf_map! {")
 
     for source_cp, target_str in mappings:
         source_char = rust_char_literal(source_cp)
@@ -154,25 +154,25 @@ def generate_rust(mappings: list[tuple[int, str]], version_line: str) -> str:
             comment = f'// {source_name} → "{target_str}"'
         lines.append(f'    {source_char} => "{target_escaped}", {comment}')
 
-    lines.append(f"}};")
-    lines.append(f"")
+    lines.append("};")
+    lines.append("")
     lines.append(
-        f"/// Look up a confusable mapping for a character to the target script."
+        "/// Look up a confusable mapping for a character to the target script."
     )
-    lines.append(f"///")
-    lines.append(f"/// Returns the Latin prototype string if the character is a known")
-    lines.append(f"/// confusable, or None if it is not.")
-    lines.append(f"#[inline]")
+    lines.append("///")
+    lines.append("/// Returns the Latin prototype string if the character is a known")
+    lines.append("/// confusable, or None if it is not.")
+    lines.append("#[inline]")
     lines.append(
-        f"pub fn lookup(ch: char, target_script: &str) -> Option<&'static str> {{"
+        "pub fn lookup(ch: char, target_script: &str) -> Option<&'static str> {"
     )
-    lines.append(f'    if target_script != "latin" {{')
-    lines.append(f"        return None;")
-    lines.append(f"    }}")
-    lines.append(f"")
-    lines.append(f"    TO_LATIN.get(&ch).copied()")
-    lines.append(f"}}")
-    lines.append(f"")
+    lines.append('    if target_script != "latin" {')
+    lines.append("        return None;")
+    lines.append("    }")
+    lines.append("")
+    lines.append("    TO_LATIN.get(&ch).copied()")
+    lines.append("}")
+    lines.append("")
 
     return "\n".join(lines)
 

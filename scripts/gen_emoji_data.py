@@ -83,7 +83,7 @@ def generate(entries: dict[tuple[int, ...], str]) -> str:
     lines.append("")
 
     max_len = max(len(cps) for cps in multi) if multi else 1
-    lines.append(f"/// Maximum codepoint length of any emoji sequence in EMOJI_MULTI.")
+    lines.append("/// Maximum codepoint length of any emoji sequence in EMOJI_MULTI.")
     lines.append(f"pub const MAX_EMOJI_SEQ_LEN: usize = {max_len};")
     lines.append("")
 
