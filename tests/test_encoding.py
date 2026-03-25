@@ -6,6 +6,8 @@ EUC-KR, Big5, GB18030, and edge cases.
 
 from __future__ import annotations
 
+import pytest
+
 from translit import decode_to_utf8, detect_encoding
 
 
@@ -181,7 +183,6 @@ class TestDecodeToUtf8:
 
     def test_min_confidence_high_threshold_rejects(self) -> None:
         # detect_encoding returns at most 0.95; threshold of 1.0 always rejects.
-        import pytest
         from translit import TranslitError
 
         with pytest.raises(TranslitError, match="below the required minimum"):

@@ -13,7 +13,6 @@ from hypothesis import strategies as st
 
 from translit import (
     is_confusable,
-    is_mixed_script,
     is_normalized,
     security_clean,
 )
