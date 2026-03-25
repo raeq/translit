@@ -1,9 +1,9 @@
-"""Type stubs for unirust.Text fluent builder."""
+"""Type stubs for translit.Text fluent builder."""
 
 from collections.abc import Iterable
 
-from unirust._enums import Script
-from unirust._types import EmojiProvider, ErrorMode, NormalizationForm, Platform
+from translit._enums import Script
+from translit._types import EmojiProvider, ErrorMode, NormalizationForm, Platform
 
 class Text:
     """Immutable wrapper for fluent Unicode text processing."""
@@ -95,7 +95,7 @@ class Text:
         """Strip bidirectional override and formatting characters."""
         ...
     def security_clean(self) -> Text:
-        """Apply the security_clean pipeline (NFKC → confusables → whitespace → bidi)."""
+        """Apply the security_clean pipeline (NFKC → confusables → bidi → whitespace)."""
         ...
     def ml_normalize(
         self,
@@ -127,4 +127,18 @@ class Text:
         ...
     def grapheme_len(self) -> int:
         """Count user-perceived characters (extended grapheme clusters)."""
+        ...
+    def grapheme_split(self) -> list[str]:
+        """Split into extended grapheme clusters."""
+        ...
+    def grapheme_truncate(self, max_graphemes: int) -> Text:
+        """Truncate to at most *max_graphemes* grapheme clusters."""
+        ...
+    def catalog_key(
+        self,
+        *,
+        lang: str | None = None,
+        strict_iso9: bool = False,
+    ) -> Text:
+        """Library catalog key generation for bibliographic deduplication."""
         ...

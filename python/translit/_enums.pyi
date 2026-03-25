@@ -1,4 +1,4 @@
-"""Type stubs for unirust._enums."""
+"""Type stubs for translit._enums."""
 
 import enum
 
