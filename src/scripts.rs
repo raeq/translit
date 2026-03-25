@@ -49,14 +49,14 @@ static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
     (0x0041, 0x005A, "Latin"),
     (0x0061, 0x007A, "Latin"),
     (0x00C0, 0x024F, "Latin"),
-    (0x0250, 0x02AF, "Latin"),       // IPA Extensions
+    (0x0250, 0x02AF, "Latin"), // IPA Extensions
     // Inherited — Combining Diacritical Marks
     (0x0300, 0x036F, "Inherited"),
     // Greek
     (0x0370, 0x03FF, "Greek"),
     // Cyrillic
     (0x0400, 0x04FF, "Cyrillic"),
-    (0x0500, 0x052F, "Cyrillic"),    // Cyrillic Supplement
+    (0x0500, 0x052F, "Cyrillic"), // Cyrillic Supplement
     // Armenian
     (0x0530, 0x058F, "Armenian"),
     // Hebrew
@@ -109,7 +109,7 @@ static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
     (0x1100, 0x11FF, "Hangul"),
     // Ethiopic
     (0x1200, 0x137F, "Ethiopic"),
-    (0x1380, 0x139F, "Ethiopic"),    // Ethiopic Supplement
+    (0x1380, 0x139F, "Ethiopic"), // Ethiopic Supplement
     // Cherokee
     (0x13A0, 0x13FF, "Cherokee"),
     // Canadian Aboriginal Syllabics

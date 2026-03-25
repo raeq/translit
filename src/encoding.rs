@@ -18,7 +18,11 @@ pub fn detect_encoding_impl(bytes: &[u8]) -> (String, f64) {
     // continuous score.  We map it to two fixed levels chosen to align
     // with chardet/cChardet output ranges so that callers using
     // min_confidence thresholds (e.g. 0.7) get intuitive results.
-    let confidence = if confident { CONFIDENCE_HIGH } else { CONFIDENCE_LOW };
+    let confidence = if confident {
+        CONFIDENCE_HIGH
+    } else {
+        CONFIDENCE_LOW
+    };
 
     (encoding.name().to_owned(), confidence)
 }
@@ -131,7 +135,8 @@ mod tests {
 
     #[test]
     fn test_decode_utf8() {
-        let (decoded, had_errors) = decode_to_utf8_impl("café".as_bytes(), Some("UTF-8"), 0.0).unwrap();
+        let (decoded, had_errors) =
+            decode_to_utf8_impl("café".as_bytes(), Some("UTF-8"), 0.0).unwrap();
         assert_eq!(decoded, "café");
         assert!(!had_errors);
     }
@@ -172,7 +177,10 @@ mod tests {
         let result = decode_to_utf8_impl(b"hi", None, 1.0);
         assert!(result.is_err());
         let msg = result.unwrap_err();
-        assert!(msg.contains("below the required minimum"), "unexpected: {msg}");
+        assert!(
+            msg.contains("below the required minimum"),
+            "unexpected: {msg}"
+        );
     }
 
     #[test]

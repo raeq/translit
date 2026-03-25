@@ -101,13 +101,12 @@ fn match_emoji_at(chars: &[char], pos: usize) -> Option<(&'static str, usize)> {
     // Try single-codepoint lookup
     if let Some(name) = tables::lookup_emoji_single(ch) {
         // Check if followed by variation selector — consume it too
-        let consumed = if pos + 1 < chars.len()
-            && (chars[pos + 1] == VS16 || chars[pos + 1] == VS15)
-        {
-            2
-        } else {
-            1
-        };
+        let consumed =
+            if pos + 1 < chars.len() && (chars[pos + 1] == VS16 || chars[pos + 1] == VS15) {
+                2
+            } else {
+                1
+            };
         return Some((name, consumed));
     }
 
@@ -154,9 +153,8 @@ fn try_python_provider(
         let result = match provider.call_method1(py, "lookup", (py_seq,)) {
             Ok(r) => r,
             Err(e) => {
-                let msg = format!(
-                    "EmojiProvider.lookup() raised an exception and will be ignored: {e}"
-                );
+                let msg =
+                    format!("EmojiProvider.lookup() raised an exception and will be ignored: {e}");
                 emit_warning(py, &msg);
                 return None;
             }

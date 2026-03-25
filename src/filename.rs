@@ -143,14 +143,9 @@ pub fn _sanitize_filename(
     let safe_text = collapse_dot_sequences(&nfc_text);
 
     // Transliterate to ASCII
-    let transliterated = transliterate::transliterate_impl(
-        &safe_text,
-        lang,
-        crate::ErrorMode::Ignore,
-        "",
-        false,
-    )
-    .into_owned();
+    let transliterated =
+        transliterate::transliterate_impl(&safe_text, lang, crate::ErrorMode::Ignore, "", false)
+            .into_owned();
 
     // Collapse dots again after transliteration — characters like U+2026
     // HORIZONTAL ELLIPSIS (→ "...") or U+00B7 MIDDLE DOT (→ ".") can

@@ -354,7 +354,9 @@ fn decode_numeric_entity(bytes: &[u8], pos: usize, num_buf: &mut String) -> Opti
         num_buf.parse::<u32>().ok()
     };
     // Exclude control characters — they are never valid slug content.
-    let ch = parsed.and_then(char::from_u32).filter(|c| !c.is_control())?;
+    let ch = parsed
+        .and_then(char::from_u32)
+        .filter(|c| !c.is_control())?;
     Some((ch, i - pos))
 }
 

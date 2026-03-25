@@ -210,7 +210,7 @@ mod tests {
         // (U+AB70–U+ABBF) to the original uppercase forms (U+13A0–U+13EF).
         // The uppercase forms themselves have no folding entry → identity.
         assert_eq!(fold_case_impl("\u{13A0}"), "\u{13A0}"); // Ꭰ stays Ꭰ
-                                                        // Small ꭰ (U+AB70) folds to Ꭰ (U+13A0)
+                                                            // Small ꭰ (U+AB70) folds to Ꭰ (U+13A0)
         assert_eq!(fold_case_impl("\u{AB70}"), "\u{13A0}");
         assert_eq!(fold_case_impl("\u{AB71}"), "\u{13A1}");
     }

@@ -170,7 +170,7 @@ mod tests {
             fn normalize_confusables_valid_utf8(s in "\\PC*") {
                 let result = _normalize_confusables(&s, "latin").unwrap();
                 // If this compiles and doesn't panic, the result is valid UTF-8.
-                prop_assert!(result.len() >= 0); // trivial, just forces evaluation
+                let _ = result.len(); // forces evaluation
             }
         }
     }

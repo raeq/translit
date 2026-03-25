@@ -8,6 +8,8 @@ Sources reviewed:
 Each test class documents which upstream bug inspired it.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from translit import (

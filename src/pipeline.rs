@@ -146,12 +146,14 @@ impl _TextPipeline {
     }
 
     fn __repr__(&self) -> String {
-        let parts: Vec<String> = self.steps().iter().map(|(name, param)| {
-            match param {
+        let parts: Vec<String> = self
+            .steps()
+            .iter()
+            .map(|(name, param)| match param {
                 Some(p) => format!("{name}={p:?}"),
                 None => name.clone(),
-            }
-        }).collect();
+            })
+            .collect();
         format!("TextPipeline({})", parts.join(" -> "))
     }
 
@@ -206,7 +208,11 @@ impl _TextPipeline {
 
         // 7. Collapse whitespace + strip control (final cleanup)
         if self.steps.contains(PipelineSteps::COLLAPSE_WS) {
-            buf = Cow::Owned(whitespace::_collapse_whitespace(&buf, self.strip_control, self.strip_zero_width));
+            buf = Cow::Owned(whitespace::_collapse_whitespace(
+                &buf,
+                self.strip_control,
+                self.strip_zero_width,
+            ));
         }
 
         Ok(buf.into_owned())
@@ -330,7 +336,10 @@ mod tests {
             strip_zero_width: true,
         };
         let result = p.process("Hello 😀").unwrap();
-        assert!(result.contains("grinning face"), "expected emoji name, got: {result:?}");
+        assert!(
+            result.contains("grinning face"),
+            "expected emoji name, got: {result:?}"
+        );
     }
 
     // ── Step ordering verification ───────────────────────────────────
@@ -363,15 +372,18 @@ mod tests {
             strip_zero_width: true,
         };
         let step_names: Vec<String> = p.steps().iter().map(|(name, _)| name.clone()).collect();
-        assert_eq!(step_names, vec![
-            "normalize",
-            "confusables",
-            "demojize",
-            "strip_accents",
-            "transliterate",
-            "fold_case",
-            "collapse_whitespace",
-        ]);
+        assert_eq!(
+            step_names,
+            vec![
+                "normalize",
+                "confusables",
+                "demojize",
+                "strip_accents",
+                "transliterate",
+                "fold_case",
+                "collapse_whitespace",
+            ]
+        );
     }
 
     #[test]

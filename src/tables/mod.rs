@@ -37,8 +37,8 @@ fn hangul_romanizations() -> &'static Vec<String> {
         // 0xAC00 = Hangul base, 0xD7A3 = last precomposed syllable (11172 entries).
         (0u32..11_172)
             .map(|i| {
-                let ch = char::from_u32(0xAC00 + i)
-                    .expect("all Hangul syllable codepoints are valid");
+                let ch =
+                    char::from_u32(0xAC00 + i).expect("all Hangul syllable codepoints are valid");
                 hangul::romanize_hangul(ch).unwrap_or_default()
             })
             .collect()
@@ -208,10 +208,7 @@ pub fn list_langs() -> Vec<String> {
 ///
 /// After this call returns, all subsequent `lookup_lang()` calls for the
 /// given language code will see the new mappings.
-pub fn register_lang(
-    code: &str,
-    mappings: HashMap<String, String>,
-) -> Result<(), Vec<String>> {
+pub fn register_lang(code: &str, mappings: HashMap<String, String>) -> Result<(), Vec<String>> {
     let mut char_map = HashMap::new();
     let mut bad_keys: Vec<String> = Vec::new();
     for (key, value) in mappings {
@@ -475,7 +472,10 @@ mod tests {
         // Built-in PHF results should come back as Cow::Borrowed.
         let result = lookup_lang("de", 'ü');
         if let Some(cow) = result {
-            assert!(matches!(cow, Cow::Borrowed(_)), "built-in PHF result should be Cow::Borrowed");
+            assert!(
+                matches!(cow, Cow::Borrowed(_)),
+                "built-in PHF result should be Cow::Borrowed"
+            );
         }
     }
 
@@ -488,7 +488,10 @@ mod tests {
 
         let result = lookup_lang("_test_owned", 'X');
         if let Some(cow) = result {
-            assert!(matches!(cow, Cow::Owned(_)), "user-registered result should be Cow::Owned");
+            assert!(
+                matches!(cow, Cow::Owned(_)),
+                "user-registered result should be Cow::Owned"
+            );
         } else {
             panic!("expected Some from registered lang");
         }
