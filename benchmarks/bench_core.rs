@@ -46,7 +46,16 @@ fn bench_transliterate(c: &mut Criterion) {
         ("mixed_script", MIXED_SCRIPT),
     ] {
         group.bench_with_input(BenchmarkId::new("default", name), input, |b, text| {
-            b.iter(|| transliterate_impl(black_box(text), None, ErrorMode::Replace, "[?]", false, false));
+            b.iter(|| {
+                transliterate_impl(
+                    black_box(text),
+                    None,
+                    ErrorMode::Replace,
+                    "[?]",
+                    false,
+                    false,
+                )
+            });
         });
     }
 

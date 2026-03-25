@@ -58,7 +58,10 @@ pub fn _transliterate(
         );
     }
     let error_mode = ErrorMode::from_str(errors)?;
-    Ok(transliterate_impl(text, lang, error_mode, replace_with, strict_iso9, gost7034).into_owned())
+    Ok(
+        transliterate_impl(text, lang, error_mode, replace_with, strict_iso9, gost7034)
+            .into_owned(),
+    )
 }
 
 /// Internal transliteration implementation.

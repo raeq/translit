@@ -24,7 +24,8 @@ fn latin_accented_to_ascii() {
 
 #[test]
 fn cyrillic_default_lang() {
-    let result = transliterate::transliterate_impl("Москва", None, ErrorMode::Ignore, "", false, false);
+    let result =
+        transliterate::transliterate_impl("Москва", None, ErrorMode::Ignore, "", false, false);
     assert!(result.is_ascii());
     // Default transliteration should produce something recognizable
     assert!(!result.is_empty());
@@ -32,29 +33,43 @@ fn cyrillic_default_lang() {
 
 #[test]
 fn cyrillic_with_lang() {
-    let result =
-        transliterate::transliterate_impl("Москва", Some("ru"), ErrorMode::Ignore, "", false, false);
+    let result = transliterate::transliterate_impl(
+        "Москва",
+        Some("ru"),
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+    );
     assert!(result.is_ascii());
     assert!(!result.is_empty());
 }
 
 #[test]
 fn chinese_cjk() {
-    let result = transliterate::transliterate_impl("中文", None, ErrorMode::Ignore, "", false, false);
+    let result =
+        transliterate::transliterate_impl("中文", None, ErrorMode::Ignore, "", false, false);
     assert!(result.is_ascii());
 }
 
 #[test]
 fn error_mode_preserve() {
-    let result =
-        transliterate::transliterate_impl("abc 日本語 xyz", None, ErrorMode::Preserve, "", false, false);
+    let result = transliterate::transliterate_impl(
+        "abc 日本語 xyz",
+        None,
+        ErrorMode::Preserve,
+        "",
+        false,
+        false,
+    );
     assert!(result.contains("abc"));
     assert!(result.contains("xyz"));
 }
 
 #[test]
 fn error_mode_replace() {
-    let result = transliterate::transliterate_impl("café", None, ErrorMode::Replace, "?", false, false);
+    let result =
+        transliterate::transliterate_impl("café", None, ErrorMode::Replace, "?", false, false);
     assert!(result.is_ascii());
 }
 
@@ -101,7 +116,8 @@ fn empty_input() {
 
 #[test]
 fn strict_iso9_cyrillic() {
-    let result = transliterate::transliterate_impl("Москва", None, ErrorMode::Ignore, "", true, false);
+    let result =
+        transliterate::transliterate_impl("Москва", None, ErrorMode::Ignore, "", true, false);
     assert!(result.is_ascii());
 }
 
@@ -109,7 +125,8 @@ fn strict_iso9_cyrillic() {
 
 #[test]
 fn hangul_transliteration() {
-    let result = transliterate::transliterate_impl("서울", None, ErrorMode::Ignore, "", false, false);
+    let result =
+        transliterate::transliterate_impl("서울", None, ErrorMode::Ignore, "", false, false);
     assert!(result.is_ascii(), "Hangul should transliterate to ASCII");
     assert!(
         !result.is_empty(),
@@ -120,7 +137,8 @@ fn hangul_transliteration() {
 #[test]
 fn hangul_spacing() {
     // Consecutive Hangul syllables should get spaces between them
-    let result = transliterate::transliterate_impl("서울시", None, ErrorMode::Ignore, "", false, false);
+    let result =
+        transliterate::transliterate_impl("서울시", None, ErrorMode::Ignore, "", false, false);
     assert!(
         result.contains(' '),
         "consecutive Hangul should be space-separated: {result:?}"
@@ -131,7 +149,8 @@ fn hangul_spacing() {
 
 #[test]
 fn kana_transliteration() {
-    let result = transliterate::transliterate_impl("ひらがな", None, ErrorMode::Ignore, "", false, false);
+    let result =
+        transliterate::transliterate_impl("ひらがな", None, ErrorMode::Ignore, "", false, false);
     assert!(
         result.is_ascii(),
         "Hiragana should transliterate to ASCII: {result:?}"
@@ -141,7 +160,8 @@ fn kana_transliteration() {
 
 #[test]
 fn katakana_transliteration() {
-    let result = transliterate::transliterate_impl("カタカナ", None, ErrorMode::Ignore, "", false, false);
+    let result =
+        transliterate::transliterate_impl("カタカナ", None, ErrorMode::Ignore, "", false, false);
     assert!(
         result.is_ascii(),
         "Katakana should transliterate to ASCII: {result:?}"
@@ -184,7 +204,8 @@ fn ideograph_kana_boundary_gets_space() {
 fn latin_before_cjk_gets_space() {
     // Latin text immediately before CJK should get a space inserted
     // The transliterator handles this at the boundary
-    let result = transliterate::transliterate_impl("abc東京", None, ErrorMode::Ignore, "", false, false);
+    let result =
+        transliterate::transliterate_impl("abc東京", None, ErrorMode::Ignore, "", false, false);
     assert!(result.is_ascii());
     assert!(
         result.contains("abc"),
