@@ -232,7 +232,12 @@ pub fn _sanitize_filename(
         if let Some(ref ext) = sanitized_ext {
             final_name.push_str(ext);
         }
-        apply_max_length(&mut final_name, sanitized_ext.as_deref(), max_length, preserve_extension);
+        apply_max_length(
+            &mut final_name,
+            sanitized_ext.as_deref(),
+            max_length,
+            preserve_extension,
+        );
         return Ok(final_name);
     }
 
@@ -259,7 +264,12 @@ pub fn _sanitize_filename(
         };
         if is_windows_reserved(check_stem) {
             final_name.insert(0, '_');
-            apply_max_length(&mut final_name, sanitized_ext.as_deref(), max_length, preserve_extension);
+            apply_max_length(
+                &mut final_name,
+                sanitized_ext.as_deref(),
+                max_length,
+                preserve_extension,
+            );
         }
     }
 
@@ -501,8 +511,7 @@ mod tests {
         // exceeds max_length, or produces invalid filenames.
 
         fn reserved_name_strategy() -> impl Strategy<Value = String> {
-            prop::sample::select(WINDOWS_RESERVED)
-                .prop_map(|s| s.to_string())
+            prop::sample::select(WINDOWS_RESERVED).prop_map(|s| s.to_string())
         }
 
         fn extension_strategy() -> impl Strategy<Value = String> {
