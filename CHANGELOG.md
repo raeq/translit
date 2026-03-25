@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.3] — 2026-03-25
 
 ### Added
 - `strip_control` and `strip_zero_width` now work as independent pipeline steps
@@ -13,9 +13,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
   ignored when `collapse_whitespace` was disabled.
 - `strip_control_chars()` and `strip_zero_width_chars()` standalone Rust
   functions for filtering without whitespace collapsing.
-- Rust integration tests: `tests/integration_transliterate.rs` (14 tests),
-  `tests/integration_slugify.rs` (10 tests), `tests/integration_whitespace.rs`
-  (12 tests).
+- `decimal` and `hexadecimal` flags in `SlugConfig` are now functional. Setting
+  `decimal=False` preserves `&#NNN;` entities; `hexadecimal=False` preserves
+  `&#xHHH;` entities. Previously these flags were accepted but silently ignored.
+- Rust integration tests: `tests/integration_emoji.rs` (10 tests),
+  `tests/integration_slugify.rs` (20 tests),
+  `tests/integration_transliterate.rs` (21 tests),
+  `tests/integration_whitespace.rs` (12 tests).
 
 ### Changed
 - `TextPipeline` parameters `strip_control` and `strip_zero_width` changed from
@@ -29,6 +33,26 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Pipeline step order updated: `normalize → confusables → demojize →
   strip_accents → transliterate → fold_case → strip_control →
   strip_zero_width → collapse_whitespace`.
+- Migrated from `once_cell` to `std::sync::LazyLock` / `OnceLock`; MSRV bumped
+  to 1.80. Removed `once_cell` dependency.
+- `needs_cjk_space()` match arm tightened from wildcard `_` to explicit
+  `Ideograph | Hangul | Kana` to match the call-site `is_cjk` guard.
+
+### Fixed
+- `decode_entities()` corrupting multi-byte UTF-8 characters (BUG-1). The
+  function used `bytes[i] as char` which treated each continuation byte as a
+  separate Latin-1 codepoint (e.g. `café` → `cafÃ©`). Now advances by full
+  UTF-8 characters.
+- `decode_numeric_entity_skip()` panicking on malformed `&#` followed by
+  multi-byte UTF-8 (BUG-2). The skip function walked through continuation
+  bytes looking for `;`, landing inside a multi-byte character. Now stops at
+  the first non-ASCII byte.
+
+### Performance
+- ASCII fast-path in `demojize_impl` and `demojize_rust`: pure-ASCII text
+  returns immediately without `Vec<char>` allocation or emoji scanning.
+- `filter_stopwords` replaced intermediate `Vec<_>` + `.join()` with a
+  pre-allocated `String` fold, removing one allocation per slugify call.
 
 ## [0.1.2] — 2026-03-25
 
