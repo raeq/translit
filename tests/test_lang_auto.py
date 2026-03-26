@@ -95,10 +95,10 @@ class TestLangDiscriminator:
         explicit = transliterate("Москва", lang="ru")
         assert auto == explicit
 
-    def test_conflicting_cyrillic_discriminators_defaults_to_russian(self) -> None:
-        """Mixed Ukrainian ї + Serbian ћ falls back to ru."""
+    def test_conflicting_cyrillic_discriminators_first_hit_wins(self) -> None:
+        """Mixed Ukrainian ї + Serbian ћ — first discriminator wins."""
         auto = transliterate("їћ", lang="auto")
-        explicit = transliterate("їћ", lang="ru")
+        explicit = transliterate("їћ", lang="uk")
         assert auto == explicit
 
     # ── Arabic discrimination ──

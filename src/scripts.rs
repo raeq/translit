@@ -382,8 +382,6 @@ fn discriminate_by_chars(text: &str, script: &str) -> Option<&'static str> {
     // portion — scanning further is pure overhead for long documents.
     const SCAN_LIMIT: usize = 2_000;
 
-    let mut candidate: Option<&'static str> = None;
-
     for ch in text.chars().take(SCAN_LIMIT) {
         let hit = if script == "Latin" {
             lookup_latin_discriminator(ch)
@@ -391,16 +389,12 @@ fn discriminate_by_chars(text: &str, script: &str) -> Option<&'static str> {
             lookup_discriminator(ch, script)
         };
 
-        if let Some(lang) = hit {
-            match candidate {
-                None => candidate = Some(lang),
-                Some(prev) if prev == lang => {} // same language — reinforce
-                Some(_) => return None,          // conflict — bail out
-            }
+        if hit.is_some() {
+            return hit; // first hit — bail early
         }
     }
 
-    candidate
+    None
 }
 
 /// Resolve `lang="auto"` by scanning text for the first non-Latin, non-Common script,
@@ -1080,9 +1074,9 @@ mod tests {
     }
 
     #[test]
-    fn test_discriminate_fallback_on_conflict() {
-        // Mix Ukrainian ї and Serbian ћ — should fall back to script default (ru)
-        assert_eq!(resolve_auto_lang("їћ"), Some("ru".to_owned()));
+    fn test_discriminate_first_hit_wins() {
+        // Mix Ukrainian ї and Serbian ћ — first discriminator (ї → uk) wins
+        assert_eq!(resolve_auto_lang("їћ"), Some("uk".to_owned()));
     }
 
     #[test]
