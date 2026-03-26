@@ -119,6 +119,60 @@ for chunk in chunked(massive_list):
 
 ---
 
+## Search and Sort Keys
+
+### search_key()
+
+`search_key()` produces a case-insensitive, accent-insensitive, script-insensitive
+lookup key — ideal for search indexes, WHERE clauses, and fuzzy matching:
+
+```python
+from translit import search_key
+
+search_key("Café RÉSUMÉ")              # → "cafe resume"
+search_key("café résumé")              # → "cafe resume"
+search_key("CAFE RESUME")              # → "cafe resume"
+# All three match
+
+search_key("Москва", lang="ru")        # → "moskva"
+search_key("ΩMEGA")                    # → "omega"
+```
+
+Pipeline: `NFKC → transliterate → strip_accents → fold_case → collapse_whitespace`
+
+Like `catalog_key()` but without confusable normalization — lighter and
+faster for search indexes where homoglyph attacks are not a concern.
+
+### sort_key()
+
+`sort_key()` generates keys for consistent alphabetical ordering across
+scripts. Unlike `search_key()`, it preserves base accented characters so
+that sort order respects diacritics:
+
+```python
+from translit import sort_key
+
+sort_key("Über", lang="de")            # → "ueber"
+sort_key("Война и мир", lang="ru")     # → "voyna i mir"
+
+# Sort multilingual titles together
+titles = ["Über alles", "Under pressure", "Москва"]
+sorted(titles, key=lambda t: sort_key(t, lang="auto"))
+# Sorts by ASCII transliteration: moskva, uber alles, under pressure
+```
+
+Pipeline: `NFKC → transliterate → fold_case → collapse_whitespace`
+
+### Choosing the Right Key
+
+| Function | Strips accents | Confusable-safe | Use case |
+|---|---|---|---|
+| `catalog_key()` | Yes | Yes | Dedup keys, record matching |
+| `search_key()` | Yes | No | Search indexes, WHERE clauses |
+| `sort_key()` | No | No | Alphabetical ordering |
+
+---
+
 ## Text Normalization for ETL
 
 ### Unicode Normalization
