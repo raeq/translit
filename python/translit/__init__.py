@@ -229,7 +229,8 @@ def slugify(
             2–4 bytes each — use :func:`grapheme_truncate` for
             character-aware limiting.
         word_boundary: When truncating via max_length, cut at word boundaries.
-        save_order: Preserve original word order when applying stopwords.
+        save_order: Accepted for python-slugify compatibility but has no
+            effect — word order is always preserved.
         stopwords: Words to remove from the slug.
         regex_pattern: Custom regex for stripping characters.
         replacements: Pre-transliteration (old, new) substitution pairs.
@@ -514,7 +515,8 @@ def collapse_whitespace(
     Args:
         text: Input string.
         strip_control: Remove C0/C1 control characters (U+0000–U+001F,
-            U+007F–U+009F) except tab/newline/carriage-return.
+            U+007F–U+009F) except tab and newline. Carriage return (``\\r``)
+            is stripped, so Windows-style ``\\r\\n`` becomes ``\\n``.
         strip_zero_width: Remove zero-width space (U+200B), zero-width
             non-joiner (U+200C), zero-width joiner (U+200D), and
             word joiner (U+2060).
@@ -709,7 +711,8 @@ def slugify_batch(
         lowercase: Lowercase the output (default ``True``).
         max_length: Truncate to this many bytes (0 = unlimited).
         word_boundary: Break only at word boundaries when truncating.
-        save_order: Preserve original word order when truncating.
+        save_order: Accepted for python-slugify compatibility but has no
+            effect — word order is always preserved.
         stopwords: Words to remove before slugifying.
         regex_pattern: Custom regex for allowed characters.
         replacements: Character replacement pairs applied before slugifying.

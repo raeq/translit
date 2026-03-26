@@ -236,14 +236,12 @@ static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
 fn detect_char_script(ch: char) -> &'static str {
     let cp = ch as u32;
 
-    // Fast path for ASCII digits/punctuation/whitespace (very common).
+    // Fast path for ASCII (very common).
     if ch.is_ascii() {
         if (0x0041..=0x005A).contains(&cp) || (0x0061..=0x007A).contains(&cp) {
             return "Latin";
         }
-        if ch.is_ascii_digit() || ch.is_ascii_punctuation() || ch.is_whitespace() {
-            return "Common";
-        }
+        // Digits, punctuation, whitespace, and control chars are all Common.
         return "Common";
     }
 
@@ -310,6 +308,10 @@ fn script_to_lang(script: &str) -> Option<&'static str> {
 ///
 /// Returns the default language code for that script, or `None` if the text
 /// contains only Latin/Common/Inherited characters (or is empty).
+///
+/// **Note:** For mixed-script input (e.g. "Hello 北京 Привет"), the first
+/// non-Latin script encountered wins. This is a deliberate simplification —
+/// callers needing per-segment transliteration should split the text first.
 pub fn resolve_auto_lang(text: &str) -> Option<String> {
     for ch in text.chars() {
         let script = detect_char_script(ch);

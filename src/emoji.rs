@@ -65,8 +65,8 @@ fn match_emoji_at(chars: &[char], pos: usize) -> Option<(&'static str, usize)> {
 
         // Pre-compute positions of '_' separators for O(1) indexed truncation.
         // sep_positions[i] = byte offset of the (i+1)-th '_' separator.
-        // To get a key for `len` codepoints, truncate at sep_positions[len-2]
-        // (since the first codepoint has no leading separator).
+        // To get a key for `len` codepoints, truncate at sep_positions[len-1]
+        // (the byte offset just past the last codepoint we want to keep).
         let sep_positions: Vec<usize> = key_buf
             .bytes()
             .enumerate()

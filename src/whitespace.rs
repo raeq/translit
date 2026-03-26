@@ -2,6 +2,9 @@ use pyo3::prelude::*;
 
 /// Normalize Unicode whitespace to single ASCII spaces.
 /// Optionally strip control characters and zero-width characters.
+///
+/// When `strip_control` is true, `\r` (carriage return) is stripped as a
+/// control character, so Windows-style `\r\n` line endings become `\n`.
 #[pyfunction]
 #[pyo3(signature = (text, *, strip_control=true, strip_zero_width=true))]
 pub fn _collapse_whitespace(text: &str, strip_control: bool, strip_zero_width: bool) -> String {
@@ -47,6 +50,7 @@ pub fn _collapse_whitespace(text: &str, strip_control: bool, strip_zero_width: b
 }
 
 /// Strip control characters from text (excluding newline and tab).
+/// Note: `\r` (carriage return) is stripped, so `\r\n` becomes `\n`.
 pub fn strip_control_chars(text: &str) -> String {
     text.chars()
         .filter(|&ch| !ch.is_control() || ch == '\n' || ch == '\t')

@@ -99,6 +99,7 @@ pub fn _is_safe_hostname(hostname: &str) -> PyResult<(bool, SafeHostnameDetails)
                 ("Cyrillic", "Latin"),
                 ("Greek", "Latin"),
                 ("Armenian", "Latin"),
+                ("Cherokee", "Latin"),
             ];
 
             has_mixed = true;
