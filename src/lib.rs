@@ -119,6 +119,8 @@ fn _translit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(presets::_ml_normalize, m)?)?;
     m.add_function(wrap_pyfunction!(presets::_catalog_key, m)?)?;
     m.add_function(wrap_pyfunction!(presets::_display_clean, m)?)?;
+    m.add_function(wrap_pyfunction!(presets::_search_key, m)?)?;
+    m.add_function(wrap_pyfunction!(presets::_sort_key, m)?)?;
     m.add_function(wrap_pyfunction!(presets::_strip_bidi, m)?)?;
 
     // Grapheme cluster functions

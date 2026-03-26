@@ -82,7 +82,9 @@ from translit._translit import (
     _remove_replacement,
     _sanitize_filename,
     # Precompiled pipelines
+    _search_key,
     _security_clean,
+    _sort_key,
     # Emoji provider
     _set_emoji_provider,
     # Stateful
@@ -921,6 +923,68 @@ def display_clean(text: str) -> str:
     return _display_clean(text)
 
 
+def search_key(
+    text: str,
+    *,
+    lang: str | None = None,
+) -> str:
+    """Search index key generation pipeline.
+
+    Pipeline: NFKC → transliterate → strip_accents → fold_case →
+              collapse_whitespace
+
+    Produces a case-insensitive, accent-insensitive, script-insensitive
+    lookup key.  Like :func:`catalog_key` but without confusable
+    normalization — lighter and faster for search indexes.
+
+    Args:
+        text: Input text to generate a search key from.
+        lang: Language code for transliteration (e.g. "ru", "de").
+
+    Returns:
+        Normalized search key string.
+
+    Examples:
+        >>> search_key("  Café  RÉSUMÉ  ")
+        'cafe resume'
+        >>> search_key("Москва")
+        'moskva'
+        >>> search_key("Über allen Gipfeln")
+        'uber allen gipfeln'
+    """
+    return _search_key(text, lang=lang)
+
+
+def sort_key(
+    text: str,
+    *,
+    lang: str | None = None,
+) -> str:
+    """Sort key generation pipeline.
+
+    Pipeline: NFKC → transliterate → fold_case → collapse_whitespace
+
+    Like :func:`search_key` but without accent stripping, preserving base
+    accented characters for correct alphabetical ordering.
+
+    Args:
+        text: Input text to generate a sort key from.
+        lang: Language code for transliteration (e.g. "ru", "de").
+
+    Returns:
+        Normalized sort key string.
+
+    Examples:
+        >>> sort_key("Война и мир")
+        'voyna i mir'
+        >>> sort_key("Über allen Gipfeln")
+        'uber allen gipfeln'
+        >>> sort_key("  Café  ")
+        'cafe'
+    """
+    return _sort_key(text, lang=lang)
+
+
 def strip_bidi(text: str) -> str:
     """Strip bidirectional override and formatting characters (UAX #9).
 
@@ -1493,12 +1557,27 @@ PRESETS: dict[str, list[tuple[str, str | None]]] = {
     ],
     "catalog_key": [
         ("normalize", "NFKC"),
+        ("transliterate", None),
         ("confusables", "latin"),
         ("strip_accents", None),
         ("fold_case", None),
         ("collapse_whitespace", None),
     ],
     "display_clean": [
+        ("strip_bidi", None),
+        ("collapse_whitespace", None),
+    ],
+    "search_key": [
+        ("normalize", "NFKC"),
+        ("transliterate", None),
+        ("strip_accents", None),
+        ("fold_case", None),
+        ("collapse_whitespace", None),
+    ],
+    "sort_key": [
+        ("normalize", "NFKC"),
+        ("transliterate", None),
+        ("fold_case", None),
         ("collapse_whitespace", None),
     ],
 }
@@ -1636,6 +1715,8 @@ __all__ = [
     "ml_normalize",
     "catalog_key",
     "display_clean",
+    "search_key",
+    "sort_key",
     "strip_bidi",
     # Grapheme clusters
     "grapheme_len",

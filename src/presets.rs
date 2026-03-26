@@ -186,6 +186,68 @@ pub fn _catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> PyResu
     Ok(buf)
 }
 
+/// Search index key generation pipeline.
+///
+/// Pipeline: NFKC → transliterate → strip_accents → fold_case → collapse_whitespace
+///
+/// Produces a case-insensitive, accent-insensitive, script-insensitive lookup
+/// key.  Like `catalog_key` but without confusable normalization — lighter and
+/// faster for search indexes where homoglyph attacks are not a concern.
+#[pyfunction]
+#[pyo3(signature = (text, *, lang=None))]
+pub fn _search_key(text: &str, lang: Option<&str>) -> PyResult<String> {
+    check_preset_input(text, "search_key")?;
+    // 1. NFKC normalization
+    let buf: String = text.nfkc().collect();
+    // 2. Transliterate (always — search keys should be pure ASCII where possible)
+    let buf = transliterate::transliterate_impl(
+        &buf,
+        lang,
+        crate::ErrorMode::Preserve,
+        "",
+        false,
+        false,
+    )
+    .into_owned();
+    // 3. Strip accents
+    let buf = transliterate::_strip_accents(&buf);
+    // 4. Unicode case folding
+    let buf = case_fold::fold_case_impl(&buf);
+    // 5. Collapse whitespace + strip control + strip zero-width
+    let buf = whitespace::_collapse_whitespace(&buf, true, true);
+    Ok(buf)
+}
+
+/// Sort key generation pipeline.
+///
+/// Pipeline: NFKC → transliterate → fold_case → collapse_whitespace
+///
+/// Like `search_key` but preserves base accented characters for correct
+/// alphabetical ordering.  "Über" sorts next to "Uber", and "Война и мир"
+/// files under "voyna i mir".
+#[pyfunction]
+#[pyo3(signature = (text, *, lang=None))]
+pub fn _sort_key(text: &str, lang: Option<&str>) -> PyResult<String> {
+    check_preset_input(text, "sort_key")?;
+    // 1. NFKC normalization
+    let buf: String = text.nfkc().collect();
+    // 2. Transliterate (always — sort keys need a consistent script)
+    let buf = transliterate::transliterate_impl(
+        &buf,
+        lang,
+        crate::ErrorMode::Preserve,
+        "",
+        false,
+        false,
+    )
+    .into_owned();
+    // 3. Unicode case folding
+    let buf = case_fold::fold_case_impl(&buf);
+    // 4. Collapse whitespace + strip control + strip zero-width
+    let buf = whitespace::_collapse_whitespace(&buf, true, true);
+    Ok(buf)
+}
+
 /// Display-safe text cleaning pipeline.
 ///
 /// Pipeline: strip bidi/format → collapse_whitespace (strip control + strip zero-width)
@@ -347,6 +409,48 @@ mod tests {
         let result = _catalog_key("\u{0419}\u{043E}\u{0433}\u{0430}", None, true).unwrap();
         // Transliterate first with ISO 9: Й→J, о→o, г→g, а→a → "joga"
         assert_eq!(result, "joga");
+    }
+
+    #[test]
+    fn test_search_key_accent_insensitive() {
+        let a = _search_key("Café", None).unwrap();
+        let b = _search_key("cafe", None).unwrap();
+        let c = _search_key("CAFÉ", None).unwrap();
+        assert_eq!(a, "cafe");
+        assert_eq!(a, b);
+        assert_eq!(b, c);
+    }
+
+    #[test]
+    fn test_search_key_cyrillic() {
+        assert_eq!(_search_key("Москва", None).unwrap(), "moskva");
+    }
+
+    #[test]
+    fn test_search_key_greek() {
+        assert_eq!(_search_key("ΩMEGA", None).unwrap(), "omega");
+    }
+
+    #[test]
+    fn test_sort_key_preserves_accents_as_base() {
+        // sort_key does NOT strip accents — fold_case handles ß→ss etc.
+        // but accented chars stay as their base after transliteration
+        let result = _sort_key("Über", None).unwrap();
+        assert_eq!(result, "uber");
+    }
+
+    #[test]
+    fn test_sort_key_cyrillic() {
+        assert_eq!(_sort_key("Война и мир", None).unwrap(), "voyna i mir");
+    }
+
+    #[test]
+    fn test_sort_key_vs_search_key() {
+        // Both produce lowercase ASCII for non-Latin
+        assert_eq!(
+            _sort_key("Москва", None).unwrap(),
+            _search_key("Москва", None).unwrap()
+        );
     }
 
     #[test]

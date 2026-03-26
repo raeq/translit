@@ -336,4 +336,4 @@ class TestPresets:
         assert PRESETS["security_clean"][0] == ("normalize", "NFKC")
 
     def test_display_clean_is_minimal(self) -> None:
-        assert len(PRESETS["display_clean"]) == 1
+        assert len(PRESETS["display_clean"]) == 2
