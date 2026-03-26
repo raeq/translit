@@ -175,8 +175,13 @@ pan-script defaults.
 | `sv` | Swedish    | Ä→Ae, Ö→Oe                                    |
 | `tr` | Turkish    | Ç→C, Ğ→G, İ→I, Ö→O, Ş→S, Ü→U                |
 | `el` | Greek      | Full alphabet (Α→A through ω→o)                |
-| `vi` | Vietnamese | Full diacritical vowel set (96+ chars)          |
 | `ga` | Irish      | Dot-above consonants: Ḃ→Bh, Ċ→Ch, Ḋ→Dh        |
+
+### Southeast Asian Languages
+
+| Code | Language    | Notable Overrides                               |
+|------|-----------|------------------------------------------------|
+| `vi` | Vietnamese | Full diacritical vowel set (96+ chars)          |
 
 ### East Asian Languages
 

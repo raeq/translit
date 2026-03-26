@@ -191,11 +191,15 @@ from translit import LANG_DE, LANG_FR, LANG_ES  # etc.
 
 ### European
 
-`LANG_BG`, `LANG_CA`, `LANG_CS`, `LANG_CY`, `LANG_DA`, `LANG_DE`, `LANG_EL`, `LANG_ES`, `LANG_ET`, `LANG_FI`, `LANG_FR`, `LANG_GA`, `LANG_HR`, `LANG_HU`, `LANG_IS`, `LANG_IT`, `LANG_LT`, `LANG_LV`, `LANG_MT`, `LANG_NL`, `LANG_NO`, `LANG_PL`, `LANG_PT`, `LANG_RO`, `LANG_SK`, `LANG_SL`, `LANG_SQ`, `LANG_SR`, `LANG_SV`, `LANG_TR`, `LANG_UK`, `LANG_VI`
+`LANG_BG`, `LANG_CA`, `LANG_CS`, `LANG_CY`, `LANG_DA`, `LANG_DE`, `LANG_EL`, `LANG_ES`, `LANG_ET`, `LANG_FI`, `LANG_FR`, `LANG_GA`, `LANG_HR`, `LANG_HU`, `LANG_IS`, `LANG_IT`, `LANG_LT`, `LANG_LV`, `LANG_MT`, `LANG_NL`, `LANG_NO`, `LANG_PL`, `LANG_PT`, `LANG_RO`, `LANG_RU`, `LANG_SK`, `LANG_SL`, `LANG_SQ`, `LANG_SR`, `LANG_SV`, `LANG_TR`, `LANG_UK`
 
-### Non-European
+### Southeast Asian
 
-`LANG_AR`, `LANG_JA`, `LANG_KO`, `LANG_RU`, `LANG_ZH`
+`LANG_VI`
+
+### East Asian & Other
+
+`LANG_AR`, `LANG_JA`, `LANG_KO`, `LANG_ZH`
 
 ### Auto-detection
 

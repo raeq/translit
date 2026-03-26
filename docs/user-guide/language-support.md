@@ -39,6 +39,11 @@ translit ships with 60 built-in language profiles that provide language-specific
 | `sv` | Swedish | Ä→Ae, Ö→Oe, Å→Aa | Malmö → Malmoe |
 | `tr` | Turkish | Ç→C, Ğ→G, İ→I, Ö→O, Ş→S, Ü→U | İstanbul → Istanbul |
 | `uk` | Ukrainian | Г→H, Ґ→G, Є→Ye, Ї→Yi, І→I | Київ → Kyiv |
+
+### Southeast Asian languages
+
+| Code | Language | Key overrides | Example |
+|---|---|---|---|
 | `vi` | Vietnamese | Full diacritical vowel set | Hà Nội → Ha Noi |
 
 ### Semitic languages
