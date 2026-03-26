@@ -99,6 +99,7 @@ Core concepts and usage for each feature area.
 - **[Grapheme Clusters](user-guide/graphemes.md)** — User-perceived character counting, splitting, and truncation
 - **[Text Pipeline](user-guide/pipeline.md)** — Composable, pre-compiled multi-step processing
 - **[Language Support](user-guide/language-support.md)** — 64 built-in profiles, auto-detection, custom profiles
+- **[Language Detection](user-guide/language-detection.md)** — How `lang="auto"` works: script identification, character-level discrimination, fail-safe fallbacks
 
 ---
 
@@ -121,10 +122,10 @@ Task-oriented guides for specific use cases and audiences.
 Complete function signatures, parameters, and return types.
 
 - **[Overview](api/index.md)** — API reference index
-- **[Core Transforms](api/transforms.md)** — `transliterate`, `slugify`, `normalize`, `sanitize_filename`, `strip_accents`, `fold_case`, `collapse_whitespace`, `demojize`, `strip_bidi`, batch APIs
-- **[Precompiled Pipelines](api/pipelines.md)** — `security_clean`, `ml_normalize`, `catalog_key`, `display_clean`, `PRESETS`
+- **[Core Transforms](api/transforms.md)** — `transliterate`, `slugify`, `normalize`, `sanitize_filename`, `strip_accents`, `strip_zalgo`, `fold_case`, `collapse_whitespace`, `demojize`, `strip_bidi`, batch APIs
+- **[Precompiled Pipelines](api/pipelines.md)** — `security_clean`, `ml_normalize`, `catalog_key`, `display_clean`, `search_key`, `sort_key`, `sanitize_user_input`, `PRESETS`
 - **[Classes](api/classes.md)** — `Text`, `Slugifier`, `UniqueSlugifier`, `TextPipeline`, compatibility aliases
-- **[Predicates](api/predicates.md)** — `detect_scripts`, `is_mixed_script`, `is_confusable`, `is_ascii`, `is_normalized`, `is_safe_hostname`
+- **[Predicates](api/predicates.md)** — `detect_scripts`, `is_mixed_script`, `is_confusable`, `is_ascii`, `is_normalized`, `is_zalgo`, `is_safe_hostname`
 - **[Grapheme Clusters](api/graphemes.md)** — `grapheme_len`, `grapheme_split`, `grapheme_truncate`
 - **[Encoding Detection](api/encoding.md)** — `detect_encoding`, `decode_to_utf8`
 - **[Language Profiles](api/language-profiles.md)** — `list_langs`, `register_lang`, `register_replacements`

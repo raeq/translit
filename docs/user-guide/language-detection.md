@@ -1,0 +1,209 @@
+# Language Detection
+
+How translit's `lang="auto"` detection works, from script identification through character-level discrimination to fail-safe fallbacks.
+
+## Overview
+
+When `lang="auto"` is passed to `transliterate()`, `slugify()`, `catalog_key()`, or any other function that accepts a `lang` parameter, translit runs a three-stage detection pipeline:
+
+1. **Script identification** — find the dominant non-Latin, non-Common script
+2. **Character-level discrimination** — scan for exclusive characters that uniquely identify a language within ambiguous scripts
+3. **Fallback** — use the script's default language mapping
+
+The entire pipeline is deterministic, O(n), and fail-safe: if detection is uncertain, it falls back to the safe default rather than guessing.
+
+```python
+from translit import transliterate
+
+# Stage 1: Cyrillic detected → ambiguous script
+# Stage 2: ї found → Ukrainian discriminator hit
+# Stage 3: returns "uk"
+transliterate("Київ", lang="auto")   # → "Kyiv" (Ukrainian profile)
+```
+
+---
+
+## Stage 1: Script Identification
+
+translit classifies each character by its Unicode script property using a static table of 42 scripts with binary search lookup. The first non-Latin, non-Common, non-Inherited character determines the **primary script**.
+
+```python
+from translit import detect_scripts
+
+detect_scripts("Москва")      # → [Script.CYRILLIC]
+detect_scripts("東京タワー")   # → [Script.HAN, Script.KATAKANA]
+detect_scripts("Hello World")  # → [Script.LATIN]
+```
+
+For Latin-only text, no language override is applied (stage 2 may still detect Latin discriminators like Vietnamese or Turkish characters).
+
+### Unambiguous scripts
+
+Many scripts map to exactly one language in translit's profile set. Detection is immediate with no further analysis needed:
+
+| Script | Language | Code |
+|---|---|---|
+| Georgian | Georgian | `ka` |
+| Armenian | Armenian | `hy` |
+| Thai | Thai | `th` |
+| Hangul | Korean | `ko` |
+| Hiragana / Katakana | Japanese | `ja` |
+| Greek | Greek | `el` |
+| Thaana | Dhivehi | `dv` |
+| Bengali | Bengali | `bn` |
+| Tamil | Tamil | `ta` |
+| Telugu | Telugu | `te` |
+| Kannada | Kannada | `kn` |
+| Malayalam | Malayalam | `ml` |
+| Gujarati | Gujarati | `gu` |
+| Gurmukhi | Punjabi | `pa` |
+| Odia | Odia | `or` |
+| Sinhala | Sinhala | `si` |
+| Ethiopic | Amharic | `am` |
+| Tibetan | Tibetan | `bo` |
+| Lao | Lao | `lo` |
+| Myanmar | Burmese | `my` |
+| Khmer | Khmer | `km` |
+| Hebrew | Hebrew | `he` |
+| Javanese | Javanese | `jv` |
+
+For these scripts, `lang="auto"` is equivalent to passing the explicit code.
+
+### Ambiguous scripts
+
+Three scripts are shared by multiple languages in translit's profile set:
+
+| Script | Languages | Default |
+|---|---|---|
+| **Cyrillic** | Russian, Ukrainian, Serbian, Bulgarian, Mongolian | `ru` |
+| **Arabic** | Arabic, Persian | `ar` |
+| **Latin** | German, Turkish, Vietnamese, + 20 others | *(no override)* |
+
+These proceed to stage 2.
+
+---
+
+## Stage 2: Character-Level Discrimination
+
+For ambiguous scripts, translit scans up to the first **2,000 characters** looking for **exclusive characters** — codepoints that appear in exactly one language's alphabet among all supported profiles for that script.
+
+### Discriminator table
+
+| Script | Exclusive characters | Detected language |
+|---|---|---|
+| Cyrillic | ґ Ґ ї Ї є Є і І | `uk` (Ukrainian) |
+| Cyrillic | ђ Ђ ћ Ћ љ Љ њ Њ џ Џ ј Ј | `sr` (Serbian) |
+| Cyrillic | ө Ө ү Ү | `mn` (Mongolian) |
+| Arabic | پ چ ژ گ | `fa` (Persian) |
+| Latin | ơ Ơ ư Ư | `vi` (Vietnamese) |
+| Latin | İ ı | `tr` (Turkish) |
+| Latin | ß ẞ | `de` (German) |
+
+### Algorithm
+
+```
+for each character in text[0..2000]:
+    if character is an exclusive discriminator for this script:
+        return the associated language  ← first hit wins, bail early
+return None  ← no discriminator found, use default
+```
+
+Key properties:
+
+- **First-hit-wins**: scanning stops at the first discriminator character found. This is a performance optimization — for well-formed text, a single exclusive character is sufficient for identification.
+- **2,000-character cap**: avoids scanning entire documents. The first 2K characters are sufficient for discrimination in practice.
+- **No conflict resolution**: if a text contains exclusive characters from two different languages (e.g., Ukrainian ї and Serbian ћ), whichever appears first wins. This is intentional — such mixed text is rare and artificial.
+
+### Examples
+
+```python
+from translit import transliterate
+
+# Ukrainian: ї is exclusive to Ukrainian Cyrillic
+transliterate("Київ", lang="auto")          # → "Kyiv"
+
+# Serbian: ћ is exclusive to Serbian Cyrillic
+transliterate("Београд", lang="auto")       # → "Beograd"
+
+# Persian: پ is exclusive to Persian Arabic
+transliterate("پارسی", lang="auto")         # → "parsy"
+
+# Vietnamese: ơ is exclusive to Vietnamese Latin
+transliterate("Hà Nội", lang="auto")        # → uses vi profile
+
+# German: ß is exclusive to German Latin
+transliterate("Straße", lang="auto")        # → "Strasse" (de: ß→ss)
+
+# No discriminator: Москва has no exclusive chars
+transliterate("Москва", lang="auto")        # → "Moskva" (default ru)
+```
+
+---
+
+## Stage 3: Fallback
+
+If no discriminator is found:
+
+- **Ambiguous scripts** fall back to their default language: Cyrillic → `ru`, Arabic → `ar`, Han → `zh`, Devanagari → `hi`
+- **Latin-only text** receives no language override (default transliteration table)
+- **Non-Latin Latin-discriminator text**: if the text contains only Latin characters but includes discriminators (ơ, İ, ß), the Latin discriminator table is consulted
+
+---
+
+## Fail-Safe Guarantee
+
+The discriminator system is designed to **never produce a worse result** than the previous script-default approach:
+
+1. Discriminators can only **upgrade** detection (from script default to a more specific language)
+2. If no discriminator is found, the result is identical to not using `lang="auto"` at all
+3. Discriminator characters are selected to have **zero ambiguity** — each appears in exactly one supported language profile for its script
+
+This means `lang="auto"` is always at least as good as the script default, and often better.
+
+---
+
+## Limitations
+
+- **Bulgarian vs Russian**: Bulgarian Cyrillic uses the same character set as Russian (no exclusive characters). `lang="auto"` defaults to `ru` for both. Pass `lang="bg"` explicitly for Bulgarian text.
+- **Mongolian Cyrillic vs Russian**: Mongolian is detected only when ө or ү appear. Standard Russian characters in Mongolian text are not distinguished.
+- **Devanagari languages**: Hindi, Marathi, Nepali, and Sanskrit all use Devanagari. `lang="auto"` defaults to `hi` for all. Since the default Devanagari transliteration table is used by all four, this has no practical impact.
+- **Han characters**: Chinese and Japanese kanji share the same Unicode block. `lang="auto"` defaults to `zh` (Chinese pinyin). For Japanese readings, pass `lang="ja"` explicitly.
+- **Mixed-script text**: when text contains multiple scripts (e.g., "Hello Мир"), the first non-Latin, non-Common script determines the language. Latin portions use the default table regardless.
+- **Short text**: very short strings (1-3 characters) may not contain any discriminator characters, falling back to the script default.
+
+---
+
+## Integration with Pipelines
+
+`lang="auto"` works with all translit entry points:
+
+```python
+from translit import (
+    transliterate, slugify, catalog_key, search_key, sort_key,
+    TextPipeline, Slugifier, Text, LANG_AUTO,
+)
+
+# Functions
+transliterate("Київ", lang="auto")
+catalog_key("Москва", lang="auto")
+search_key("Straße", lang="auto")
+sort_key("Війна і мир", lang="auto")
+
+# Classes
+pipe = TextPipeline(transliterate=True, lang="auto")
+slug = Slugifier(lang="auto")
+
+# Text builder
+Text("Київ").transliterate(lang="auto").value
+
+# Type-safe constant
+transliterate("Москва", lang=LANG_AUTO)
+```
+
+---
+
+## See Also
+
+- [Language Support](language-support.md) — full list of 64 language profiles and their override rules
+- [Language Reference](../reference.md) — per-language transliteration tables and reference texts
+- [Limitations](../limitations.md) — known constraints of context-free transliteration

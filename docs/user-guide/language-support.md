@@ -168,8 +168,12 @@ s("東京タワー")      # => CJK slug
 ### How auto-detection works
 
 1. Scans the input for the first non-Latin, non-Common character
-2. Maps the detected script to a default language code
-3. Falls back to default (no language override) if the text is Latin-only or the script has no mapping
+2. For ambiguous scripts, scans for exclusive discriminator characters
+3. Maps the detected script (and discriminated language) to a language code
+4. Falls back to default (no language override) if the text is Latin-only or the script has no mapping
+
+For a detailed walkthrough of the three-stage detection pipeline, discriminator
+tables, and fail-safe guarantees, see [Language Detection](language-detection.md).
 
 ### Script-to-language mapping
 

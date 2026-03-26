@@ -208,9 +208,14 @@ transliterate("नमस्ते", lang="auto")        # → "namaste" (Devanag
 transliterate("ქართული", lang="auto")      # → "kartuli" (Georgian)
 ```
 
-For ambiguous scripts (Cyrillic → Russian, Devanagari → Hindi, Han → Chinese),
-the default may not match your source language. Pass an explicit code when
-accuracy matters.
+For ambiguous scripts (Cyrillic, Arabic, Latin), translit uses character-level
+discrimination — scanning for exclusive characters that uniquely identify a
+language. For example, ї identifies Ukrainian, پ identifies Persian, and ß
+identifies German. See [Language Detection](user-guide/language-detection.md)
+for the full algorithm, discriminator tables, and fail-safe guarantees.
+
+For scripts that remain ambiguous after discrimination (Devanagari → Hindi,
+Han → Chinese), pass an explicit code when accuracy matters.
 
 ### Runtime Language Registration
 
@@ -546,6 +551,10 @@ mappings across these Unicode blocks:
 
 In addition, 20 language-specific override tables provide national-standard
 romanization when `lang=` is specified.
+
+For a complete per-language breakdown of all 64 profiles — including
+transliteration rule tables, reference texts, and test examples — see the
+[Language Reference](reference.md).
 
 ---
 
