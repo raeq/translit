@@ -1,59 +1,83 @@
 # Persian (Farsi) transliteration overrides
-# Based on UN romanization of Persian (UNGEGN) and common conventions
+# Based on BGN/PCGN 1958 romanization system (ASCII output)
 #
 # Persian shares the Arabic script but has 4 extra letters (پ چ ژ گ),
 # different vowel pronunciation, and distinct romanization conventions.
 # The default table already provides base Arabic mappings; this table
 # overrides characters where Persian pronunciation differs from Arabic.
 
-# === Persian-specific letters (already in default, but explicit) ===
+# === 32 Persian consonants (BGN/PCGN) ===
+0628	b
 067E	p
-0686	ch
-0698	zh
-06AF	g
-
-# === Letters with different Persian pronunciation ===
-# Arabic ث (thaa) = "th" → Persian = "s"
+062A	t
 062B	s
-# Arabic ذ (dhal) = "dh" → Persian = "z"
+062C	j
+0686	ch
+062D	h
+062E	kh
+062F	d
 0630	z
-# Arabic ص (sad) = "s" → Persian = "s" (same, but explicit)
+0631	r
+0632	z
+0698	zh
+0633	s
+0634	sh
 0635	s
-# Arabic ض (dad) = "d" → Persian = "z"
 0636	z
-# Arabic ط (ta) = "t" → Persian = "t" (same)
 0637	t
-# Arabic ظ (za) = "z" → Persian = "z"
 0638	z
-# Arabic ع (ain) → Persian typically omits or uses "'"
 0639	'
-# Arabic ة (taa marbuta) → Persian: "eh" or "e"
-0629	e
-# Arabic ك (kaf, U+0643) → Persian uses U+06A9 (kaf) instead,
-# but in case Arabic kaf appears: "k"
+063A	gh
+0641	f
+0642	q
+06A9	k
+06AF	g
+0644	l
+0645	m
+0646	n
+0648	v
+0647	h
+06CC	y
+# Arabic kaf fallback (Persian normally uses U+06A9)
 0643	k
 
-# === Persian vowels ===
-# Alef with madda (آ) — "aa" in Persian
-0622	aa
-# Alef (ا) — "a" in Persian
+# === Vowels & special characters ===
+# Alef
 0627	a
-# Waw (و) — can be "v", "u", "o" in Persian; default to "v" for consonantal
-0648	v
-# Yeh (ی, U+06CC) — "y" or "i" in Persian
-06CC	y
-
-# === Persian-specific characters ===
-# Hamza (ء)
+# Alef-madda — long "a", not doubled
+0622	a
+# Hamza
 0621	'
-# Alef with hamza above (أ)
+# Alef with hamza above
 0623	a
-# Alef with hamza below (إ)
+# Alef with hamza below
 0625	e
-# Waw with hamza (ؤ)
-0624	v
-# Yeh with hamza (ئ)
-0626	y
+# Waw with hamza — glottal stop, not consonantal waw
+0624	'
+# Yeh with hamza — glottal stop, not consonantal yeh
+0626	'
+# Taa marbuta
+0629	e
+# Alef maqsura
+0649	a
+# Arabic yaa
+064A	y
+# Heh with yeh above — izafe
+06C0	-e
+# Heh goal
+06C1	h
+
+# === Diacritics (harakat) ===
+# Fathah
+064E	a
+# Kasra
+0650	e
+# Damma
+064F	o
+# Sukun — suppress vowel
+0652
+# Shadda — gemination
+0651
 
 # === Persian (Eastern Arabic-Indic) digits ===
 06F0	0
@@ -72,37 +96,3 @@
 061B	;
 061F	?
 06D4	.
-
-# === Persian Yeh variants ===
-# Arabic yaa (ي, U+064A) → in Persian context: "y"
-064A	y
-# Farsi yeh (ی, U+06CC) → "y"
-06CC	y
-# Alef maqsura (ى, U+0649) → "a" in Persian
-0649	a
-
-# === Diacritics (harakat) ===
-# fathah
-064E	a
-# kasra
-0650	e
-# damma
-064F	o
-# tanwin fath
-064B	an
-# tanwin kasr
-064D	en
-# tanwin damm
-064C	on
-# sukun — suppress vowel
-0652
-# shadda — gemination (doubled consonant, handled by push)
-0651
-
-# === Additional Persian characters ===
-# Heh with yeh above (ۀ) — izafe
-06C0	-ye
-# Heh goal (ہ) — sometimes used in Persian
-06C1	h
-# Keheh (ک, U+06A9) — standard Persian kaf
-06A9	k
