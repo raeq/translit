@@ -13,11 +13,11 @@ from translit import list_langs
 
 langs = list_langs()
 print(langs)
-# => ['ar', 'as', 'bg', 'bn', 'ca', 'cs', 'cy', 'da', 'de', 'el',
-#     'es', 'et', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy',
-#     'is', 'it', 'ja', 'ka', 'kn', 'ko', 'lo', 'lt', 'lv', 'ml', 'mr', 'mt',
-#     'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'si',
-#     'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh']
+# => ['am', 'ar', 'as', 'bg', 'bn', 'bo', 'ca', 'cs', 'cy', 'da', 'de', 'dv', 'el',
+#     'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy',
+#     'is', 'it', 'ja', 'jv', 'ka', 'km', 'kn', 'ko', 'lo', 'lt', 'lv', 'ml', 'mn',
+#     'mr', 'mt', 'my', 'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa',
+#     'si', 'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh']
 ```
 
 Returns both built-in and user-registered language codes, sorted alphabetically.

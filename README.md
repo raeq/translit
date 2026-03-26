@@ -8,7 +8,7 @@ Unicode text infrastructure for Python: transliteration, normalization, and safe
 
 ## Features
 
-- **Transliteration**: Unicode → ASCII for Latin, Cyrillic, Greek, CJK (Chinese pinyin, Korean romanization, Japanese kana), and 60 language-specific profiles
+- **Transliteration**: Unicode → ASCII for Latin, Cyrillic, Greek, CJK (Chinese pinyin, Korean romanization, Japanese kana), and 64 language-specific profiles
 - **Slugification**: URL-safe slugs with python-slugify parameter compatibility
 - **Filename sanitization**: Cross-platform safe filenames with NFC normalization, path traversal protection, and Windows reserved name handling
 - **Text normalization**: NFC/NFD/NFKC/NFKD, confusable homoglyph detection (TR39), full Unicode case folding (1,557 CaseFolding.txt mappings via PHF), whitespace collapse
@@ -168,17 +168,17 @@ Language-specific profiles (e.g., `lang="de"`) apply **sparse overrides** on top
 
 ## Language profiles
 
-[60 built-in language profiles](docs/user-guide/language-support.md) with ISO 9:1995 scholarly Cyrillic support and 10 Indic scripts:
+[64 built-in language profiles](docs/user-guide/language-support.md) with ISO 9:1995 scholarly Cyrillic support and 10 Indic scripts:
 
 ```python
 from translit import list_langs, transliterate
 
 print(list_langs())
-# ['am', 'ar', 'as', 'bg', 'bn', 'bo', 'ca', 'cs', 'cy', 'da', 'de', 'el',
-#  'es', 'et', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy',
-#  'is', 'it', 'ja', 'ka', 'km', 'kn', 'ko', 'lo', 'lt', 'lv', 'ml', 'mr', 'mt',
-#  'my', 'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'si',
-#  'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh']
+# ['am', 'ar', 'as', 'bg', 'bn', 'bo', 'ca', 'cs', 'cy', 'da', 'de', 'dv', 'el',
+#  'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy',
+#  'is', 'it', 'ja', 'jv', 'ka', 'km', 'kn', 'ko', 'lo', 'lt', 'lv', 'ml', 'mn',
+#  'mr', 'mt', 'my', 'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa',
+#  'si', 'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh']
 
 # ISO 9:1995 scholarly transliteration
 transliterate("Юрий", strict_iso9=True)  # → "Jurij"

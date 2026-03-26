@@ -153,7 +153,7 @@ pipe("Щука")  # → "shhuka"
 
 ## Language-Specific Transliteration
 
-translit ships 60 language profiles. Each profile provides override
+translit ships 64 language profiles. Each profile provides override
 mappings for characters whose standard romanization differs from the
 pan-script defaults.
 
