@@ -175,22 +175,23 @@ class TestCatalogKey:
         assert catalog_key("hello  world") == catalog_key("hello world")
 
     def test_confusable_normalized(self) -> None:
-        """Homoglyphs produce same key as Latin equivalent."""
-        # Cyrillic а (U+0430) in "саfe" → "cafe"
-        assert catalog_key("\u0441\u0430fe") == catalog_key("cafe")
+        """Cyrillic homoglyphs are transliterated phonetically."""
+        # Cyrillic с (U+0441) = "s", а (U+0430) = "a" → "safe"
+        # Transliteration runs before confusable normalization so Cyrillic
+        # characters get their correct phonetic romanization.
+        assert catalog_key("\u0441\u0430fe") == "safe"
 
     def test_iso9_cyrillic(self) -> None:
         """ISO 9 transliteration for Cyrillic catalog records."""
-        # Confusables first: о→o, г→r, а→a (TR39 visual similarity).
-        # Then ISO 9: Й→J. fold_case → "jora"
+        # Transliterate first with ISO 9: Й→J, о→o, г→g, а→a → "joga"
         result = catalog_key("\u0419\u043e\u0433\u0430", strict_iso9=True)
-        assert result == "jora"
+        assert result == "joga"
 
     def test_iso9_vs_default(self) -> None:
         """ISO 9 and default produce different keys for Cyrillic."""
         iso9 = catalog_key("\u0419\u043e\u0433\u0430", strict_iso9=True)
         default = catalog_key("\u0419\u043e\u0433\u0430")
-        # ISO 9: Й→J → "joga", default: Й→Y → fold → strips accent → different
+        # ISO 9: Й→J → "joga", default: Й→Y → "yoga"
         assert iso9 != default
 
     def test_lang_transliteration(self) -> None:

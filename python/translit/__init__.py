@@ -871,7 +871,7 @@ def catalog_key(
 ) -> str:
     """Library catalog key generation pipeline.
 
-    Pipeline: NFKC → confusables → [transliterate] → strip_accents →
+    Pipeline: NFKC → transliterate → confusables → strip_accents →
               fold_case → collapse_whitespace
 
     Produces a canonical deduplication key for bibliographic titles.
@@ -891,7 +891,7 @@ def catalog_key(
         >>> catalog_key("  Café  RÉSUMÉ  ")
         'cafe resume'
         >>> catalog_key("ΩMEGA  café")
-        'ωmega cafe'
+        'omega cafe'
     """
     return _catalog_key(text, lang=lang, strict_iso9=strict_iso9)
 
@@ -899,11 +899,12 @@ def catalog_key(
 def display_clean(text: str) -> str:
     """Display-safe text cleaning pipeline.
 
-    Pipeline: collapse_whitespace (strip control + strip zero-width)
+    Pipeline: strip bidi/format → collapse_whitespace (strip control + strip zero-width)
 
     Lightweight cleanup for user-submitted content destined for rendering.
-    Strips control characters and zero-width injections, collapses runs of
-    whitespace to single spaces.
+    Strips bidirectional overrides (which can visually reorder text to hide
+    malicious content), soft hyphens, control characters, and zero-width
+    injections, then collapses runs of whitespace to single spaces.
 
     Args:
         text: Input string (user-submitted content).

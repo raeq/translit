@@ -149,7 +149,11 @@ pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyRes
 
 /// Library catalog key generation pipeline.
 ///
-/// Pipeline: NFKC → confusables → strip_accents → fold_case → collapse_whitespace
+/// Pipeline: NFKC → transliterate → confusables → strip_accents → fold_case → collapse_whitespace
+///
+/// Transliteration runs before confusable normalization so that non-Latin
+/// scripts receive correct phonetic romanization (e.g. Cyrillic г→g, not
+/// the visual confusable г→r).
 ///
 /// Produces a canonical deduplication key for bibliographic titles.
 /// Optional ISO 9:1995 transliteration for Cyrillic catalog records.
@@ -159,22 +163,20 @@ pub fn _catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> PyResu
     check_preset_input(text, "catalog_key")?;
     // 1. NFKC normalization
     let buf: String = text.nfkc().collect();
-    // 2. Confusables → Latin (normalize cross-source homoglyphs)
+    // 2. Transliterate (always — catalog keys should be pure ASCII where possible;
+    //    runs before confusables so that non-Latin scripts are romanized first,
+    //    avoiding broken confusable mappings like Cyrillic к → literal \u{0138})
+    let buf = transliterate::transliterate_impl(
+        &buf,
+        lang,
+        crate::ErrorMode::Preserve,
+        "",
+        strict_iso9,
+        false,
+    )
+    .into_owned();
+    // 3. Confusables → Latin (normalize any remaining cross-script homoglyphs)
     let buf = confusables::_normalize_confusables(&buf, "latin")?;
-    // 3. Transliterate if lang or strict_iso9 is set
-    let buf = if lang.is_some() || strict_iso9 {
-        transliterate::transliterate_impl(
-            &buf,
-            lang,
-            crate::ErrorMode::Preserve,
-            "",
-            strict_iso9,
-            false,
-        )
-        .into_owned()
-    } else {
-        buf
-    };
     // 4. Strip accents
     let buf = transliterate::_strip_accents(&buf);
     // 5. Unicode case folding
@@ -186,16 +188,20 @@ pub fn _catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> PyResu
 
 /// Display-safe text cleaning pipeline.
 ///
-/// Pipeline: collapse_whitespace (strip control + strip zero-width)
+/// Pipeline: strip bidi/format → collapse_whitespace (strip control + strip zero-width)
 ///
 /// Lightweight cleanup for user-submitted content destined for rendering.
-/// Strips control characters and zero-width injections, collapses runs of
-/// whitespace to single spaces.
+/// Strips bidirectional overrides (which can visually reorder text to hide
+/// malicious content), control characters, and zero-width injections, then
+/// collapses runs of whitespace to single spaces.
 #[pyfunction]
 #[pyo3(signature = (text,))]
 pub fn _display_clean(text: &str) -> PyResult<String> {
     check_preset_input(text, "display_clean")?;
-    Ok(whitespace::_collapse_whitespace(text, true, true))
+    // 1. Strip bidi overrides, isolates, marks, and soft hyphens
+    let buf = strip_bidi(text);
+    // 2. Collapse whitespace + strip control + strip zero-width
+    Ok(whitespace::_collapse_whitespace(&buf, true, true))
 }
 
 // ---------------------------------------------------------------------------
@@ -339,9 +345,8 @@ mod tests {
     #[test]
     fn test_catalog_key_iso9() {
         let result = _catalog_key("\u{0419}\u{043E}\u{0433}\u{0430}", None, true).unwrap();
-        // Confusables first: о→o, г→r, а→a (TR39 visual similarity).
-        // Then ISO 9: Й→J. fold_case → "jora"
-        assert_eq!(result, "jora");
+        // Transliterate first with ISO 9: Й→J, о→o, г→g, а→a → "joga"
+        assert_eq!(result, "joga");
     }
 
     #[test]
@@ -349,5 +354,18 @@ mod tests {
         assert_eq!(_display_clean("hello   world").unwrap(), "hello world");
         assert_eq!(_display_clean("hello\x00world").unwrap(), "helloworld");
         assert_eq!(_display_clean("hello\u{200B}world").unwrap(), "helloworld");
+    }
+
+    #[test]
+    fn test_display_clean_strips_bidi() {
+        // RLO can visually reorder rendered text to hide malicious content
+        assert_eq!(_display_clean("admin\u{202E}user").unwrap(), "adminuser");
+        // Soft hyphen can split security keywords invisibly
+        assert_eq!(_display_clean("pass\u{00AD}word").unwrap(), "password");
+        // Arabic Letter Mark
+        assert_eq!(
+            _display_clean("hello\u{061C}world").unwrap(),
+            "helloworld"
+        );
     }
 }

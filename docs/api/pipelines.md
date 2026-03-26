@@ -43,7 +43,7 @@ ml_normalize("I ❤️ Python 🐍")      # => "i red heart python snake"
 
 ### Pipeline steps
 
-`NFKC → confusables → [transliterate] → strip_accents → fold_case → collapse_whitespace`
+`NFKC → transliterate → confusables → strip_accents → fold_case → collapse_whitespace`
 
 ```python
 from translit import catalog_key
@@ -62,13 +62,14 @@ catalog_key("Müller", lang="de")      # => "mueller"
 
 ### Pipeline steps
 
-`strip_control` → `strip_zero_width` → `collapse_whitespace`
+`strip_bidi` → `strip_control` → `strip_zero_width` → `collapse_whitespace`
 
 ```python
 from translit import display_clean
 
 display_clean("hello\x00world\u200b!")  # => "helloworld!"
 display_clean("  spaced   out  ")       # => "spaced out"
+display_clean("admin\u202Euser")        # => "adminuser" (bidi override stripped)
 ```
 
 ---

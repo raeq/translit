@@ -90,8 +90,9 @@ security_clean("ℝ𝕖𝕒𝕝 𝕥𝕖𝕩𝕥")  # → "Real text"
 # ML/NLP: NFKC → emoji→text → transliterate → strip accents → fold case
 ml_normalize("Café ☕ Ünïcödé")  # → "cafe hot beverage unicode"
 
-# Library catalog: NFKC → confusables → transliterate → strip accents → fold case
+# Library catalog: NFKC → transliterate → confusables → strip accents → fold case
 catalog_key("Москва", lang="ru")  # → "moskva"
+catalog_key("ΩMEGA  café")        # → "omega cafe"
 ```
 
 ## Text builder

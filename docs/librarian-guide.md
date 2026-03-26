@@ -37,7 +37,7 @@ catalog_key("Über allen Gipfeln", lang="de")  # → "ueber allen gipfeln"
 ```
 
 `catalog_key()` executes a fixed Rust pipeline:
-NFKC → confusables → [transliterate if lang/iso9] → strip_accents → fold_case → collapse_whitespace.
+NFKC → transliterate → confusables → strip_accents → fold_case → collapse_whitespace.
 
 The confusable normalization step is important for catalogs — records
 imported from heterogeneous sources may contain Cyrillic homoglyphs that
