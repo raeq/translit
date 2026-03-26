@@ -135,25 +135,18 @@ property-based testing.
 
 ## Normalization
 
-`translit.normalize()` vs `unicodedata.normalize()` (CPython C extension):
+`translit.normalize()` uses the Rust `unicode-normalization` crate
+(Unicode 16.0) for all calls — both standalone and batch. This ensures
+consistent results across all code paths and avoids Unicode version
+mismatches between CPython's `unicodedata` (Unicode 15.1) and the Rust
+crate.
 
-| Input | translit | unicodedata | Ratio |
-|---|---|---|---|
-| Short (17 chars, NFC) | 0.08 µs | 0.03 µs | **2.6× slower** |
-| Long (440 chars, NFC) | 0.37 µs | 0.32 µs | **1.2× slower** |
-
-`unicodedata.normalize()` is a C extension that operates directly on
-CPython's internal string representation with zero-copy fast-path
-semantics. For standalone calls, `translit.normalize()` delegates to
-`unicodedata.normalize()` to avoid unnecessary PyO3 boundary-crossing
-overhead. The Rust normalisation implementation is still used internally by
-precompiled pipelines (`security_clean`, `ml_normalize`, `catalog_key`,
-`TextPipeline`) and the batch API, where it runs inside Rust without
-repeated Python↔Rust boundary crossings.
-
-The remaining 2.6× gap on short input is Python function-call overhead
-(the `translit.normalize()` wrapper and the `text.isascii()` fast-path
-check). At document scale the gap is negligible.
+`unicodedata.normalize()` is a CPython C extension that operates directly
+on Python's internal string representation with zero-copy fast-path
+semantics, so it is faster for standalone calls. The tradeoff is
+correctness: using a single Unicode version throughout eliminates subtle
+bugs where `normalize()` and `normalize_batch()` produce different results
+for codepoints assigned between Unicode versions.
 
 
 ## Accent stripping
@@ -216,11 +209,10 @@ boundary crossing, amortising the per-call overhead across N strings.
 
 | Operation | Batch | Loop | Speedup |
 |---|---|---|---|
-| transliterate | **14.5 µs** | 38.5 µs | **2.7×** |
+| transliterate | **28.3 µs** | 82.9 µs | **2.9×** |
 
-The batch API eliminates ~240 ns of PyO3 boundary-crossing overhead per
-string for transliteration (24 µs saved over 100 strings). The advantage
-grows linearly with batch size — for N=1000, the overhead saving is ~240 µs.
+The batch API eliminates PyO3 boundary-crossing overhead per string for
+transliteration. The advantage grows linearly with batch size.
 
 Use the batch API whenever you have a list of strings to process — it is
 always at least as fast as the loop, and measurably faster for short strings
@@ -290,9 +282,9 @@ Rust-level (Criterion):
 | Slugification (long) | python-slugify | **24×** |
 | Filename sanitization | pathvalidate | **10–16×** |
 | Accent stripping | Python NFD+filter | **3.8–4.4×** |
-| Normalization (NFC) | unicodedata | 1.2–2.6× slower |
+| Normalization (NFC) | unicodedata | slower (consistency tradeoff) |
 | Case folding | str.casefold() | ~2.9× slower |
-| Batch transliterate (100) | Python loop | **2.7×** |
+| Batch transliterate (100) | Python loop | **2.9×** |
 
 translit is faster than every pure-Python competitor for transliteration,
 slugification, filename sanitization, and accent stripping. It is slower
@@ -336,9 +328,9 @@ Rust. This makes the common case (already-ASCII text) effectively free:
 
 `transliterate_batch()`, `slugify_batch()`, `normalize_batch()`, and
 `strip_accents_batch()` accept a list of strings and process them in a single
-PyO3 boundary crossing, amortising the ~240 ns per-call overhead across N
-strings. For 100 mixed-script strings, batch transliteration is **2.7× faster**
-than calling `transliterate()` in a Python loop.
+PyO3 boundary crossing, amortising per-call overhead across N strings. For
+100 mixed-script strings, batch transliteration is **2.9× faster** than
+calling `transliterate()` in a Python loop.
 
 ### 4. Range-dispatch in lookup_default()
 
@@ -349,19 +341,17 @@ U+F900–U+FAFF) go directly to the Hanzi→Pinyin table; Hangul syllables
 algorithmic romanizer. This avoids probing the 65K-entry flat array for scripts
 that have dedicated, higher-quality tables.
 
-### 5. CPython delegation for normalization
+### 5. Consistent Rust-native normalization
 
-`translit.normalize()` delegates to CPython's `unicodedata.normalize()` for
-standalone calls. CPython's C extension operates directly on Python's internal
-string buffer (PEP 393 compact representation) with zero-copy fast-path
-semantics for already-normalized text — there is no scenario where crossing the
-PyO3 boundary to do the same work in Rust is faster. The Rust `_normalize`
-implementation is still used internally by precompiled pipelines
-(`security_clean`, `ml_normalize`, `catalog_key`, `TextPipeline`) and the batch
-API, where normalization runs inside Rust without repeated boundary crossings.
-
-This reduced the normalization gap from **16–18× slower** to **1.2–2.6×
-slower**, with the long-text case now within measurement noise of CPython.
+`translit.normalize()` uses the Rust `unicode-normalization` crate for all
+calls. While CPython's `unicodedata.normalize()` is faster for standalone calls
+(it operates directly on Python's internal string buffer with zero-copy
+semantics), using Rust throughout ensures Unicode version consistency: both
+`normalize()` and `normalize_batch()` use the same Unicode 16.0 tables,
+eliminating subtle version-mismatch bugs for codepoints assigned between Unicode
+15.1 and 16.0. The Rust implementation is used by all code paths — standalone
+calls, batch APIs, and precompiled pipelines (`security_clean`, `ml_normalize`,
+`catalog_key`, `TextPipeline`).
 
 ### 6. Full Unicode case folding via PHF
 

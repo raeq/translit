@@ -53,15 +53,20 @@ This heuristic eliminates reallocations for the two most common workload shapes.
 
 | Operation (100 strings) | Batch | Loop | Speedup |
 |---|---|---|---|
-| transliterate | 14.5 µs | 38.5 µs | 2.7× |
+| transliterate | 28.3 µs | 82.9 µs | 2.9× |
 
-## Optimization 7: CPython delegation
+## Optimization 7: Consistent Rust-native normalization
 
-For standalone `normalize()` calls, translit delegates to CPython's `unicodedata.normalize()` rather than crossing into Rust. CPython's C extension operates directly on Python's PEP 393 compact string representation with zero-copy fast-path semantics for already-normalized text. No Rust implementation can beat this because it would need to cross the PyO3 boundary, copy the string, normalize in Rust, then copy back.
+`normalize()` uses the Rust `unicode-normalization` crate (Unicode 16.0) for
+all calls — standalone, batch, and pipeline. This ensures consistent results
+across all code paths and eliminates Unicode version mismatches between
+CPython's `unicodedata` (Unicode 15.1) and the Rust crate's tables.
 
-The Rust normalization code is still used inside `TextPipeline` and batch APIs, where it runs in a Rust context without Python boundary crossings.
-
-This reduced the normalization gap from 16–18× slower than CPython to 1.2–2.6× slower.
+While CPython's `unicodedata.normalize()` is faster for standalone calls (it
+operates directly on PEP 393 compact strings with zero-copy semantics), the
+correctness tradeoff is worth the performance cost: using a single Unicode
+version prevents subtle bugs where `normalize()` and `normalize_batch()`
+produce different results for codepoints assigned between Unicode versions.
 
 ## Optimization 8: PHF for specialized data
 
@@ -71,7 +76,7 @@ All secondary lookup tables (Hanzi pinyin, confusables, case folding, emoji) use
 
 Two operations are inherently slower than their CPython C-builtin counterparts:
 
-- **Normalization**: `unicodedata.normalize()` operates on CPython's internal string buffer without copying. translit's Rust normalizer must copy across the PyO3 boundary. Standalone calls delegate to CPython (see above); only pipeline/batch paths use Rust.
+- **Normalization**: `unicodedata.normalize()` operates on CPython's internal string buffer without copying. translit uses Rust for all normalization (consistency over speed — see Optimization 7).
 - **Case folding**: `str.casefold()` is a CPython C builtin with zero allocation overhead. translit's PHF-based `fold_case()` is within ~3× at the Python level, with the gap dominated by PyO3 boundary-crossing cost rather than algorithmic differences.
 
 These gaps are acceptable because normalization and case folding are rarely the bottleneck in real workloads — transliteration and slugification dominate processing time, and translit is 10–58× faster for those.

@@ -193,7 +193,7 @@ translit is compiled Rust with O(1) compile-time perfect hash tables — no rege
 | Transliterate (Latin) | 693M chars/sec | **58×** faster than Unidecode |
 | Transliterate (Cyrillic) | 196M chars/sec | **27×** faster than Unidecode |
 | Slugify | 1.12M slugs/sec | **10–24×** faster than python-slugify |
-| Batch transliterate (100 strings) | 2.7× faster than loop | — |
+| Batch transliterate (100 strings) | 2.9× faster than loop | — |
 
 See [docs/performance.md](docs/performance.md) for full benchmark methodology and results.
 
