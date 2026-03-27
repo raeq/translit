@@ -1425,7 +1425,8 @@ def inspect_auto_lang(text: str) -> dict[str, str | list[str] | None]:
         >>> inspect_auto_lang("Москва")["reason"]
         'script_default'
     """
-    return _inspect_auto_lang(text)
+    result: dict[str, str | list[str] | None] = _inspect_auto_lang(text)  # type: ignore[assignment]
+    return result
 
 
 def is_mixed_script(text: str) -> bool:
@@ -1793,7 +1794,7 @@ audit exactly which transforms a preset applies.
 
 # --- Policy profiles ---
 
-_POLICY_PROFILES: dict[str, dict] = {
+_POLICY_PROFILES: dict[str, dict[str, object]] = {
     "scholarly_cyrillic_iso9": dict(
         normalize="NFKC",
         transliterate=True,
