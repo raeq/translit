@@ -82,6 +82,11 @@ SCRIPT_SAMPLES: dict[Script, str] = {
     # Historical European scripts
     Script.RUNIC: "\u16a0\u16a1\u16a2",  # ᚠᚡᚢ
     Script.OGHAM: "\u1681\u1682\u1683",  # ᚁᚂᚃ
+    Script.GOTHIC: "\U00010330\U00010331\U00010332",  # 𐌰𐌱𐌲
+    # Ancient Near Eastern scripts
+    Script.OLD_PERSIAN: "\U000103A0\U000103A1\U000103A2",  # 𐎠𐎡𐎢
+    Script.CUNEIFORM: "\U00012000\U00012001\U00012002",  # 𒀀𒀁𒀂
+    Script.LINEAR_B: "\U00010000\U00010001\U00010002",  # 𐀀𐀁𐀂
 }
 
 

@@ -79,9 +79,10 @@ pub fn has_registered_lang(code: &str) -> bool {
 /// All built-in language codes, sorted.
 const BUILTIN_LANGS: &[&str] = &[
     "am", "ar", "as", "bg", "bn", "bo", "ca", "cs", "cy", "da", "de", "dv", "el", "es", "et", "fa",
-    "fi", "fr", "ga", "gu", "he", "hi", "hr", "hu", "hy", "is", "it", "ja", "jv", "ka", "km", "kn",
-    "ko", "lo", "lt", "lv", "ml", "mn", "mr", "mt", "my", "ne", "nl", "no", "or", "pa", "pl", "pt",
-    "ro", "ru", "sa", "si", "sk", "sl", "sq", "sr", "sv", "ta", "te", "th", "tr", "uk", "vi", "zh",
+    "fi", "fr", "ga", "gu", "he", "hi", "hr", "hu", "hy", "is", "it", "ja", "ja-kunrei", "jv", "ka",
+    "km", "kn", "ko", "lo", "lt", "lv", "ml", "mn", "mr", "mt", "my", "ne", "nl", "no", "or", "pa",
+    "pl", "pt", "ro", "ru", "sa", "si", "sk", "sl", "sq", "sr", "sv", "ta", "te", "th", "tr", "uk",
+    "vi", "zh",
 ];
 
 /// Look up a character in the default transliteration table.
@@ -106,6 +107,24 @@ pub fn lookup_default(ch: char) -> Option<&'static str> {
     }
 
     // Default flat BMP array (Latin Extended, Cyrillic, Greek, symbols, etc.)
+    transliteration::lookup(ch)
+}
+
+/// Like `lookup_default`, but returns toned pinyin (with diacritics) for CJK.
+/// Falls through to toneless for characters without toned data.
+#[inline]
+pub fn lookup_default_toned(ch: char) -> Option<&'static str> {
+    let cp = ch as u32;
+
+    if ur::CJK_EXT_A.contains(&cp) || ur::CJK_UNIFIED.contains(&cp) || ur::CJK_COMPAT.contains(&cp)
+    {
+        return hanzi_pinyin::lookup_hanzi_toned(ch).or_else(|| transliteration::lookup(ch));
+    }
+
+    if ur::HANGUL_SYLLABLES.contains(&cp) || ur::HANGUL_COMPAT_JAMO.contains(&cp) {
+        return lookup_hangul_static(ch).or_else(|| transliteration::lookup(ch));
+    }
+
     transliteration::lookup(ch)
 }
 

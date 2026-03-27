@@ -15,10 +15,25 @@
 // Hanzi → Pinyin (ASCII, no tones) — O(1) lookup via compile-time perfect hash.
 include!(concat!(env!("OUT_DIR"), "/hanzi_pinyin_phf.rs"));
 
+// Hanzi → Pinyin (toned, with diacritics) — O(1) lookup via compile-time perfect hash.
+// Covers the most common ~2000 characters; falls through to toneless for the rest.
+include!(concat!(env!("OUT_DIR"), "/hanzi_pinyin_toned_phf.rs"));
+
 /// Look up pinyin for a Hanzi character.
 #[inline]
 pub fn lookup_hanzi(ch: char) -> Option<&'static str> {
     HANZI_PINYIN.get(&ch).copied()
+}
+
+/// Look up toned pinyin for a Hanzi character.
+/// Returns diacritical pinyin (e.g., "běi") if available, otherwise falls through
+/// to toneless pinyin (e.g., "bei").
+#[inline]
+pub fn lookup_hanzi_toned(ch: char) -> Option<&'static str> {
+    HANZI_PINYIN_TONED
+        .get(&ch)
+        .copied()
+        .or_else(|| HANZI_PINYIN.get(&ch).copied())
 }
 
 #[cfg(test)]

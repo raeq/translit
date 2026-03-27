@@ -1,0 +1,55 @@
+# Greek reverse transliteration: romanized ASCII → Greek.
+#
+# Format: romanized_key\tnative_value
+
+# Digraphs
+Th	Θ
+th	θ
+Ph	Φ
+ph	φ
+Ch	Χ
+ch	χ
+Ps	Ψ
+ps	ψ
+
+# Single characters — uppercase
+A	Α
+B	Β
+G	Γ
+D	Δ
+E	Ε
+Z	Ζ
+I	Η
+K	Κ
+L	Λ
+M	Μ
+N	Ν
+X	Ξ
+O	Ο
+P	Π
+R	Ρ
+S	Σ
+T	Τ
+U	Υ
+F	Φ
+
+# Single characters — lowercase
+a	α
+b	β
+g	γ
+d	δ
+e	ε
+z	ζ
+i	η
+k	κ
+l	λ
+m	μ
+n	ν
+x	ξ
+o	ο
+p	π
+r	ρ
+s	σ
+t	τ
+u	υ
+f	φ

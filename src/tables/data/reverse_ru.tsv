@@ -1,0 +1,75 @@
+# Russian reverse transliteration: romanized ASCII → Cyrillic.
+# Longest-match-first scanning: digraphs/trigraphs must take priority.
+# Based on BGN/PCGN romanization (default Russian profile).
+#
+# Format: romanized_key\tnative_value
+
+# Trigraphs (must match before digraphs)
+Shch	Щ
+shch	щ
+
+# Digraphs (must match before single chars)
+Zh	Ж
+zh	ж
+Kh	Х
+kh	х
+Ts	Ц
+ts	ц
+Ch	Ч
+ch	ч
+Sh	Ш
+sh	ш
+Yu	Ю
+yu	ю
+Ya	Я
+ya	я
+Yo	Ё
+yo	ё
+Ye	Е
+ye	е
+
+# Single characters — uppercase
+A	А
+B	Б
+V	В
+G	Г
+D	Д
+E	Е
+Z	З
+I	И
+J	Й
+K	К
+L	Л
+M	М
+N	Н
+O	О
+P	П
+R	Р
+S	С
+T	Т
+U	У
+F	Ф
+Y	Ы
+
+# Single characters — lowercase
+a	а
+b	б
+v	в
+g	г
+d	д
+e	е
+z	з
+i	и
+j	й
+k	к
+l	л
+m	м
+n	н
+o	о
+p	п
+r	р
+s	с
+t	т
+u	у
+f	ф
+y	ы

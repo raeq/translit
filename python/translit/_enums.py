@@ -74,6 +74,12 @@ class Script(enum.Enum):
     # Historical European scripts
     RUNIC = "Runic"
     OGHAM = "Ogham"
+    GOTHIC = "Gothic"
+
+    # Ancient Near Eastern scripts
+    OLD_PERSIAN = "OldPersian"
+    CUNEIFORM = "Cuneiform"
+    LINEAR_B = "LinearB"
 
     # Meta-scripts
     COMMON = "Common"

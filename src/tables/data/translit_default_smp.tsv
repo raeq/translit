@@ -1,0 +1,181 @@
+# Default SMP (Supplementary Multilingual Plane) transliteration table.
+# Covers ancient and historic scripts above U+FFFF that should be
+# transliterated by default without requiring a lang= parameter.
+#
+# Format: HEXCODEPOINT\tvalue
+
+# ===== Gothic (U+10330–U+1034A) =====
+# Wulfila's Gothic alphabet — one-to-one Latin correspondence
+10330	a
+10331	b
+10332	g
+10333	d
+10334	e
+10335	q
+10336	z
+10337	h
+10338	th
+10339	i
+1033A	k
+1033B	l
+1033C	m
+1033D	n
+1033E	j
+1033F	u
+10340	p
+10341	90
+10342	r
+10343	s
+10344	t
+10345	w
+10346	f
+10347	x
+10348	hw
+10349	o
+1034A	900
+
+# ===== Old Persian Cuneiform (U+103A0–U+103D5) =====
+# Achaemenid syllabary — scholarly phonetic values
+103A0	a
+103A1	i
+103A2	u
+103A3	ka
+103A4	ku
+103A5	ga
+103A6	gu
+103A7	xa
+103A8	ca
+103A9	ja
+103AA	ji
+103AB	ta
+103AC	tu
+103AD	da
+103AE	di
+103AF	du
+103B0	tha
+103B1	pa
+103B2	ba
+103B3	fa
+103B4	na
+103B5	nu
+103B6	ma
+103B7	mi
+103B8	mu
+103B9	ya
+103BA	va
+103BB	vi
+103BC	ra
+103BD	ru
+103BE	la
+103BF	sa
+103C0	za
+103C1	sha
+103C2	ssa
+103C3	ha
+# Word signs
+103C8	Auramazda
+103C9	Auramazda
+103CA	Auramazda
+103CB	dahyaus
+103CC	dahyaus
+103CD	baga
+103CE	bumis
+# Word divider
+103D0
+# Numerals
+103D1	1
+103D2	2
+103D3	10
+103D4	20
+103D5	100
+
+# ===== Linear B Syllabary (U+10000–U+1005D) =====
+# Mycenaean Greek syllabic script — conventional scholarly values
+10000	a
+10001	e
+10002	i
+10003	o
+10004	u
+10005	da
+10006	de
+10007	di
+10008	do
+10009	du
+1000A	ja
+1000B	je
+1000D	jo
+1000F	ju
+10010	ka
+10011	ke
+10012	ki
+10013	ko
+10014	ku
+10015	la
+10016	le
+10017	li
+10018	lo
+10019	lu
+1001A	ma
+1001B	me
+1001C	mi
+1001D	mo
+1001E	mu
+1001F	na
+10020	ne
+10021	ni
+10022	no
+10023	nu
+10024	pa
+10025	pe
+10026	pi
+10027	po
+10028	pu
+10029	qa
+1002A	qe
+1002B	qi
+1002C	qo
+1002E	ra
+1002F	re
+10030	ri
+10031	ro
+10032	ru
+10033	sa
+10034	se
+10035	si
+10036	so
+10037	su
+10038	ta
+10039	te
+1003A	ti
+1003B	to
+1003C	tu
+1003F	wa
+10040	we
+10041	wi
+10042	wo
+10043	za
+10044	ze
+10046	zo
+10047	a2
+10048	a3
+10049	au
+1004A	dwe
+1004B	dwo
+1004C	nwa
+1004D	phu
+1004E	pte
+1004F	pu2
+10050	ra2
+10051	ra3
+10052	ro2
+10053	ta2
+10054	two
+10055	twe
+10056	*18
+10057	*19
+10058	*22
+10059	*34
+1005A	*47
+1005B	*49
+1005C	*56
+1005D	*63

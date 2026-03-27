@@ -1,0 +1,74 @@
+# Ukrainian reverse transliteration: romanized ASCII → Cyrillic.
+# Based on Ukrainian national romanization standard.
+#
+# Format: romanized_key\tnative_value
+
+# Trigraphs
+Shch	Щ
+shch	щ
+
+# Digraphs
+Zh	Ж
+zh	ж
+Kh	Х
+kh	х
+Ts	Ц
+ts	ц
+Ch	Ч
+ch	ч
+Sh	Ш
+sh	ш
+Yu	Ю
+yu	ю
+Ya	Я
+ya	я
+Yi	Ї
+yi	ї
+Ye	Є
+ye	є
+
+# Single characters — uppercase
+A	А
+B	Б
+V	В
+H	Г
+G	Ґ
+D	Д
+E	Е
+Z	З
+Y	И
+I	І
+K	К
+L	Л
+M	М
+N	Н
+O	О
+P	П
+R	Р
+S	С
+T	Т
+U	У
+F	Ф
+
+# Single characters — lowercase
+a	а
+b	б
+v	в
+h	г
+g	ґ
+d	д
+e	е
+z	з
+y	и
+i	і
+k	к
+l	л
+m	м
+n	н
+o	о
+p	п
+r	р
+s	с
+t	т
+u	у
+f	ф

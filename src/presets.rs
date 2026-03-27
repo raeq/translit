@@ -135,6 +135,7 @@ pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyRes
             "",
             false,
             false,
+            false,
         )
         .into_owned();
     }
@@ -173,6 +174,7 @@ pub fn _catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> PyResu
         "",
         strict_iso9,
         false,
+        false,
     )
     .into_owned();
     // 3. Confusables → Latin (normalize any remaining cross-script homoglyphs)
@@ -201,7 +203,7 @@ pub fn _search_key(text: &str, lang: Option<&str>) -> PyResult<String> {
     let buf: String = text.nfkc().collect();
     // 2. Transliterate (always — search keys should be pure ASCII where possible)
     let buf =
-        transliterate::transliterate_impl(&buf, lang, crate::ErrorMode::Preserve, "", false, false)
+        transliterate::transliterate_impl(&buf, lang, crate::ErrorMode::Preserve, "", false, false, false)
             .into_owned();
     // 3. Strip accents
     let buf = transliterate::_strip_accents(&buf);
@@ -227,7 +229,7 @@ pub fn _sort_key(text: &str, lang: Option<&str>) -> PyResult<String> {
     let buf: String = text.nfkc().collect();
     // 2. Transliterate (always — sort keys need a consistent script)
     let buf =
-        transliterate::transliterate_impl(&buf, lang, crate::ErrorMode::Preserve, "", false, false)
+        transliterate::transliterate_impl(&buf, lang, crate::ErrorMode::Preserve, "", false, false, false)
             .into_owned();
     // 3. Unicode case folding
     let buf = case_fold::fold_case_impl(&buf);

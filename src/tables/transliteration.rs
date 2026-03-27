@@ -4,15 +4,22 @@
 //! O(1) lookups with zero hashing overhead. This covers the entire BMP
 //! (U+0080–U+FFFF) in ~512 KB — well within L2 cache.
 //!
+//! SMP characters (U+10000+) — ancient and historic scripts like Gothic,
+//! Old Persian, and Linear B — are served by a separate PHF map.
+//!
 //! Language-specific override maps use compile-time perfect hash maps (`phf`)
 //! since they are tiny (1–26 entries each) and PHF overhead is negligible.
 //!
 //! Covers: Latin-1 Supplement, Latin Extended-A, Latin Extended-B,
 //! Latin Extended Additional (Vietnamese, Welsh, medievalist),
-//! Cyrillic, Greek, currency/symbols, and typographic characters.
+//! Cyrillic, Greek, Ogham, Runic, currency/symbols, typographic characters,
+//! Gothic, Old Persian Cuneiform, and Linear B Syllabary.
 
 // Default transliteration table — flat array for BMP, O(1) via index.
 include!(concat!(env!("OUT_DIR"), "/translit_default_flat.rs"));
+
+// Default SMP transliteration — PHF for ancient/historic scripts above U+FFFF.
+include!(concat!(env!("OUT_DIR"), "/translit_default_smp_phf.rs"));
 
 // ===== Language-specific override maps =====
 //
@@ -27,8 +34,11 @@ pub fn lookup(ch: char) -> Option<&'static str> {
     if (0x80..0x10000).contains(&cp) {
         // BMP: direct array index, no hashing
         DEFAULT_BMP[(cp - 0x80) as usize]
+    } else if cp >= 0x10000 {
+        // SMP: ancient/historic scripts — PHF lookup
+        DEFAULT_SMP.get(&ch).copied()
     } else {
-        // ASCII (<0x80) needs no transliteration; SMP (>=0x10000) has no entries
+        // ASCII (<0x80) needs no transliteration
         None
     }
 }
@@ -69,6 +79,7 @@ pub fn lookup_lang(lang: &str, ch: char) -> Option<&'static str> {
         "ru" => Some(&LANG_RU),
         "sr" => Some(&LANG_SR),
         "ja" => Some(&LANG_JA),
+        "ja-kunrei" => Some(&LANG_JA_KUNREI),
         "fa" => Some(&LANG_FA), // Persian (Farsi)
         // Languages that need no overrides — default table handles them correctly:
         // cs, sk, pl, hu, ro, hr, sl, sq, mt, ga, cy, lv, lt, ar

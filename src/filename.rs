@@ -150,6 +150,7 @@ pub fn _sanitize_filename(
         "",
         false,
         false,
+        false,
     )
     .into_owned();
 

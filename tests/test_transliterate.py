@@ -1172,6 +1172,7 @@ _ALL_LANG_ASCII_SAMPLES: dict[str, tuple[str, str]] = {
     "vi": ("Cộng hòa xã hội chủ nghĩa Việt Nam là một quốc gia", "Vietnamese"),
     # --- East Asian ---
     "ja": ("日本国は東アジアに位置する島国である", "Japanese"),
+    "ja-kunrei": ("しちつふじ", "Japanese Kunrei-shiki kana"),
     "ko": ("대한민국은 동아시아에 있는 공화국이다", "Korean"),
     "zh": ("中华人民共和国是位于东亚的社会主义国家", "Chinese"),
     # --- Middle Eastern ---

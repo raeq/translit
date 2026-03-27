@@ -31,6 +31,14 @@ fn main() {
         "pub",
     );
 
+    // --- Hanzi Pinyin (toned) ---
+    generate_char_str_map(
+        &data_dir.join("hanzi_pinyin_toned.tsv"),
+        &out_dir.join("hanzi_pinyin_toned_phf.rs"),
+        "HANZI_PINYIN_TONED",
+        "pub",
+    );
+
     // --- Confusables ---
     generate_char_str_map(
         &data_dir.join("confusables.tsv"),
@@ -73,6 +81,14 @@ fn main() {
         &out_dir.join("translit_default_flat.rs"),
     );
 
+    // --- Transliteration: SMP default table (ancient/historic scripts above U+FFFF) ---
+    generate_char_str_map(
+        &data_dir.join("translit_default_smp.tsv"),
+        &out_dir.join("translit_default_smp_phf.rs"),
+        "DEFAULT_SMP",
+        "",
+    );
+
     // --- Transliteration: language-specific tables ---
     let lang_tables = [
         ("lang_de", "LANG_DE"),
@@ -96,6 +112,7 @@ fn main() {
         ("lang_ru", "LANG_RU"),
         ("lang_sr", "LANG_SR"),
         ("lang_ja", "LANG_JA"),
+        ("lang_ja_kunrei", "LANG_JA_KUNREI"),
         ("lang_fa", "LANG_FA"),
     ];
 
@@ -111,6 +128,33 @@ fn main() {
     let lang_out = out_dir.join("translit_langs_phf.rs");
     fs::write(&lang_out, all_lang_code).unwrap_or_else(|e| {
         panic!("Failed to write {}: {e}", lang_out.display());
+    });
+
+    // --- Reverse transliteration tables ---
+    let reverse_tables = [
+        ("reverse_ru", "REVERSE_RU"),
+        ("reverse_uk", "REVERSE_UK"),
+        ("reverse_el", "REVERSE_EL"),
+    ];
+
+    let mut all_reverse_code = String::new();
+    for (file_stem, const_name) in &reverse_tables {
+        let tsv_path = data_dir.join(format!("{file_stem}.tsv"));
+        let entries = read_str_str_tsv(&tsv_path);
+        let mut builder = phf_codegen::Map::<&str>::new();
+        for (key, value) in &entries {
+            let v = format!("\"{}\"", escape_str(value));
+            builder.entry(key.as_str(), &v);
+        }
+        all_reverse_code.push_str(&format!(
+            "static {const_name}: phf::Map<&'static str, &'static str> = {};\n\n",
+            builder.build()
+        ));
+    }
+
+    let reverse_out = out_dir.join("reverse_translit_phf.rs");
+    fs::write(&reverse_out, all_reverse_code).unwrap_or_else(|e| {
+        panic!("Failed to write {}: {e}", reverse_out.display());
     });
 }
 

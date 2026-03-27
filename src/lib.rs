@@ -63,6 +63,8 @@ mod pipeline;
 #[doc(hidden)]
 pub mod presets;
 #[doc(hidden)]
+pub mod reverse;
+#[doc(hidden)]
 pub mod scripts;
 #[doc(hidden)]
 pub mod slugify;
@@ -143,6 +145,10 @@ fn _translit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Encoding detection
     m.add_function(wrap_pyfunction!(encoding::_detect_encoding, m)?)?;
     m.add_function(wrap_pyfunction!(encoding::_decode_to_utf8, m)?)?;
+
+    // Reverse transliteration
+    m.add_function(wrap_pyfunction!(reverse::_reverse_transliterate, m)?)?;
+    m.add_function(wrap_pyfunction!(reverse::_reverse_langs, m)?)?;
 
     // Emoji
     m.add_function(wrap_pyfunction!(emoji::_demojize, m)?)?;

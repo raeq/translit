@@ -38,7 +38,7 @@ enum ScriptClass {
 
 /// Core transliteration: Unicode → ASCII.
 #[pyfunction]
-#[pyo3(signature = (text, *, lang=None, errors="replace", replace_with="[?]", strict_iso9=false, gost7034=false))]
+#[pyo3(signature = (text, *, lang=None, errors="replace", replace_with="[?]", strict_iso9=false, gost7034=false, tones=false))]
 pub fn _transliterate(
     text: &str,
     lang: Option<&str>,
@@ -46,6 +46,7 @@ pub fn _transliterate(
     replace_with: &str,
     strict_iso9: bool,
     gost7034: bool,
+    tones: bool,
 ) -> PyResult<String> {
     if strict_iso9 && gost7034 {
         return Err(pyo3::exceptions::PyValueError::new_err(
@@ -61,7 +62,7 @@ pub fn _transliterate(
     }
     let error_mode = ErrorMode::from_str(errors)?;
     Ok(
-        transliterate_impl(text, lang, error_mode, replace_with, strict_iso9, gost7034)
+        transliterate_impl(text, lang, error_mode, replace_with, strict_iso9, gost7034, tones)
             .into_owned(),
     )
 }
@@ -77,6 +78,7 @@ pub fn transliterate_impl<'a>(
     replace_with: &str,
     strict_iso9: bool,
     gost7034: bool,
+    tones: bool,
 ) -> Cow<'a, str> {
     // Fast path: pure ASCII input needs no transliteration.
     // `str::is_ascii()` is a single SIMD-friendly scan — sub-nanosecond for
@@ -132,17 +134,26 @@ pub fn transliterate_impl<'a>(
         // 1. If strict_iso9: ISO 9 table → default table (lang overrides ignored)
         // 2. If gost7034: GOST 7.0.34 table → default table (lang overrides ignored)
         // 3. Otherwise: lang override → default table
+        // When tones=true, CJK uses toned pinyin (with diacritics) instead of toneless.
+        let default_lookup = |c: char| -> Option<Cow<'static, str>> {
+            if tones {
+                tables::lookup_default_toned(c).map(Cow::Borrowed)
+            } else {
+                tables::lookup_default(c).map(Cow::Borrowed)
+            }
+        };
+
         let mapped: Option<Cow<'static, str>> = if strict_iso9 {
             tables::lookup_iso9(ch)
                 .map(Cow::Borrowed)
-                .or_else(|| tables::lookup_default(ch).map(Cow::Borrowed))
+                .or_else(|| default_lookup(ch))
         } else if gost7034 {
             tables::lookup_gost7034(ch)
                 .map(Cow::Borrowed)
-                .or_else(|| tables::lookup_default(ch).map(Cow::Borrowed))
+                .or_else(|| default_lookup(ch))
         } else {
             lang.and_then(|l| tables::lookup_lang(l, ch))
-                .or_else(|| tables::lookup_default(ch).map(Cow::Borrowed))
+                .or_else(|| default_lookup(ch))
         };
 
         // Indic virama/mātrā handling: strip the inherent "a" from the
@@ -550,7 +561,7 @@ pub fn _clear_replacements() -> PyResult<()> {
 
 /// Batch transliteration: process a list of strings in a single PyO3 boundary crossing.
 #[pyfunction]
-#[pyo3(signature = (texts, *, lang=None, errors="replace", replace_with="[?]", strict_iso9=false, gost7034=false))]
+#[pyo3(signature = (texts, *, lang=None, errors="replace", replace_with="[?]", strict_iso9=false, gost7034=false, tones=false))]
 pub fn _transliterate_batch(
     texts: Vec<String>,
     lang: Option<&str>,
@@ -558,6 +569,7 @@ pub fn _transliterate_batch(
     replace_with: &str,
     strict_iso9: bool,
     gost7034: bool,
+    tones: bool,
 ) -> PyResult<Vec<String>> {
     if strict_iso9 && gost7034 {
         return Err(pyo3::exceptions::PyValueError::new_err(
@@ -575,7 +587,7 @@ pub fn _transliterate_batch(
     Ok(texts
         .iter()
         .map(|text| {
-            transliterate_impl(text, lang, error_mode, replace_with, strict_iso9, gost7034)
+            transliterate_impl(text, lang, error_mode, replace_with, strict_iso9, gost7034, tones)
                 .into_owned()
         })
         .collect())
@@ -614,7 +626,7 @@ mod tests {
 
     #[test]
     fn test_ascii_passthrough() {
-        let result = transliterate_impl("hello", None, ErrorMode::Replace, "[?]", false, false);
+        let result = transliterate_impl("hello", None, ErrorMode::Replace, "[?]", false, false, false);
         assert_eq!(result, "hello");
     }
 
@@ -634,7 +646,7 @@ mod tests {
             /// With ErrorMode::Ignore, output is always pure ASCII.
             #[test]
             fn transliterate_ignore_is_ascii(s in "\\PC*") {
-                let result = transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false);
+                let result = transliterate_impl(&s, None, ErrorMode::Ignore, "", false, false, false);
                 prop_assert!(
                     result.is_ascii(),
                     "Non-ASCII in Ignore output: {:?}",
@@ -646,7 +658,7 @@ mod tests {
             /// non-empty output (every char either maps or is kept verbatim).
             #[test]
             fn transliterate_preserve_nonempty(s in "[^\\s]{1,50}") {
-                let result = transliterate_impl(&s, None, ErrorMode::Preserve, "", false, false);
+                let result = transliterate_impl(&s, None, ErrorMode::Preserve, "", false, false, false);
                 prop_assert!(!result.is_empty());
             }
 
@@ -671,7 +683,7 @@ mod tests {
             /// ASCII input passes through transliterate unchanged.
             #[test]
             fn transliterate_ascii_passthrough(s in "[a-zA-Z0-9 ]{0,100}") {
-                let result = transliterate_impl(&s, None, ErrorMode::Replace, "[?]", false, false);
+                let result = transliterate_impl(&s, None, ErrorMode::Replace, "[?]", false, false, false);
                 prop_assert_eq!(&result, &s);
             }
         }

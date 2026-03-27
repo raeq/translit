@@ -214,6 +214,17 @@ static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
     (0xFE70, 0xFEFF, "Arabic"),
     // Halfwidth Katakana
     (0xFF65, 0xFF9F, "Katakana"),
+    // Linear B Syllabary
+    (0x10000, 0x1007F, "LinearB"),
+    // Linear B Ideograms
+    (0x10080, 0x100FF, "LinearB"),
+    // Gothic
+    (0x10330, 0x1034F, "Gothic"),
+    // Old Persian
+    (0x103A0, 0x103DF, "OldPersian"),
+    // Cuneiform
+    (0x12000, 0x123FF, "Cuneiform"),
+    (0x12400, 0x1247F, "Cuneiform"), // Cuneiform Numbers and Punctuation
     // CJK Unified Ext B
     (0x20000, 0x2A6DF, "Han"),
     // CJK Unified Ext C
@@ -383,10 +394,7 @@ fn discriminate_by_chars(text: &str, script: &str) -> Option<&'static str> {
 /// Like `discriminate_by_chars` but also returns the discriminator character
 /// that triggered the match.  Used by `_inspect_auto_lang` to provide
 /// audit-level detail.
-fn discriminate_by_chars_detailed(
-    text: &str,
-    script: &str,
-) -> Option<(&'static str, char)> {
+fn discriminate_by_chars_detailed(text: &str, script: &str) -> Option<(&'static str, char)> {
     // Cap the scan at 2 000 characters.  If a discriminator character
     // exists in the text it will almost certainly appear in the opening
     // portion — scanning further is pure overhead for long documents.

@@ -1,0 +1,31 @@
+# Kunrei-shiki romanization overrides for Japanese kana.
+# Only entries that differ from the default Hepburn romanization are listed.
+# Characters not listed fall through to the default table.
+
+# Hiragana — Kunrei-shiki differences
+3057	si
+3058	zi
+3061	ti
+3062	di
+3064	tu
+3065	du
+3075	hu
+
+# Hiragana small forms
+3063	tu
+
+# Hiragana — compound syllable components
+# (しゃ/ちゃ etc. are composed of base + small ya/yu/yo,
+#  so the base override handles the main difference)
+
+# Katakana — same overrides
+30B7	si
+30B8	zi
+30C1	ti
+30C2	di
+30C4	tu
+30C5	du
+30D5	hu
+
+# Katakana small forms
+30C3	tu

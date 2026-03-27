@@ -221,6 +221,7 @@ impl _TextPipeline {
                     "",
                     self.strict_iso9,
                     self.gost7034,
+                    false,
                 )
                 .into_owned(),
             );

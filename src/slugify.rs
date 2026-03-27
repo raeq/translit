@@ -222,6 +222,7 @@ pub(crate) fn slugify_impl_with_stopset(
             "",
             false,
             false,
+            false,
         )
         .into_owned();
     }
