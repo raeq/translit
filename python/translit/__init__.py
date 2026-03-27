@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings as _warnings
 from collections.abc import Iterable
+from typing import Any
 
 from translit._enums import (
     LANG_AR,
@@ -1794,7 +1795,7 @@ audit exactly which transforms a preset applies.
 
 # --- Policy profiles ---
 
-_POLICY_PROFILES: dict[str, dict[str, object]] = {
+_POLICY_PROFILES: dict[str, dict[str, Any]] = {
     "scholarly_cyrillic_iso9": dict(
         normalize="NFKC",
         transliterate=True,
