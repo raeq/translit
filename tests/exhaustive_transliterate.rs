@@ -3,6 +3,9 @@
 //! These tests cover every element in bounded Unicode domains, leaving zero
 //! untested inputs within each domain. This is stronger than property-based
 //! testing because it eliminates sampling gaps.
+//!
+//! All tests are `#[ignore]` by default so they don't slow everyday development.
+//! Run before release with: `cargo test --test exhaustive_transliterate -- --ignored`
 
 use _translit::transliterate::{
     balinese_char_role, indic_char_role, javanese_char_role, khmer_char_role, myanmar_char_role,
@@ -14,6 +17,7 @@ use _translit::ErrorMode;
 // ── Hangul syllables (U+AC00–U+D7A3): all 11,172 ──────────────────────
 
 #[test]
+#[ignore]
 fn exhaustive_hangul_syllables_return_some() {
     for cp in 0xAC00_u32..=0xD7A3 {
         let ch = char::from_u32(cp).unwrap();
@@ -25,6 +29,7 @@ fn exhaustive_hangul_syllables_return_some() {
 }
 
 #[test]
+#[ignore]
 fn exhaustive_hangul_syllables_ascii_output() {
     for cp in 0xAC00_u32..=0xD7A3 {
         let ch = char::from_u32(cp).unwrap();
@@ -41,6 +46,7 @@ fn exhaustive_hangul_syllables_ascii_output() {
 }
 
 #[test]
+#[ignore]
 fn exhaustive_hangul_decomposition_indices_in_bounds() {
     for cp in 0xAC00_u32..=0xD7A3 {
         let index = cp - 0xAC00;
@@ -64,6 +70,7 @@ fn exhaustive_hangul_decomposition_indices_in_bounds() {
 // ── Compatibility jamo (U+3131–U+3163): all 51 ────────────────────────
 
 #[test]
+#[ignore]
 fn exhaustive_compat_jamo_return_some() {
     for cp in 0x3131_u32..=0x3163 {
         let ch = char::from_u32(cp).unwrap();
@@ -75,6 +82,7 @@ fn exhaustive_compat_jamo_return_some() {
 }
 
 #[test]
+#[ignore]
 fn exhaustive_compat_jamo_ascii_output() {
     for cp in 0x3131_u32..=0x3163 {
         let ch = char::from_u32(cp).unwrap();
@@ -89,6 +97,7 @@ fn exhaustive_compat_jamo_ascii_output() {
 // ── Full BMP ASCII output (U+0080–U+FFFF): ErrorMode::Ignore ──────────
 
 #[test]
+#[ignore]
 fn exhaustive_bmp_ignore_produces_ascii() {
     let mut failures = Vec::new();
     for cp in 0x0080_u32..=0xFFFF {
@@ -114,6 +123,7 @@ fn exhaustive_bmp_ignore_produces_ascii() {
 // ── Full BMP idempotence (U+0080–U+FFFF) ──────────────────────────────
 
 #[test]
+#[ignore]
 fn exhaustive_bmp_idempotence() {
     let mut failures = Vec::new();
     for cp in 0x0080_u32..=0xFFFF {
@@ -145,6 +155,7 @@ fn exhaustive_bmp_idempotence() {
 /// Core Indic scripts: Devanagari, Bengali, Gurmukhi, Gujarati, Oriya,
 /// Tamil, Telugu, Kannada, Malayalam.
 #[test]
+#[ignore]
 fn exhaustive_core_indic_block_structure() {
     let blocks: &[(u32, &str)] = &[
         (0x0900, "Devanagari"),
@@ -190,6 +201,7 @@ fn exhaustive_core_indic_block_structure() {
 }
 
 #[test]
+#[ignore]
 fn exhaustive_sinhala_block_structure() {
     // Virama (al-lakuna)
     assert_eq!(sinhala_char_role(0x0DCA), IndicRole::Virama);
@@ -221,6 +233,7 @@ fn exhaustive_sinhala_block_structure() {
 }
 
 #[test]
+#[ignore]
 fn exhaustive_tibetan_block_structure() {
     assert_eq!(tibetan_char_role(0x0F84), IndicRole::Virama);
 
@@ -248,6 +261,7 @@ fn exhaustive_tibetan_block_structure() {
 }
 
 #[test]
+#[ignore]
 fn exhaustive_myanmar_block_structure() {
     assert_eq!(myanmar_char_role(0x1039), IndicRole::Virama);
     assert_eq!(myanmar_char_role(0x103A), IndicRole::Virama);
@@ -276,6 +290,7 @@ fn exhaustive_myanmar_block_structure() {
 }
 
 #[test]
+#[ignore]
 fn exhaustive_khmer_block_structure() {
     assert_eq!(khmer_char_role(0x17D2), IndicRole::Virama);
 
@@ -296,6 +311,7 @@ fn exhaustive_khmer_block_structure() {
 }
 
 #[test]
+#[ignore]
 fn exhaustive_balinese_block_structure() {
     assert_eq!(balinese_char_role(0x1B44), IndicRole::Virama);
 
@@ -316,6 +332,7 @@ fn exhaustive_balinese_block_structure() {
 }
 
 #[test]
+#[ignore]
 fn exhaustive_javanese_block_structure() {
     assert_eq!(javanese_char_role(0xA9C0), IndicRole::Virama);
 
@@ -338,6 +355,7 @@ fn exhaustive_javanese_block_structure() {
 // ── Determinism ────────────────────────────────────────────────────────
 
 #[test]
+#[ignore]
 fn deterministic_100x_repeat() {
     let inputs = [
         "北京市 서울 Москва café ひらがな",
@@ -371,6 +389,7 @@ fn deterministic_100x_repeat() {
 // ── CJK Unified Ideographs (U+4E00–U+9FFF) ───────────────────────────
 
 #[test]
+#[ignore]
 fn exhaustive_cjk_ideographs_ascii_output() {
     let mut non_ascii = Vec::new();
     let mut unmapped = 0_u32;

@@ -21,6 +21,10 @@ from hypothesis import strategies as st
 
 import translit
 
+# All tests in this module are marked 'formal' so they are excluded from
+# everyday pytest runs.  Run before release with: pytest -m formal
+pytestmark = pytest.mark.formal
+
 
 # ── I1: ASCII Passthrough ───────────────────────────────────────────────
 
