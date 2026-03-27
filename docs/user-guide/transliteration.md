@@ -138,6 +138,31 @@ transliterate("東京タワー")   # → "dong jing tawa-"
 
 See [Limitations](../limitations.md) for details on context-free mapping trade-offs.
 
+## Reverse transliteration
+
+The `target` parameter converts romanized Latin text **back** to a native script:
+
+```python
+from translit import transliterate, reverse_langs
+
+# Latin → Cyrillic
+transliterate("Moskva", target="ru")     # → "Москва"
+transliterate("Kyiv", target="uk")       # → "Київ" (approximate)
+
+# Latin → Greek
+transliterate("Athina", target="el")     # → "Αθηνα"
+
+# List supported target languages
+reverse_langs()                          # → ["el", "ru", "uk"]
+```
+
+The `target` parameter is **mutually exclusive** with `lang` — you are either going forward (Unicode → ASCII via `lang`) or backward (Latin → native via `target`), not both. Forward-only parameters (`errors`, `replace_with`, `strict_iso9`, `gost7034`, `tones`) raise `ValueError` when used with `target`.
+
+Reverse transliteration uses greedy longest-match scanning to handle digraphs and trigraphs correctly (e.g., `"shch"` → `щ` rather than `ш` + `ch`).
+
+!!! warning
+    Reverse transliteration is **approximate**, not lossless. Many-to-one forward mappings cannot be inverted (e.g., both Й and Ы → `Y`; reverse always picks one). See [Limitations](../limitations.md#reverse-transliteration-is-approximate) for details and round-trip examples.
+
 ### Symbols and punctuation
 
 - Currencies: €, £, ¥, ₹, ₺, ₽, ₿, and more

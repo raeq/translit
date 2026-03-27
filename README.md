@@ -64,6 +64,10 @@ transliterate("Київ", lang="uk")   # → "Kyiv"
 transliterate("Москва", lang="auto")  # → "Moskva" (detects Cyrillic → Russian)
 transliterate("ภาษาไทย", lang="auto")  # → Thai transliteration (detects Thai)
 
+# Reverse transliteration (Latin → native script)
+transliterate("Moskva", target="ru")   # → "Москва"
+transliterate("Athina", target="el")   # → "Αθηνα"
+
 # Slugification
 slugify("Hello World!")            # → "hello-world"
 slugify("café au lait")           # → "cafe-au-lait"

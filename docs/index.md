@@ -90,7 +90,7 @@ pipe("  Héllo\u200b Wörld  ")  # => "hello world"
 Core concepts and usage for each feature area.
 
 - **[Getting Started](user-guide/getting-started.md)** — Installation, first steps, and basic usage
-- **[Transliteration](user-guide/transliteration.md)** — Unicode → ASCII with 65 language profiles
+- **[Transliteration](user-guide/transliteration.md)** — Unicode → ASCII with 65 language profiles, plus reverse (Latin → native script)
 - **[Slugification](user-guide/slugification.md)** — URL-safe slug generation, drop-in python-slugify replacement
 - **[Normalization](user-guide/normalization.md)** — NFC / NFD / NFKC / NFKD Unicode normalization
 - **[Confusable Detection](user-guide/confusables.md)** — TR39 homoglyph detection and normalization
