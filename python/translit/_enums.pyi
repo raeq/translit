@@ -103,3 +103,40 @@ LANG_JA: str
 LANG_KO: str
 LANG_RU: str
 LANG_ZH: str
+# Semitic
+LANG_HE: str
+# Caucasian
+LANG_HY: str
+LANG_KA: str
+# South Asian (non-Indic)
+LANG_SI: str
+# Southeast Asian (Tai)
+LANG_LO: str
+LANG_TH: str
+# Southeast Asian (Brahmic)
+LANG_KM: str
+LANG_MY: str
+# Tibetan
+LANG_BO: str
+# Ethiopian
+LANG_AM: str
+# Indic
+LANG_AS: str
+LANG_BN: str
+LANG_GU: str
+LANG_HI: str
+LANG_KN: str
+LANG_ML: str
+LANG_MR: str
+LANG_NE: str
+LANG_OR: str
+LANG_PA: str
+LANG_SA: str
+LANG_TA: str
+LANG_TE: str
+# New scripts (v0.1.5)
+LANG_DV: str
+LANG_JV: str
+LANG_MN: str
+# Auto-detection
+LANG_AUTO: str

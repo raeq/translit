@@ -52,8 +52,8 @@ Enum of Unicode script identifiers returned by `detect_scripts()`.
 | `Script.KHMER` | `"Khmer"` |
 | `Script.BALINESE` | `"Balinese"` |
 | `Script.JAVANESE` | `"Javanese"` |
-| `Script.TAI_LE` | `"Tai_Le"` |
-| `Script.NEW_TAI_LUE` | `"New_Tai_Lue"` |
+| `Script.TAI_LE` | `"TaiLe"` |
+| `Script.NEW_TAI_LUE` | `"NewTaiLue"` |
 
 ### Central/North Asian scripts
 
@@ -74,7 +74,7 @@ Enum of Unicode script identifiers returned by `detect_scripts()`.
 | Member | Value |
 |---|---|
 | `Script.ETHIOPIC` | `"Ethiopic"` |
-| `Script.NKO` | `"Nko"` |
+| `Script.NKO` | `"NKo"` |
 | `Script.VAI` | `"Vai"` |
 
 ### Middle Eastern scripts
@@ -90,7 +90,7 @@ Enum of Unicode script identifiers returned by `detect_scripts()`.
 | Member | Value |
 |---|---|
 | `Script.CHEROKEE` | `"Cherokee"` |
-| `Script.CANADIAN_ABORIGINAL` | `"Canadian_Aboriginal"` |
+| `Script.CANADIAN_ABORIGINAL` | `"CanadianAboriginal"` |
 
 ### Historical European scripts
 
@@ -98,6 +98,15 @@ Enum of Unicode script identifiers returned by `detect_scripts()`.
 |---|---|
 | `Script.RUNIC` | `"Runic"` |
 | `Script.OGHAM` | `"Ogham"` |
+| `Script.GOTHIC` | `"Gothic"` |
+
+### Ancient Near Eastern scripts
+
+| Member | Value |
+|---|---|
+| `Script.OLD_PERSIAN` | `"OldPersian"` |
+| `Script.CUNEIFORM` | `"Cuneiform"` |
+| `Script.LINEAR_B` | `"LinearB"` |
 
 ### Meta-scripts
 
@@ -193,17 +202,37 @@ from translit import LANG_DE, LANG_FR, LANG_ES  # etc.
 
 `LANG_BG`, `LANG_CA`, `LANG_CS`, `LANG_CY`, `LANG_DA`, `LANG_DE`, `LANG_EL`, `LANG_ES`, `LANG_ET`, `LANG_FI`, `LANG_FR`, `LANG_GA`, `LANG_HR`, `LANG_HU`, `LANG_IS`, `LANG_IT`, `LANG_LT`, `LANG_LV`, `LANG_MT`, `LANG_NL`, `LANG_NO`, `LANG_PL`, `LANG_PT`, `LANG_RO`, `LANG_RU`, `LANG_SK`, `LANG_SL`, `LANG_SQ`, `LANG_SR`, `LANG_SV`, `LANG_TR`, `LANG_UK`
 
+### Semitic
+
+`LANG_HE`
+
+### Caucasian
+
+`LANG_HY`, `LANG_KA`
+
+### South Asian (Indic)
+
+`LANG_AS`, `LANG_BN`, `LANG_GU`, `LANG_HI`, `LANG_KN`, `LANG_ML`, `LANG_MR`, `LANG_NE`, `LANG_OR`, `LANG_PA`, `LANG_SA`, `LANG_SI`, `LANG_TA`, `LANG_TE`
+
 ### Southeast Asian
 
-`LANG_VI`
+`LANG_KM`, `LANG_LO`, `LANG_MY`, `LANG_TH`, `LANG_VI`
 
 ### Middle Eastern
 
-`LANG_AR`, `LANG_FA`
+`LANG_AR`, `LANG_DV`, `LANG_FA`
 
 ### East Asian
 
 `LANG_JA`, `LANG_KO`, `LANG_ZH`
+
+### Central/North Asian
+
+`LANG_BO`, `LANG_MN`
+
+### African
+
+`LANG_AM`, `LANG_JV`
 
 ### Auto-detection
 

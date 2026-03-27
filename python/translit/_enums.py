@@ -11,7 +11,7 @@ class Script(enum.Enum):
     Used as return values from detect_scripts() and as
     arguments to is_confusable() / normalize_confusables().
 
-    Covers 39 scripts with full codepoint range detection.
+    Covers 42 scripts with full codepoint range detection.
     """
 
     # Major world scripts
