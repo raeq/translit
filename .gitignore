@@ -140,7 +140,6 @@ site/
 # ── macOS debug symbols (dSYM bundles) ───────────────
 *.dSYM/
 
-CLAUDE.md
 .claude/
 
 # ── Plans (local working notes) ──────────────────────
