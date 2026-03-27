@@ -29,7 +29,7 @@ docker pull ghcr.io/raeq/translit:latest
 You can also pin to a specific version:
 
 ```bash
-docker pull ghcr.io/raeq/translit:0.1.15
+docker pull ghcr.io/raeq/translit:0.1.5
 ```
 
 ## Quick start
