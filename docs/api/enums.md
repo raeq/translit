@@ -237,3 +237,17 @@ from translit import LANG_DE, LANG_FR, LANG_ES  # etc.
 ### Auto-detection
 
 `LANG_AUTO` — pass as `lang="auto"` to auto-detect the language from the dominant non-Latin script in the input text. See [Language Support](../user-guide/language-support.md#auto-detecting-language-from-script) for the full script-to-language mapping.
+
+## Introspection
+
+```python
+from translit import list_langs, list_scripts
+
+list_langs()    # → ["am", "ar", "as", "bg", "bn", ...]
+list_scripts()  # → ["Arabic", "Armenian", "Balinese", ...]
+```
+
+| Function | Returns |
+|---|---|
+| `list_langs()` | Sorted list of available language codes (`str`) |
+| `list_scripts()` | Sorted list of recognized Script enum values (`str`) |

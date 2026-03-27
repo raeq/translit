@@ -1898,6 +1898,22 @@ def list_langs() -> list[str]:
     return _list_langs()
 
 
+def list_scripts() -> list[str]:
+    """Return recognized Unicode script names.
+
+    Returns:
+        Sorted list of script name strings matching Script enum values
+        (e.g. ["Arabic", "Armenian", "Bengali", ...]).
+
+    Examples:
+        >>> "Latin" in list_scripts()
+        True
+        >>> "Han" in list_scripts()
+        True
+    """
+    return sorted(s.value for s in Script)
+
+
 def register_lang(code: str, mappings: dict[str, str]) -> None:
     """Register or override a transliteration mapping for a language code.
 
@@ -2041,6 +2057,7 @@ __all__ = [
     "TextPipeline",
     # Language profiles
     "list_langs",
+    "list_scripts",
     "register_lang",
     "register_replacements",
     "remove_replacement",
