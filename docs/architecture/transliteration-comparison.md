@@ -705,6 +705,53 @@ Unidecode swaps voicing for some Khmer consonants (mapping po→b, ba→p), whic
 
 translit maps all 5 Javanese consonants tested; Unidecode maps none (returns `[?]` for the entire Javanese block). This is a complete coverage gap in Unidecode.
 
+## Deep Dive: Ethiopic (Amharic)
+
+### Syllabary Structure
+
+Ethiopic (Ge'ez) script is a syllabary: each character encodes a consonant+vowel pair. There are 7 vowel orders for each of 34+ consonant bases:
+
+| Order | Name | Vowel | Example (H series) |
+|-------|------|-------|--------------------|
+| 1st | Ge'ez | ä (schwa) | ሀ U+1200 → `he` |
+| 2nd | Ka'ib | u | ሁ U+1201 → `hu` |
+| 3rd | Salis | i | ሂ U+1202 → `hi` |
+| 4th | Rabi' | a | ሃ U+1203 → `ha` |
+| 5th | Hamis | é | ሄ U+1204 → `he` |
+| 6th | Sadis | (bare/ə) | ህ U+1205 → `h` |
+| 7th | Sabi' | o | ሆ U+1206 → `ho` |
+
+Transliteration is pure table lookup — no virama logic needed (unlike Brahmic abugidas).
+
+### 1st/5th Order Vowel Collision
+
+The 1st order (Ge'ez, /ä/) and 5th order (Hamis, /é/) both map to the same ASCII string. This affects every consonant series:
+
+| Series | 1st order | 5th order | Both map to |
+|--------|-----------|-----------|-------------|
+| H | ሀ U+1200 | ሄ U+1204 | `he` |
+| L | ለ U+1208 | ሌ U+120C | `le` |
+| M | መ U+1218 | ሜ U+121C | `me` |
+| Glottal | አ U+12A0 | ኤ U+12A4 | `e` |
+
+The glottal stop series is worst: U+12A0 (1st), U+12A4 (5th), and U+12A5 (6th) all map to `e` (triple collision).
+
+**Why this is accepted**: Standard ASCII romanization systems (BGN/PCGN, ALALC) do not distinguish 1st from 5th order in plain ASCII — the distinction requires diacritics (ä vs é). Since translit targets pure ASCII output, the collision is inherent to the domain and cannot be resolved without non-ASCII output.
+
+### 6th Order (Bare Consonant) Design
+
+translit strips the inherent schwa from 6th-order forms: ት → `t`, ም → `m`, ብ → `b`. Unidecode preserves it: ት → `te`, ም → `me`, ብ → `be`.
+
+translit's approach is more natural for reading, as 6th order represents a bare consonant (no following vowel) in Amharic phonology. This accounts for most of the 21 character-level differences with Unidecode.
+
+### Amharic Language Override
+
+The `am` language override addresses Amharic-specific phonological mappings (23 entries):
+
+1. **ጸ/ፀ → s series** (16 entries): In modern Amharic, ጸ (tsade, U+1338–133F) and ፀ (U+1340–1347) are both pronounced as ejective /sʼ/, not /ts/. BGN/PCGN romanizes them as `s`. The default table retains `ts` for the generic Ge'ez mapping.
+
+2. **ዐ pharyngeal → apostrophe-marked** (7 entries): The pharyngeal series (U+12D0–12D6) is distinct from the glottal stop (አ) in Amharic. The override marks it with a leading apostrophe (`'e`, `'a`, etc.), distinguishing ኤ (glottal `e`) from ዔ (pharyngeal `'e`).
+
 ## Methodology Notes
 
 - All tests use the `lang` parameter for translit (language-aware mode), which is the recommended usage

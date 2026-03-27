@@ -152,6 +152,7 @@ fn main() {
         ("lang_ja", "LANG_JA"),
         ("lang_ja_kunrei", "LANG_JA_KUNREI"),
         ("lang_fa", "LANG_FA"),
+        ("lang_am", "LANG_AM"),
     ];
 
     // Generate each language table to its own file, then combine

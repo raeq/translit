@@ -1485,6 +1485,83 @@ fn ethiopic_produces_ascii() {
     assert!(result.is_ascii());
 }
 
+// ── Amharic language override tests ─────────────────────────────────────────
+
+#[test]
+fn amharic_tsade_override() {
+    // ጸ (U+1338) → "se" with am lang (not "tse" from default)
+    let result = transliterate::transliterate_impl(
+        "ጸ",
+        Some("am"),
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+        false,
+    );
+    assert_eq!(&*result, "se");
+}
+
+#[test]
+fn amharic_tsade_alt_override() {
+    // ፀ (U+1340) → "se" with am lang (ጸ/ፀ merger)
+    let result = transliterate::transliterate_impl(
+        "ፀ",
+        Some("am"),
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+        false,
+    );
+    assert_eq!(&*result, "se");
+}
+
+#[test]
+fn amharic_pharyngeal_override() {
+    // ዐ (U+12D0) → "'e" with am lang (pharyngeal marking)
+    let result = transliterate::transliterate_impl(
+        "ዐ",
+        Some("am"),
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+        false,
+    );
+    assert_eq!(&*result, "'e");
+}
+
+#[test]
+fn amharic_sun_word() {
+    // ጸሐይ (tsehay/sehay = "sun") — tests ጸ override in context
+    let result = transliterate::transliterate_impl(
+        "ጸሐይ",
+        Some("am"),
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+        false,
+    );
+    assert_eq!(&*result, "sehhey");
+}
+
+#[test]
+fn amharic_default_unchanged() {
+    // Without am lang, ጸ still maps to default "tse"
+    let result = transliterate::transliterate_impl(
+        "ጸ",
+        None,
+        ErrorMode::Ignore,
+        "",
+        false,
+        false,
+        false,
+    );
+    assert_eq!(&*result, "tse");
+}
+
 // ── Myanmar tests ───────────────────────────────────────────────────────────
 
 #[test]

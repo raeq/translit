@@ -6,7 +6,7 @@ Complete reference of all 65 built-in language profiles, their transliteration r
 
 | Code | Language | Script | Region | Has Overrides |
 |------|----------|--------|--------|:---:|
-| `am` | Amharic | Ethiopic | African | — |
+| `am` | Amharic | Ethiopic | African | Yes |
 | `ar` | Arabic | Arabic | Middle Eastern | — |
 | `as` | Assamese | Bengali | Indic | — |
 | `bg` | Bulgarian | Cyrillic | European | Yes |
@@ -147,6 +147,48 @@ Each language has a reference text used for integration testing. These texts are
 ## Language-Specific Transliteration Rules
 
 The following sections document the exact character-level overrides applied by each language profile. Languages without a dedicated section rely entirely on the default Unicode transliteration tables (accent stripping, script-specific tables, etc.).
+
+### Amharic (`am`)
+
+Based on BGN/PCGN romanization for Amharic. Three categories of overrides:
+
+**ጸ series — tsade merger (U+1338–U+133F):**
+
+| Character | Unicode | Default | Override | Notes |
+|-----------|---------|---------|----------|-------|
+| ጸ | U+1338 | tse | se | Ejective /sʼ/ in Amharic, not /ts/ |
+| ጹ | U+1339 | tsu | su | |
+| ጺ | U+133A | tsi | si | |
+| ጻ | U+133B | tsa | sa | |
+| ጼ | U+133C | tse | se | |
+| ጽ | U+133D | ts | s | |
+| ጾ | U+133E | tso | so | |
+| ጿ | U+133F | tswa | swa | |
+
+**ፀ series — tsade merger (U+1340–U+1347):**
+
+| Character | Unicode | Default | Override | Notes |
+|-----------|---------|---------|----------|-------|
+| ፀ | U+1340 | tse | se | ጸ/ፀ merger in modern Amharic |
+| ፁ | U+1341 | tsu | su | |
+| ፂ | U+1342 | tsi | si | |
+| ፃ | U+1343 | tsa | sa | |
+| ፄ | U+1344 | tse | se | |
+| ፅ | U+1345 | ts | s | |
+| ፆ | U+1346 | tso | so | |
+| ፇ | U+1347 | tswa | swa | |
+
+**ዐ series — pharyngeal marking (U+12D0–U+12D6):**
+
+| Character | Unicode | Default | Override | Notes |
+|-----------|---------|---------|----------|-------|
+| ዐ | U+12D0 | e | 'e | Pharyngeal distinct from glottal stop (አ) |
+| ዑ | U+12D1 | u | 'u | |
+| ዒ | U+12D2 | i | 'i | |
+| ዓ | U+12D3 | a | 'a | |
+| ዔ | U+12D4 | e | 'e | |
+| ዕ | U+12D5 | e | 'e | |
+| ዖ | U+12D6 | o | 'o | |
 
 ### Bulgarian (`bg`)
 

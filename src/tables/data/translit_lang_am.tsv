@@ -1,0 +1,34 @@
+# Amharic (am) language-specific overrides
+# Based on BGN/PCGN romanization for Amharic
+#
+# Override 1: ጸ series (U+1338–133F) — ts → s
+# In modern Amharic, ጸ (tsade) is pronounced /sʼ/ (ejective s), not /ts/.
+# BGN/PCGN romanizes as "s", not "ts".
+1338	se
+1339	su
+133A	si
+133B	sa
+133C	se
+133D	s
+133E	so
+133F	swa
+# Override 2: ፀ series (U+1340–1347) — ts → s
+# ጸ/ፀ merger in modern Amharic: both pronounced as ejective /sʼ/.
+1340	se
+1341	su
+1342	si
+1343	sa
+1344	se
+1345	s
+1346	so
+1347	swa
+# Override 3: ዐ pharyngeal series (U+12D0–12D6)
+# Distinct from glottal stop (አ) in Amharic.
+# BGN/PCGN marks pharyngeal with leading apostrophe.
+12D0	'e
+12D1	'u
+12D2	'i
+12D3	'a
+12D4	'e
+12D5	'e
+12D6	'o
