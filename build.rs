@@ -11,6 +11,7 @@
 
 use std::collections::BTreeMap;
 use std::env;
+use std::fmt::Write as _;
 use std::fs;
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
@@ -146,10 +147,12 @@ fn main() {
             let v = format!("\"{}\"", escape_str(value));
             builder.entry(key.as_str(), &v);
         }
-        all_reverse_code.push_str(&format!(
+        write!(
+            all_reverse_code,
             "static {const_name}: phf::Map<&'static str, &'static str> = {};\n\n",
             builder.build()
-        ));
+        )
+        .unwrap();
     }
 
     let reverse_out = out_dir.join("reverse_translit_phf.rs");

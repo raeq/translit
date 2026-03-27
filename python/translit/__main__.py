@@ -29,7 +29,14 @@ def _read_input(args_text: list[str]) -> str:
 
 def cmd_transliterate(args: argparse.Namespace) -> None:
     text = _read_input(args.text)
-    result = transliterate(text, lang=args.lang)
+    result = transliterate(
+        text,
+        lang=args.lang,
+        target=args.target,
+        strict_iso9=args.strict_iso9,
+        gost7034=args.gost7034,
+        tones=args.tones,
+    )
     print(result)
 
 
@@ -91,7 +98,16 @@ def main() -> None:
     # transliterate
     p = sub.add_parser("transliterate", help="Transliterate Unicode text to ASCII")
     p.add_argument("text", nargs="*", help="Input text (or pipe via stdin)")
-    p.add_argument("--lang", default=None, help="Language code (e.g. de, ja, zh)")
+    lang_group = p.add_mutually_exclusive_group()
+    lang_group.add_argument("--lang", default=None, help="Language code (e.g. de, ja, zh)")
+    lang_group.add_argument(
+        "--target",
+        default=None,
+        help="Reverse transliteration target script (e.g. ru, uk, el)",
+    )
+    p.add_argument("--strict-iso9", action="store_true", default=False, help="Use strict ISO 9")
+    p.add_argument("--gost7034", action="store_true", default=False, help="Use GOST 7.034")
+    p.add_argument("--tones", action="store_true", default=False, help="Include tone marks")
     p.set_defaults(func=cmd_transliterate)
 
     # slugify

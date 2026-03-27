@@ -75,6 +75,9 @@ docs = [
     "pymdown-extensions>=10.0",
 ]
 
+[project.scripts]
+translit = "translit.__main__:main"
+
 [project.urls]
 Homepage = "https://github.com/raeq/translit"
 Repository = "https://github.com/raeq/translit"
