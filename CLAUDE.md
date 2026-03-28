@@ -40,6 +40,10 @@ pytest                                                                      # ti
 pytest -m formal                                                            # tier 2 Python
 ```
 
+## CI Discipline
+
+IMPORTANT: After completing any task that touches code, run `ruff check python/ tests/` before committing. Fix ALL lint errors immediately — do not dismiss them as pre-existing or out of scope. CI must be green.
+
 ## Code Conventions
 
 - Crate name: `_translit` (PyO3 cdylib + lib)
