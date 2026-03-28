@@ -1,603 +1,3659 @@
 # Transliteration Comparison: translit vs Unidecode vs anyascii
 
-Character-level correctness comparison across all 65 supported languages.
-Each language tested with ~4,000 characters of real-world text.
+Comprehensive character-level comparison across all 65 supported languages.
+Every assigned codepoint in each language's Unicode block(s) is tested — no sampling.
 
 ## Methodology
 
 For each language:
-1. Canonical sample text is expanded to ~4k characters
-2. Unique non-ASCII characters are extracted
-3. Each character is transliterated by all three libraries
-4. "Mapped" means the library produced meaningful ASCII output
+1. All assigned codepoints in the relevant Unicode block(s) are enumerated
+2. Unassigned, private-use, surrogate, and format characters are skipped
+3. Each character is transliterated by all three libraries with the language's `lang` parameter
+4. "Mapped" means at least one library produced meaningful ASCII output
    (not empty, not `[?]`, not the original character)
+
+This approach is deterministic and comprehensive — results do not depend on sample text selection.
 
 ## Summary
 
-| Lang | Description | Unique chars | translit | Unidecode | anyascii | translit-only | Unidecode-only | Output diffs |
-|------|-------------|-------------|----------|-----------|----------|---------------|----------------|-------------|
-| bg | Bulgarian | 24 | 24 | 24 | 24 | 0 | 0 | 3 |
-| ca | Catalan | 2 | 2 | 2 | 2 | 0 | 0 | 0 |
-| cs | Czech | 5 | 5 | 5 | 5 | 0 | 0 | 0 |
-| cy | Welsh | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| da | Danish | 1 | 1 | 1 | 1 | 0 | 0 | 1 |
-| de | German | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| el | Greek | 21 | 21 | 21 | 21 | 0 | 0 | 5 |
-| es | Spanish | 2 | 2 | 2 | 2 | 0 | 0 | 0 |
-| et | Estonian | 2 | 2 | 2 | 2 | 0 | 0 | 1 |
-| fi | Finnish | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| fr | French | 3 | 3 | 3 | 3 | 0 | 0 | 0 |
-| ga | Irish | 3 | 3 | 3 | 3 | 0 | 0 | 0 |
-| hr | Croatian | 1 | 1 | 1 | 1 | 0 | 0 | 0 |
-| hu | Hungarian | 4 | 4 | 4 | 4 | 0 | 0 | 0 |
-| is | Icelandic | 4 | 4 | 4 | 4 | 0 | 0 | 1 |
-| it | Italian | 1 | 1 | 1 | 1 | 0 | 0 | 0 |
-| lt | Lithuanian | 2 | 2 | 2 | 2 | 0 | 0 | 0 |
-| lv | Latvian | 2 | 2 | 2 | 2 | 0 | 0 | 0 |
-| mt | Maltese | 1 | 1 | 1 | 1 | 0 | 0 | 0 |
-| nl | Dutch | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| no | Norwegian | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| pl | Polish | 2 | 2 | 2 | 2 | 0 | 0 | 0 |
-| pt | Portuguese | 3 | 3 | 3 | 3 | 0 | 0 | 0 |
-| ro | Romanian | 2 | 2 | 2 | 2 | 0 | 0 | 0 |
-| sk | Slovak | 3 | 3 | 3 | 3 | 0 | 0 | 0 |
-| sl | Slovenian | 1 | 1 | 1 | 1 | 0 | 0 | 0 |
-| sq | Albanian | 1 | 1 | 1 | 1 | 0 | 0 | 0 |
-| sr | Serbian | 23 | 23 | 23 | 23 | 0 | 0 | 0 |
-| sv | Swedish | 3 | 3 | 3 | 3 | 0 | 0 | 2 |
-| tr | Turkish | 2 | 2 | 2 | 2 | 0 | 0 | 0 |
-| uk | Ukrainian | 24 | 24 | 24 | 24 | 0 | 0 | 5 |
-| vi | Vietnamese | 8 | 8 | 8 | 8 | 0 | 0 | 0 |
-| ja | Japanese | 15 | 15 | 15 | 15 | 0 | 0 | 8 |
-| ja-kunrei | Japanese Kunrei | 5 | 5 | 5 | 5 | 0 | 0 | 3 |
-| ko | Korean | 15 | 15 | 15 | 15 | 0 | 0 | 0 |
-| zh | Chinese | 18 | 18 | 18 | 18 | 0 | 0 | 18 |
-| ar | Arabic | 19 | 19 | 18 | 18 | 1 | 0 | 2 |
-| fa | Persian | 15 | 15 | 14 | 14 | 1 | 0 | 2 |
-| he | Hebrew | 16 | 15 | 16 | 16 | 0 | 1 | 4 |
-| hi | Hindi | 22 | 21 | 21 | 21 | 0 | 0 | 17 |
-| bn | Bengali | 23 | 21 | 22 | 22 | 0 | 1 | 18 |
-| ta | Tamil | 21 | 20 | 20 | 20 | 0 | 0 | 14 |
-| te | Telugu | 20 | 19 | 19 | 19 | 0 | 0 | 16 |
-| gu | Gujarati | 20 | 19 | 19 | 19 | 0 | 0 | 14 |
-| kn | Kannada | 17 | 16 | 16 | 16 | 0 | 0 | 13 |
-| ml | Malayalam | 20 | 19 | 19 | 19 | 0 | 0 | 14 |
-| mr | Marathi | 17 | 16 | 16 | 16 | 0 | 0 | 13 |
-| ne | Nepali | 18 | 17 | 17 | 17 | 0 | 0 | 13 |
-| or | Odia | 20 | 18 | 19 | 19 | 0 | 1 | 13 |
-| pa | Punjabi | 14 | 12 | 14 | 14 | 0 | 2 | 10 |
-| sa | Sanskrit | 19 | 18 | 18 | 18 | 0 | 0 | 17 |
-| as | Assamese | 20 | 19 | 19 | 19 | 0 | 0 | 16 |
-| hy | Armenian | 7 | 7 | 7 | 7 | 0 | 0 | 0 |
-| ka | Georgian | 17 | 17 | 17 | 17 | 0 | 0 | 6 |
-| si | Sinhala | 19 | 17 | 17 | 17 | 0 | 0 | 15 |
-| th | Thai | 26 | 23 | 23 | 23 | 0 | 0 | 4 |
-| lo | Lao | 15 | 15 | 14 | 15 | 1 | 0 | 2 |
-| km | Khmer | 17 | 15 | 16 | 16 | 0 | 1 | 12 |
-| my | Myanmar | 18 | 15 | 14 | 16 | 3 | 2 | 8 |
-| bo | Tibetan | 17 | 16 | 17 | 17 | 0 | 1 | 14 |
-| am | Amharic | 34 | 34 | 33 | 34 | 1 | 0 | 21 |
-| ru | Russian | 23 | 23 | 23 | 23 | 0 | 0 | 2 |
-| dv | Dhivehi | 10 | 9 | 9 | 8 | 0 | 0 | 0 |
-| jv | Javanese | 5 | 5 | 0 | 5 | 5 | 0 | 0 |
-| mn | Mongolian | 5 | 5 | 5 | 5 | 0 | 0 | 0 |
-| **TOTAL** | | **717** | **688** | **685** | **693** | **12** | **9** | **327** |
+| Lang | Description | Block chars | Mapped | translit | Unidecode | anyascii | translit-only | Unidecode-only | Output diffs |
+|------|-------------|------------|--------|----------|-----------|----------|---------------|----------------|-------------|
+| bg | Bulgarian | 304 | 301 | 96 | 234 | 301 | 0 | 138 | 22 |
+| ca | Catalan | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| cs | Czech | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| cy | Welsh | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| da | Danish | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 10 |
+| de | German | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 11 |
+| el | Greek | 135 | 135 | 81 | 106 | 135 | 0 | 25 | 25 |
+| es | Spanish | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| et | Estonian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 11 |
+| fi | Finnish | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 9 |
+| fr | French | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| ga | Irish | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| hr | Croatian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| hu | Hungarian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| is | Icelandic | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 8 |
+| it | Italian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| lt | Lithuanian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| lv | Latvian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| mt | Maltese | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| nl | Dutch | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| no | Norwegian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 10 |
+| pl | Polish | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| pt | Portuguese | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| ro | Romanian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| sk | Slovak | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| sl | Slovenian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| sq | Albanian | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| sr | Serbian | 304 | 301 | 94 | 234 | 301 | 0 | 140 | 22 |
+| sv | Swedish | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 9 |
+| tr | Turkish | 400 | 400 | 339 | 398 | 400 | 0 | 59 | 5 |
+| uk | Ukrainian | 304 | 301 | 96 | 234 | 301 | 0 | 138 | 24 |
+| vi | Vietnamese | 656 | 656 | 586 | 645 | 656 | 0 | 59 | 6 |
+| ja | Japanese | 248 | 248 | 234 | 240 | 246 | 2 | 8 | 12 |
+| ja-kunrei | Japanese Kunrei | 189 | 189 | 178 | 181 | 188 | 2 | 5 | 9 |
+| ko | Korean | 11172 | 11172 | 11172 | 11172 | 11172 | 0 | 0 | 3762 |
+| zh | Chinese | 20992 | 20954 | 20924 | 20642 | 20954 | 291 | 9 | 20633 |
+| ar | Arabic | 248 | 219 | 162 | 173 | 208 | 23 | 34 | 78 |
+| fa | Persian | 391 | 329 | 163 | 173 | 318 | 23 | 33 | 83 |
+| he | Hebrew | 88 | 53 | 46 | 49 | 53 | 1 | 4 | 15 |
+| hi | Hindi | 128 | 127 | 101 | 103 | 123 | 4 | 6 | 68 |
+| bn | Bengali | 96 | 95 | 78 | 87 | 95 | 1 | 10 | 53 |
+| ta | Tamil | 72 | 71 | 62 | 61 | 71 | 2 | 1 | 36 |
+| te | Telugu | 100 | 99 | 79 | 79 | 99 | 2 | 2 | 53 |
+| gu | Gujarati | 91 | 87 | 79 | 77 | 87 | 4 | 2 | 50 |
+| kn | Kannada | 91 | 90 | 79 | 79 | 90 | 3 | 3 | 52 |
+| ml | Malayalam | 118 | 115 | 90 | 77 | 115 | 14 | 1 | 52 |
+| mr | Marathi | 128 | 127 | 101 | 103 | 123 | 4 | 6 | 68 |
+| ne | Nepali | 128 | 127 | 101 | 103 | 123 | 4 | 6 | 68 |
+| or | Odia | 91 | 90 | 78 | 77 | 89 | 5 | 4 | 49 |
+| pa | Punjabi | 80 | 76 | 70 | 72 | 76 | 2 | 4 | 48 |
+| sa | Sanskrit | 128 | 127 | 101 | 103 | 123 | 4 | 6 | 68 |
+| as | Assamese | 96 | 95 | 78 | 87 | 95 | 1 | 10 | 53 |
+| hy | Armenian | 91 | 90 | 78 | 85 | 90 | 0 | 7 | 19 |
+| ka | Georgian | 88 | 88 | 66 | 78 | 88 | 0 | 12 | 18 |
+| si | Sinhala | 91 | 90 | 86 | 79 | 90 | 10 | 3 | 52 |
+| th | Thai | 87 | 80 | 73 | 80 | 78 | 0 | 7 | 11 |
+| lo | Lao | 83 | 76 | 58 | 58 | 75 | 2 | 2 | 11 |
+| km | Khmer | 114 | 106 | 85 | 94 | 104 | 0 | 9 | 59 |
+| my | Myanmar | 160 | 141 | 78 | 77 | 139 | 18 | 17 | 42 |
+| bo | Tibetan | 211 | 201 | 138 | 147 | 195 | 8 | 17 | 113 |
+| am | Amharic | 384 | 370 | 370 | 343 | 370 | 27 | 0 | 218 |
+| ru | Russian | 304 | 301 | 98 | 234 | 301 | 0 | 136 | 20 |
+| dv | Dhivehi | 50 | 49 | 48 | 48 | 48 | 0 | 0 | 3 |
+| jv | Javanese | 91 | 90 | 75 | 0 | 90 | 75 | 0 | 0 |
+| mn | Mongolian | 157 | 153 | 146 | 148 | 151 | 5 | 7 | 50 |
+| **TOTAL** | | **49089** | **48819** | **45481** | **47408** | **48761** | **537** | **2464** | **26193** |
 
 ## Notable Differences
 
 ### bg — Bulgarian
 
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| ъ | U+044A | CYRILLIC SMALL LETTER HARD SIGN | `a` | `'` | `'` |
-| я | U+044F | CYRILLIC SMALL LETTER YA | `ya` | `ia` | `ya` |
-| Ю | U+042E | CYRILLIC CAPITAL LETTER YU | `Yu` | `Iu` | `Yu` |
+Block: 304 assigned codepoints, 301 mapped by at least one library.
 
-### da — Danish
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| ø | U+00F8 | LATIN SMALL LETTER O WITH STROKE | `oe` | `o` | `o` |
-
-### el — Greek
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| Η | U+0397 | GREEK CAPITAL LETTER ETA | `I` | `E` | `I` |
-| η | U+03B7 | GREEK SMALL LETTER ETA | `i` | `e` | `i` |
-| ή | U+03AE | GREEK SMALL LETTER ETA WITH TONOS | `i` | `e` | `i` |
-| χ | U+03C7 | GREEK SMALL LETTER CHI | `ch` | `kh` | `ch` |
-| υ | U+03C5 | GREEK SMALL LETTER UPSILON | `y` | `u` | `y` |
-
-### et — Estonian
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| ä | U+00E4 | LATIN SMALL LETTER A WITH DIAERESIS | `ae` | `a` | `a` |
-
-### is — Icelandic
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| ð | U+00F0 | LATIN SMALL LETTER ETH | `dh` | `d` | `d` |
-
-### sv — Swedish
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| ä | U+00E4 | LATIN SMALL LETTER A WITH DIAERESIS | `ae` | `a` | `a` |
-| ö | U+00F6 | LATIN SMALL LETTER O WITH DIAERESIS | `oe` | `o` | `o` |
-
-### uk — Ukrainian
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| ї | U+0457 | CYRILLIC SMALL LETTER YI | `i` | `yi` | `i` |
-| є | U+0454 | CYRILLIC SMALL LETTER UKRAINIAN IE | `ye` | `ie` | `ie` |
-| ю | U+044E | CYRILLIC SMALL LETTER YU | `yu` | `iu` | `yu` |
-| й | U+0439 | CYRILLIC SMALL LETTER SHORT I | `y` | `i` | `y` |
-| Є | U+0404 | CYRILLIC CAPITAL LETTER UKRAINIAN IE | `Ye` | `Ie` | `Ie` |
-
-### ja — Japanese
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| 日 | U+65E5 | CJK UNIFIED IDEOGRAPH-65E5 | `ri` | `Ri ` | `Ri` |
-| 本 | U+672C | CJK UNIFIED IDEOGRAPH-672C | `ben` | `Ben ` | `Ben` |
-| 国 | U+56FD | CJK UNIFIED IDEOGRAPH-56FD | `guo` | `Guo ` | `Guo` |
-| 東 | U+6771 | CJK UNIFIED IDEOGRAPH-6771 | `dong` | `Dong ` | `Dong` |
-| ジ | U+30B8 | KATAKANA LETTER ZI | `ji` | `zi` | `ji` |
-| 位 | U+4F4D | CJK UNIFIED IDEOGRAPH-4F4D | `wei` | `Wei ` | `Wei` |
-| 置 | U+7F6E | CJK UNIFIED IDEOGRAPH-7F6E | `zhi` | `Zhi ` | `Zhi` |
-| 島 | U+5CF6 | CJK UNIFIED IDEOGRAPH-5CF6 | `dao` | `Dao ` | `Dao` |
-
-### ja-kunrei — Japanese Kunrei
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| し | U+3057 | HIRAGANA LETTER SI | `si` | `shi` | `shi` |
-| ち | U+3061 | HIRAGANA LETTER TI | `ti` | `chi` | `chi` |
-| つ | U+3064 | HIRAGANA LETTER TU | `tu` | `tsu` | `tsu` |
-
-### zh — Chinese
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| 中 | U+4E2D | CJK UNIFIED IDEOGRAPH-4E2D | `zhong` | `Zhong ` | `Zhong` |
-| 华 | U+534E | CJK UNIFIED IDEOGRAPH-534E | `hua` | `Hua ` | `Hua` |
-| 人 | U+4EBA | CJK UNIFIED IDEOGRAPH-4EBA | `ren` | `Ren ` | `Ren` |
-| 民 | U+6C11 | CJK UNIFIED IDEOGRAPH-6C11 | `min` | `Min ` | `Min` |
-| 共 | U+5171 | CJK UNIFIED IDEOGRAPH-5171 | `gong` | `Gong ` | `Gong` |
-| 和 | U+548C | CJK UNIFIED IDEOGRAPH-548C | `he` | `He ` | `He` |
-| 国 | U+56FD | CJK UNIFIED IDEOGRAPH-56FD | `guo` | `Guo ` | `Guo` |
-| 是 | U+662F | CJK UNIFIED IDEOGRAPH-662F | `shi` | `Shi ` | `Shi` |
-| 位 | U+4F4D | CJK UNIFIED IDEOGRAPH-4F4D | `wei` | `Wei ` | `Wei` |
-| 于 | U+4E8E | CJK UNIFIED IDEOGRAPH-4E8E | `yu` | `Yu ` | `Yu` |
-| 东 | U+4E1C | CJK UNIFIED IDEOGRAPH-4E1C | `dong` | `Dong ` | `Dong` |
-| 亚 | U+4E9A | CJK UNIFIED IDEOGRAPH-4E9A | `ya` | `Ya ` | `Ya` |
-| 的 | U+7684 | CJK UNIFIED IDEOGRAPH-7684 | `de` | `De ` | `De` |
-| 社 | U+793E | CJK UNIFIED IDEOGRAPH-793E | `she` | `She ` | `She` |
-| 会 | U+4F1A | CJK UNIFIED IDEOGRAPH-4F1A | `hui` | `Hui ` | `Hui` |
-| 主 | U+4E3B | CJK UNIFIED IDEOGRAPH-4E3B | `zhu` | `Zhu ` | `Zhu` |
-| 义 | U+4E49 | CJK UNIFIED IDEOGRAPH-4E49 | `yi` | `Yi ` | `Yi` |
-| 家 | U+5BB6 | CJK UNIFIED IDEOGRAPH-5BB6 | `jia` | `Jia ` | `Jia` |
-
-### ar — Arabic
-
-Coverage: translit maps 19/19 chars, Unidecode maps 18/19. **1** mapped only by translit, **0** mapped only by Unidecode.
-
-**Mapped only by translit** (Unidecode returns empty/`[?]`):
-
-| Char | Codepoint | Name | translit |
-|------|-----------|------|----------|
-| ا | U+0627 | ARABIC LETTER ALEF | `a` |
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| ة | U+0629 | ARABIC LETTER TEH MARBUTA | `h` | `@` | `h` |
-| ع | U+0639 | ARABIC LETTER AIN | `'` | ``` | ``` |
-
-### fa — Persian
-
-Coverage: translit maps 15/15 chars, Unidecode maps 14/15. **1** mapped only by translit, **0** mapped only by Unidecode.
-
-**Mapped only by translit** (Unidecode returns empty/`[?]`):
-
-| Char | Codepoint | Name | translit |
-|------|-----------|------|----------|
-| ا | U+0627 | ARABIC LETTER ALEF | `a` |
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| و | U+0648 | ARABIC LETTER WAW | `v` | `w` | `w` |
-| ک | U+06A9 | ARABIC LETTER KEHEH | `k` | `kh` | `k` |
-
-### he — Hebrew
-
-Coverage: translit maps 15/16 chars, Unidecode maps 16/16. **0** mapped only by translit, **1** mapped only by Unidecode.
+Coverage: translit maps 96/301, Unidecode maps 234/301. **0** mapped only by translit, **138** mapped only by Unidecode.
 
 **Mapped only by Unidecode** (translit returns empty):
 
 | Char | Codepoint | Name | Unidecode |
 |------|-----------|------|-----------|
-| א | U+05D0 | HEBREW LETTER ALEF | `A` |
+| Ь | U+042C | CYRILLIC CAPITAL LETTER SOFT SIGN | `'` |
+| ь | U+044C | CYRILLIC SMALL LETTER SOFT SIGN | `'` |
+| Ѡ | U+0460 | CYRILLIC CAPITAL LETTER OMEGA | `O` |
+| ѡ | U+0461 | CYRILLIC SMALL LETTER OMEGA | `o` |
+| Ѣ | U+0462 | CYRILLIC CAPITAL LETTER YAT | `E` |
+| ѣ | U+0463 | CYRILLIC SMALL LETTER YAT | `e` |
+| Ѥ | U+0464 | CYRILLIC CAPITAL LETTER IOTIFIED E | `Ie` |
+| ѥ | U+0465 | CYRILLIC SMALL LETTER IOTIFIED E | `ie` |
+| Ѧ | U+0466 | CYRILLIC CAPITAL LETTER LITTLE YUS | `E` |
+| ѧ | U+0467 | CYRILLIC SMALL LETTER LITTLE YUS | `e` |
+| Ѩ | U+0468 | CYRILLIC CAPITAL LETTER IOTIFIED LITTLE YUS | `Ie` |
+| ѩ | U+0469 | CYRILLIC SMALL LETTER IOTIFIED LITTLE YUS | `ie` |
+| Ѫ | U+046A | CYRILLIC CAPITAL LETTER BIG YUS | `O` |
+| ѫ | U+046B | CYRILLIC SMALL LETTER BIG YUS | `o` |
+| Ѭ | U+046C | CYRILLIC CAPITAL LETTER IOTIFIED BIG YUS | `Io` |
+| ѭ | U+046D | CYRILLIC SMALL LETTER IOTIFIED BIG YUS | `io` |
+| Ѯ | U+046E | CYRILLIC CAPITAL LETTER KSI | `Ks` |
+| ѯ | U+046F | CYRILLIC SMALL LETTER KSI | `ks` |
+| Ѱ | U+0470 | CYRILLIC CAPITAL LETTER PSI | `Ps` |
+| ѱ | U+0471 | CYRILLIC SMALL LETTER PSI | `ps` |
+| Ѳ | U+0472 | CYRILLIC CAPITAL LETTER FITA | `F` |
+| ѳ | U+0473 | CYRILLIC SMALL LETTER FITA | `f` |
+| Ѵ | U+0474 | CYRILLIC CAPITAL LETTER IZHITSA | `Y` |
+| ѵ | U+0475 | CYRILLIC SMALL LETTER IZHITSA | `y` |
+| Ѷ | U+0476 | CYRILLIC CAPITAL LETTER IZHITSA WITH DOUBLE GRAVE ACCENT | `Y` |
+| ѷ | U+0477 | CYRILLIC SMALL LETTER IZHITSA WITH DOUBLE GRAVE ACCENT | `y` |
+| Ѹ | U+0478 | CYRILLIC CAPITAL LETTER UK | `u` |
+| ѹ | U+0479 | CYRILLIC SMALL LETTER UK | `u` |
+| Ѻ | U+047A | CYRILLIC CAPITAL LETTER ROUND OMEGA | `O` |
+| ѻ | U+047B | CYRILLIC SMALL LETTER ROUND OMEGA | `o` |
+| | | *...108 more* | |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| ש | U+05E9 | HEBREW LETTER SHIN | `sh` | `SH` | `s` |
+| Ѐ | U+0400 | CYRILLIC CAPITAL LETTER IE WITH GRAVE | `E` | `Ie` | `E` |
+| Ё | U+0401 | CYRILLIC CAPITAL LETTER IO | `Yo` | `Io` | `E` |
+| Ѓ | U+0403 | CYRILLIC CAPITAL LETTER GJE | `G` | `Gj` | `G` |
+| Є | U+0404 | CYRILLIC CAPITAL LETTER UKRAINIAN IE | `Ye` | `Ie` | `Ie` |
+| Ќ | U+040C | CYRILLIC CAPITAL LETTER KJE | `K` | `Kj` | `K` |
+| Й | U+0419 | CYRILLIC CAPITAL LETTER SHORT I | `Y` | `I` | `Y` |
+| Щ | U+0429 | CYRILLIC CAPITAL LETTER SHCHA | `Sht` | `Shch` | `Shch` |
+| Ъ | U+042A | CYRILLIC CAPITAL LETTER HARD SIGN | `A` | `'` | `'` |
+| Ю | U+042E | CYRILLIC CAPITAL LETTER YU | `Yu` | `Iu` | `Yu` |
+| Я | U+042F | CYRILLIC CAPITAL LETTER YA | `Ya` | `Ia` | `Ya` |
+| й | U+0439 | CYRILLIC SMALL LETTER SHORT I | `y` | `i` | `y` |
+| щ | U+0449 | CYRILLIC SMALL LETTER SHCHA | `sht` | `shch` | `shch` |
+| ъ | U+044A | CYRILLIC SMALL LETTER HARD SIGN | `a` | `'` | `'` |
+| ю | U+044E | CYRILLIC SMALL LETTER YU | `yu` | `iu` | `yu` |
+| я | U+044F | CYRILLIC SMALL LETTER YA | `ya` | `ia` | `ya` |
+| ѐ | U+0450 | CYRILLIC SMALL LETTER IE WITH GRAVE | `e` | `ie` | `e` |
+| ё | U+0451 | CYRILLIC SMALL LETTER IO | `yo` | `io` | `e` |
+| ѓ | U+0453 | CYRILLIC SMALL LETTER GJE | `g` | `gj` | `g` |
+| є | U+0454 | CYRILLIC SMALL LETTER UKRAINIAN IE | `ye` | `ie` | `ie` |
+| ќ | U+045C | CYRILLIC SMALL LETTER KJE | `k` | `kj` | `k` |
+| Ґ | U+0490 | CYRILLIC CAPITAL LETTER GHE WITH UPTURN | `G` | `G'` | `G` |
+| ґ | U+0491 | CYRILLIC SMALL LETTER GHE WITH UPTURN | `g` | `g'` | `g` |
+
+### ca — Catalan
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### cs — Czech
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### cy — Welsh
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### da — Danish
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Å | U+00C5 | LATIN CAPITAL LETTER A WITH RING ABOVE | `Aa` | `A` | `A` |
+| Æ | U+00C6 | LATIN CAPITAL LETTER AE | `Ae` | `AE` | `Ae` |
+| Ø | U+00D8 | LATIN CAPITAL LETTER O WITH STROKE | `Oe` | `O` | `O` |
+| å | U+00E5 | LATIN SMALL LETTER A WITH RING ABOVE | `aa` | `a` | `a` |
+| ø | U+00F8 | LATIN SMALL LETTER O WITH STROKE | `oe` | `o` | `o` |
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### de — German
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Ä | U+00C4 | LATIN CAPITAL LETTER A WITH DIAERESIS | `Ae` | `A` | `A` |
+| Ö | U+00D6 | LATIN CAPITAL LETTER O WITH DIAERESIS | `Oe` | `O` | `O` |
+| Ü | U+00DC | LATIN CAPITAL LETTER U WITH DIAERESIS | `Ue` | `U` | `U` |
+| ä | U+00E4 | LATIN SMALL LETTER A WITH DIAERESIS | `ae` | `a` | `a` |
+| ö | U+00F6 | LATIN SMALL LETTER O WITH DIAERESIS | `oe` | `o` | `o` |
+| ü | U+00FC | LATIN SMALL LETTER U WITH DIAERESIS | `ue` | `u` | `u` |
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### el — Greek
+
+Block: 135 assigned codepoints, 135 mapped by at least one library.
+
+Coverage: translit maps 81/135, Unidecode maps 106/135. **0** mapped only by translit, **25** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ʹ | U+0374 | GREEK NUMERAL SIGN | `'` |
+| ͵ | U+0375 | GREEK LOWER NUMERAL SIGN | `,` |
+| · | U+0387 | GREEK ANO TELEIA | `;` |
+| Ϊ | U+03AA | GREEK CAPITAL LETTER IOTA WITH DIALYTIKA | `I` |
+| Ϋ | U+03AB | GREEK CAPITAL LETTER UPSILON WITH DIALYTIKA | `U` |
+| ϐ | U+03D0 | GREEK BETA SYMBOL | `b` |
+| ϑ | U+03D1 | GREEK THETA SYMBOL | `th` |
+| ϒ | U+03D2 | GREEK UPSILON WITH HOOK SYMBOL | `U` |
+| ϓ | U+03D3 | GREEK UPSILON WITH ACUTE AND HOOK SYMBOL | `U` |
+| ϔ | U+03D4 | GREEK UPSILON WITH DIAERESIS AND HOOK SYMBOL | `U` |
+| ϕ | U+03D5 | GREEK PHI SYMBOL | `ph` |
+| ϖ | U+03D6 | GREEK PI SYMBOL | `p` |
+| ϗ | U+03D7 | GREEK KAI SYMBOL | `&` |
+| Ϛ | U+03DA | GREEK LETTER STIGMA | `St` |
+| ϛ | U+03DB | GREEK SMALL LETTER STIGMA | `st` |
+| Ϝ | U+03DC | GREEK LETTER DIGAMMA | `W` |
+| ϝ | U+03DD | GREEK SMALL LETTER DIGAMMA | `w` |
+| Ϟ | U+03DE | GREEK LETTER KOPPA | `Q` |
+| ϟ | U+03DF | GREEK SMALL LETTER KOPPA | `q` |
+| Ϡ | U+03E0 | GREEK LETTER SAMPI | `Sp` |
+| ϡ | U+03E1 | GREEK SMALL LETTER SAMPI | `sp` |
+| ϰ | U+03F0 | GREEK KAPPA SYMBOL | `k` |
+| ϱ | U+03F1 | GREEK RHO SYMBOL | `r` |
+| ϲ | U+03F2 | GREEK LUNATE SIGMA SYMBOL | `c` |
+| ϳ | U+03F3 | GREEK LETTER YOT | `j` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Ή | U+0389 | GREEK CAPITAL LETTER ETA WITH TONOS | `I` | `E` | `I` |
+| Ύ | U+038E | GREEK CAPITAL LETTER UPSILON WITH TONOS | `Y` | `U` | `Y` |
+| ΐ | U+0390 | GREEK SMALL LETTER IOTA WITH DIALYTIKA AND TONOS | `i` | `I` | `i` |
+| Η | U+0397 | GREEK CAPITAL LETTER ETA | `I` | `E` | `I` |
+| Ξ | U+039E | GREEK CAPITAL LETTER XI | `X` | `Ks` | `X` |
+| Υ | U+03A5 | GREEK CAPITAL LETTER UPSILON | `Y` | `U` | `Y` |
+| Φ | U+03A6 | GREEK CAPITAL LETTER PHI | `F` | `Ph` | `F` |
+| Χ | U+03A7 | GREEK CAPITAL LETTER CHI | `Ch` | `Kh` | `Ch` |
+| ή | U+03AE | GREEK SMALL LETTER ETA WITH TONOS | `i` | `e` | `i` |
+| ΰ | U+03B0 | GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND TONOS | `y` | `u` | `y` |
+| η | U+03B7 | GREEK SMALL LETTER ETA | `i` | `e` | `i` |
+| υ | U+03C5 | GREEK SMALL LETTER UPSILON | `y` | `u` | `y` |
+| φ | U+03C6 | GREEK SMALL LETTER PHI | `f` | `ph` | `f` |
+| χ | U+03C7 | GREEK SMALL LETTER CHI | `ch` | `kh` | `ch` |
+| ϋ | U+03CB | GREEK SMALL LETTER UPSILON WITH DIALYTIKA | `y` | `u` | `y` |
+| ύ | U+03CD | GREEK SMALL LETTER UPSILON WITH TONOS | `y` | `u` | `y` |
+| Ϣ | U+03E2 | COPTIC CAPITAL LETTER SHEI | `sh` | `Sh` | `Sh` |
+| Ϥ | U+03E4 | COPTIC CAPITAL LETTER FEI | `f` | `F` | `F` |
+| Ϧ | U+03E6 | COPTIC CAPITAL LETTER KHEI | `kh` | `Kh` | `X` |
+| Ϩ | U+03E8 | COPTIC CAPITAL LETTER HORI | `h` | `H` | `H` |
+| Ϫ | U+03EA | COPTIC CAPITAL LETTER GANGIA | `j` | `G` | `J` |
+| ϫ | U+03EB | COPTIC SMALL LETTER GANGIA | `j` | `g` | `j` |
+| Ϭ | U+03EC | COPTIC CAPITAL LETTER SHIMA | `c` | `CH` | `C` |
+| ϭ | U+03ED | COPTIC SMALL LETTER SHIMA | `c` | `ch` | `c` |
+| Ϯ | U+03EE | COPTIC CAPITAL LETTER DEI | `ti` | `Ti` | `Ti` |
+
+### es — Spanish
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### et — Estonian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Ä | U+00C4 | LATIN CAPITAL LETTER A WITH DIAERESIS | `Ae` | `A` | `A` |
+| Ö | U+00D6 | LATIN CAPITAL LETTER O WITH DIAERESIS | `Oe` | `O` | `O` |
+| Ü | U+00DC | LATIN CAPITAL LETTER U WITH DIAERESIS | `Ue` | `U` | `U` |
+| ä | U+00E4 | LATIN SMALL LETTER A WITH DIAERESIS | `ae` | `a` | `a` |
+| ö | U+00F6 | LATIN SMALL LETTER O WITH DIAERESIS | `oe` | `o` | `o` |
+| ü | U+00FC | LATIN SMALL LETTER U WITH DIAERESIS | `ue` | `u` | `u` |
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### fi — Finnish
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Ä | U+00C4 | LATIN CAPITAL LETTER A WITH DIAERESIS | `Ae` | `A` | `A` |
+| Ö | U+00D6 | LATIN CAPITAL LETTER O WITH DIAERESIS | `Oe` | `O` | `O` |
+| ä | U+00E4 | LATIN SMALL LETTER A WITH DIAERESIS | `ae` | `a` | `a` |
+| ö | U+00F6 | LATIN SMALL LETTER O WITH DIAERESIS | `oe` | `o` | `o` |
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### fr — French
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### ga — Irish
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### hr — Croatian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### hu — Hungarian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### is — Icelandic
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Æ | U+00C6 | LATIN CAPITAL LETTER AE | `Ae` | `AE` | `Ae` |
+| Ð | U+00D0 | LATIN CAPITAL LETTER ETH | `Dh` | `D` | `D` |
+| ð | U+00F0 | LATIN SMALL LETTER ETH | `dh` | `d` | `d` |
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### it — Italian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### lt — Lithuanian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### lv — Latvian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### mt — Maltese
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### nl — Dutch
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### no — Norwegian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Å | U+00C5 | LATIN CAPITAL LETTER A WITH RING ABOVE | `Aa` | `A` | `A` |
+| Æ | U+00C6 | LATIN CAPITAL LETTER AE | `Ae` | `AE` | `Ae` |
+| Ø | U+00D8 | LATIN CAPITAL LETTER O WITH STROKE | `Oe` | `O` | `O` |
+| å | U+00E5 | LATIN SMALL LETTER A WITH RING ABOVE | `aa` | `a` | `a` |
+| ø | U+00F8 | LATIN SMALL LETTER O WITH STROKE | `oe` | `o` | `o` |
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### pl — Polish
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### pt — Portuguese
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### ro — Romanian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### sk — Slovak
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### sl — Slovenian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### sq — Albanian
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### sr — Serbian
+
+Block: 304 assigned codepoints, 301 mapped by at least one library.
+
+Coverage: translit maps 94/301, Unidecode maps 234/301. **0** mapped only by translit, **140** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ъ | U+042A | CYRILLIC CAPITAL LETTER HARD SIGN | `'` |
+| Ь | U+042C | CYRILLIC CAPITAL LETTER SOFT SIGN | `'` |
+| ъ | U+044A | CYRILLIC SMALL LETTER HARD SIGN | `'` |
+| ь | U+044C | CYRILLIC SMALL LETTER SOFT SIGN | `'` |
+| Ѡ | U+0460 | CYRILLIC CAPITAL LETTER OMEGA | `O` |
+| ѡ | U+0461 | CYRILLIC SMALL LETTER OMEGA | `o` |
+| Ѣ | U+0462 | CYRILLIC CAPITAL LETTER YAT | `E` |
+| ѣ | U+0463 | CYRILLIC SMALL LETTER YAT | `e` |
+| Ѥ | U+0464 | CYRILLIC CAPITAL LETTER IOTIFIED E | `Ie` |
+| ѥ | U+0465 | CYRILLIC SMALL LETTER IOTIFIED E | `ie` |
+| Ѧ | U+0466 | CYRILLIC CAPITAL LETTER LITTLE YUS | `E` |
+| ѧ | U+0467 | CYRILLIC SMALL LETTER LITTLE YUS | `e` |
+| Ѩ | U+0468 | CYRILLIC CAPITAL LETTER IOTIFIED LITTLE YUS | `Ie` |
+| ѩ | U+0469 | CYRILLIC SMALL LETTER IOTIFIED LITTLE YUS | `ie` |
+| Ѫ | U+046A | CYRILLIC CAPITAL LETTER BIG YUS | `O` |
+| ѫ | U+046B | CYRILLIC SMALL LETTER BIG YUS | `o` |
+| Ѭ | U+046C | CYRILLIC CAPITAL LETTER IOTIFIED BIG YUS | `Io` |
+| ѭ | U+046D | CYRILLIC SMALL LETTER IOTIFIED BIG YUS | `io` |
+| Ѯ | U+046E | CYRILLIC CAPITAL LETTER KSI | `Ks` |
+| ѯ | U+046F | CYRILLIC SMALL LETTER KSI | `ks` |
+| Ѱ | U+0470 | CYRILLIC CAPITAL LETTER PSI | `Ps` |
+| ѱ | U+0471 | CYRILLIC SMALL LETTER PSI | `ps` |
+| Ѳ | U+0472 | CYRILLIC CAPITAL LETTER FITA | `F` |
+| ѳ | U+0473 | CYRILLIC SMALL LETTER FITA | `f` |
+| Ѵ | U+0474 | CYRILLIC CAPITAL LETTER IZHITSA | `Y` |
+| ѵ | U+0475 | CYRILLIC SMALL LETTER IZHITSA | `y` |
+| Ѷ | U+0476 | CYRILLIC CAPITAL LETTER IZHITSA WITH DOUBLE GRAVE ACCENT | `Y` |
+| ѷ | U+0477 | CYRILLIC SMALL LETTER IZHITSA WITH DOUBLE GRAVE ACCENT | `y` |
+| Ѹ | U+0478 | CYRILLIC CAPITAL LETTER UK | `u` |
+| ѹ | U+0479 | CYRILLIC SMALL LETTER UK | `u` |
+| | | *...110 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Ѐ | U+0400 | CYRILLIC CAPITAL LETTER IE WITH GRAVE | `E` | `Ie` | `E` |
+| Ё | U+0401 | CYRILLIC CAPITAL LETTER IO | `Yo` | `Io` | `E` |
+| Ѓ | U+0403 | CYRILLIC CAPITAL LETTER GJE | `G` | `Gj` | `G` |
+| Є | U+0404 | CYRILLIC CAPITAL LETTER UKRAINIAN IE | `Ye` | `Ie` | `Ie` |
+| Ћ | U+040B | CYRILLIC CAPITAL LETTER TSHE | `C` | `Tsh` | `C` |
+| Ќ | U+040C | CYRILLIC CAPITAL LETTER KJE | `K` | `Kj` | `K` |
+| Џ | U+040F | CYRILLIC CAPITAL LETTER DZHE | `Dz` | `Dzh` | `Dzh` |
+| Й | U+0419 | CYRILLIC CAPITAL LETTER SHORT I | `Y` | `I` | `Y` |
+| Ю | U+042E | CYRILLIC CAPITAL LETTER YU | `Yu` | `Iu` | `Yu` |
+| Я | U+042F | CYRILLIC CAPITAL LETTER YA | `Ya` | `Ia` | `Ya` |
+| й | U+0439 | CYRILLIC SMALL LETTER SHORT I | `y` | `i` | `y` |
+| ю | U+044E | CYRILLIC SMALL LETTER YU | `yu` | `iu` | `yu` |
+| я | U+044F | CYRILLIC SMALL LETTER YA | `ya` | `ia` | `ya` |
+| ѐ | U+0450 | CYRILLIC SMALL LETTER IE WITH GRAVE | `e` | `ie` | `e` |
+| ё | U+0451 | CYRILLIC SMALL LETTER IO | `yo` | `io` | `e` |
+| ѓ | U+0453 | CYRILLIC SMALL LETTER GJE | `g` | `gj` | `g` |
+| є | U+0454 | CYRILLIC SMALL LETTER UKRAINIAN IE | `ye` | `ie` | `ie` |
+| ћ | U+045B | CYRILLIC SMALL LETTER TSHE | `c` | `tsh` | `c` |
+| ќ | U+045C | CYRILLIC SMALL LETTER KJE | `k` | `kj` | `k` |
+| џ | U+045F | CYRILLIC SMALL LETTER DZHE | `dz` | `dzh` | `dzh` |
+| Ґ | U+0490 | CYRILLIC CAPITAL LETTER GHE WITH UPTURN | `G` | `G'` | `G` |
+| ґ | U+0491 | CYRILLIC SMALL LETTER GHE WITH UPTURN | `g` | `g'` | `g` |
+
+### sv — Swedish
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Ä | U+00C4 | LATIN CAPITAL LETTER A WITH DIAERESIS | `Ae` | `A` | `A` |
+| Ö | U+00D6 | LATIN CAPITAL LETTER O WITH DIAERESIS | `Oe` | `O` | `O` |
+| ä | U+00E4 | LATIN SMALL LETTER A WITH DIAERESIS | `ae` | `a` | `a` |
+| ö | U+00F6 | LATIN SMALL LETTER O WITH DIAERESIS | `oe` | `o` | `o` |
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### tr — Turkish
+
+Block: 400 assigned codepoints, 400 mapped by at least one library.
+
+Coverage: translit maps 339/400, Unidecode maps 398/400. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+
+### uk — Ukrainian
+
+Block: 304 assigned codepoints, 301 mapped by at least one library.
+
+Coverage: translit maps 96/301, Unidecode maps 234/301. **0** mapped only by translit, **138** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ъ | U+042A | CYRILLIC CAPITAL LETTER HARD SIGN | `'` |
+| ъ | U+044A | CYRILLIC SMALL LETTER HARD SIGN | `'` |
+| Ѡ | U+0460 | CYRILLIC CAPITAL LETTER OMEGA | `O` |
+| ѡ | U+0461 | CYRILLIC SMALL LETTER OMEGA | `o` |
+| Ѣ | U+0462 | CYRILLIC CAPITAL LETTER YAT | `E` |
+| ѣ | U+0463 | CYRILLIC SMALL LETTER YAT | `e` |
+| Ѥ | U+0464 | CYRILLIC CAPITAL LETTER IOTIFIED E | `Ie` |
+| ѥ | U+0465 | CYRILLIC SMALL LETTER IOTIFIED E | `ie` |
+| Ѧ | U+0466 | CYRILLIC CAPITAL LETTER LITTLE YUS | `E` |
+| ѧ | U+0467 | CYRILLIC SMALL LETTER LITTLE YUS | `e` |
+| Ѩ | U+0468 | CYRILLIC CAPITAL LETTER IOTIFIED LITTLE YUS | `Ie` |
+| ѩ | U+0469 | CYRILLIC SMALL LETTER IOTIFIED LITTLE YUS | `ie` |
+| Ѫ | U+046A | CYRILLIC CAPITAL LETTER BIG YUS | `O` |
+| ѫ | U+046B | CYRILLIC SMALL LETTER BIG YUS | `o` |
+| Ѭ | U+046C | CYRILLIC CAPITAL LETTER IOTIFIED BIG YUS | `Io` |
+| ѭ | U+046D | CYRILLIC SMALL LETTER IOTIFIED BIG YUS | `io` |
+| Ѯ | U+046E | CYRILLIC CAPITAL LETTER KSI | `Ks` |
+| ѯ | U+046F | CYRILLIC SMALL LETTER KSI | `ks` |
+| Ѱ | U+0470 | CYRILLIC CAPITAL LETTER PSI | `Ps` |
+| ѱ | U+0471 | CYRILLIC SMALL LETTER PSI | `ps` |
+| Ѳ | U+0472 | CYRILLIC CAPITAL LETTER FITA | `F` |
+| ѳ | U+0473 | CYRILLIC SMALL LETTER FITA | `f` |
+| Ѵ | U+0474 | CYRILLIC CAPITAL LETTER IZHITSA | `Y` |
+| ѵ | U+0475 | CYRILLIC SMALL LETTER IZHITSA | `y` |
+| Ѷ | U+0476 | CYRILLIC CAPITAL LETTER IZHITSA WITH DOUBLE GRAVE ACCENT | `Y` |
+| ѷ | U+0477 | CYRILLIC SMALL LETTER IZHITSA WITH DOUBLE GRAVE ACCENT | `y` |
+| Ѹ | U+0478 | CYRILLIC CAPITAL LETTER UK | `u` |
+| ѹ | U+0479 | CYRILLIC SMALL LETTER UK | `u` |
+| Ѻ | U+047A | CYRILLIC CAPITAL LETTER ROUND OMEGA | `O` |
+| ѻ | U+047B | CYRILLIC SMALL LETTER ROUND OMEGA | `o` |
+| | | *...108 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Ѐ | U+0400 | CYRILLIC CAPITAL LETTER IE WITH GRAVE | `E` | `Ie` | `E` |
+| Ё | U+0401 | CYRILLIC CAPITAL LETTER IO | `Yo` | `Io` | `E` |
+| Ѓ | U+0403 | CYRILLIC CAPITAL LETTER GJE | `G` | `Gj` | `G` |
+| Є | U+0404 | CYRILLIC CAPITAL LETTER UKRAINIAN IE | `Ye` | `Ie` | `Ie` |
+| Ї | U+0407 | CYRILLIC CAPITAL LETTER YI | `I` | `Yi` | `I` |
+| Ќ | U+040C | CYRILLIC CAPITAL LETTER KJE | `K` | `Kj` | `K` |
+| Г | U+0413 | CYRILLIC CAPITAL LETTER GHE | `H` | `G` | `G` |
+| И | U+0418 | CYRILLIC CAPITAL LETTER I | `Y` | `I` | `I` |
+| Й | U+0419 | CYRILLIC CAPITAL LETTER SHORT I | `Y` | `I` | `Y` |
+| Ю | U+042E | CYRILLIC CAPITAL LETTER YU | `Yu` | `Iu` | `Yu` |
+| Я | U+042F | CYRILLIC CAPITAL LETTER YA | `Ya` | `Ia` | `Ya` |
+| г | U+0433 | CYRILLIC SMALL LETTER GHE | `h` | `g` | `g` |
+| и | U+0438 | CYRILLIC SMALL LETTER I | `y` | `i` | `i` |
+| й | U+0439 | CYRILLIC SMALL LETTER SHORT I | `y` | `i` | `y` |
+| ю | U+044E | CYRILLIC SMALL LETTER YU | `yu` | `iu` | `yu` |
+| я | U+044F | CYRILLIC SMALL LETTER YA | `ya` | `ia` | `ya` |
+| ѐ | U+0450 | CYRILLIC SMALL LETTER IE WITH GRAVE | `e` | `ie` | `e` |
+| ё | U+0451 | CYRILLIC SMALL LETTER IO | `yo` | `io` | `e` |
+| ѓ | U+0453 | CYRILLIC SMALL LETTER GJE | `g` | `gj` | `g` |
+| є | U+0454 | CYRILLIC SMALL LETTER UKRAINIAN IE | `ye` | `ie` | `ie` |
+| ї | U+0457 | CYRILLIC SMALL LETTER YI | `i` | `yi` | `i` |
+| ќ | U+045C | CYRILLIC SMALL LETTER KJE | `k` | `kj` | `k` |
+| Ґ | U+0490 | CYRILLIC CAPITAL LETTER GHE WITH UPTURN | `G` | `G'` | `G` |
+| ґ | U+0491 | CYRILLIC SMALL LETTER GHE WITH UPTURN | `g` | `g'` | `g` |
+
+### vi — Vietnamese
+
+Block: 656 assigned codepoints, 656 mapped by at least one library.
+
+Coverage: translit maps 586/656, Unidecode maps 645/656. **0** mapped only by translit, **59** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ƅ | U+0184 | LATIN CAPITAL LETTER TONE SIX | `6` |
+| ƅ | U+0185 | LATIN SMALL LETTER TONE SIX | `6` |
+| Ɔ | U+0186 | LATIN CAPITAL LETTER OPEN O | `O` |
+| ƍ | U+018D | LATIN SMALL LETTER TURNED DELTA | `d` |
+| Ǝ | U+018E | LATIN CAPITAL LETTER REVERSED E | `3` |
+| Ə | U+018F | LATIN CAPITAL LETTER SCHWA | `@` |
+| Ɣ | U+0194 | LATIN CAPITAL LETTER GAMMA | `G` |
+| ƕ | U+0195 | LATIN SMALL LETTER HV | `hv` |
+| Ɩ | U+0196 | LATIN CAPITAL LETTER IOTA | `I` |
+| ƛ | U+019B | LATIN SMALL LETTER LAMBDA WITH STROKE | `l` |
+| Ɯ | U+019C | LATIN CAPITAL LETTER TURNED M | `W` |
+| Ƣ | U+01A2 | LATIN CAPITAL LETTER OI | `OI` |
+| ƣ | U+01A3 | LATIN SMALL LETTER OI | `oi` |
+| Ƥ | U+01A4 | LATIN CAPITAL LETTER P WITH HOOK | `P` |
+| ƥ | U+01A5 | LATIN SMALL LETTER P WITH HOOK | `p` |
+| Ʀ | U+01A6 | LATIN LETTER YR | `YR` |
+| Ƨ | U+01A7 | LATIN CAPITAL LETTER TONE TWO | `2` |
+| ƨ | U+01A8 | LATIN SMALL LETTER TONE TWO | `2` |
+| Ʃ | U+01A9 | LATIN CAPITAL LETTER ESH | `SH` |
+| ƪ | U+01AA | LATIN LETTER REVERSED ESH LOOP | `sh` |
+| ƫ | U+01AB | LATIN SMALL LETTER T WITH PALATAL HOOK | `t` |
+| Ƭ | U+01AC | LATIN CAPITAL LETTER T WITH HOOK | `T` |
+| ƭ | U+01AD | LATIN SMALL LETTER T WITH HOOK | `t` |
+| Ʈ | U+01AE | LATIN CAPITAL LETTER T WITH RETROFLEX HOOK | `T` |
+| Ʊ | U+01B1 | LATIN CAPITAL LETTER UPSILON | `Y` |
+| Ʋ | U+01B2 | LATIN CAPITAL LETTER V WITH HOOK | `V` |
+| Ƴ | U+01B3 | LATIN CAPITAL LETTER Y WITH HOOK | `Y` |
+| ƴ | U+01B4 | LATIN SMALL LETTER Y WITH HOOK | `y` |
+| Ʒ | U+01B7 | LATIN CAPITAL LETTER EZH | `ZH` |
+| Ƹ | U+01B8 | LATIN CAPITAL LETTER EZH REVERSED | `ZH` |
+| | | *...29 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ŉ | U+0149 | LATIN SMALL LETTER N PRECEDED BY APOSTROPHE | `n` | `'n` | `'n` |
+| Ŋ | U+014A | LATIN CAPITAL LETTER ENG | `N` | `NG` | `Ng` |
+| ŋ | U+014B | LATIN SMALL LETTER ENG | `n` | `ng` | `ng` |
+| Ʌ | U+0245 | LATIN CAPITAL LETTER TURNED V | `V` | `^` | `A` |
+| Ɋ | U+024A | LATIN CAPITAL LETTER SMALL Q WITH HOOK TAIL | `Q` | `q` | `Q` |
+| ẛ | U+1E9B | LATIN SMALL LETTER LONG S WITH DOT ABOVE | `s` | `S` | `s` |
+
+### ja — Japanese
+
+Block: 248 assigned codepoints, 248 mapped by at least one library.
+
+Coverage: translit maps 234/248, Unidecode maps 240/248. **2** mapped only by translit, **8** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ゕ | U+3095 | HIRAGANA LETTER SMALL KA | `ka` |
+| ゖ | U+3096 | HIRAGANA LETTER SMALL KE | `ke` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ゝ | U+309D | HIRAGANA ITERATION MARK | `"` |
+| ゞ | U+309E | HIRAGANA VOICED ITERATION MARK | `"` |
+| ゠ | U+30A0 | KATAKANA-HIRAGANA DOUBLE HYPHEN | `=` |
+| ー | U+30FC | KATAKANA-HIRAGANA PROLONGED SOUND MARK | `-` |
+| ヽ | U+30FD | KATAKANA ITERATION MARK | `"` |
+| ヾ | U+30FE | KATAKANA VOICED ITERATION MARK | `"` |
+| ﾞ | U+FF9E | HALFWIDTH KATAKANA VOICED SOUND MARK | `:` |
+| ﾟ | U+FF9F | HALFWIDTH KATAKANA SEMI-VOICED SOUND MARK | `;` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| じ | U+3058 | HIRAGANA LETTER ZI | `ji` | `zi` | `ji` |
+| ふ | U+3075 | HIRAGANA LETTER HU | `fu` | `hu` | `fu` |
+| ジ | U+30B8 | KATAKANA LETTER ZI | `ji` | `zi` | `ji` |
+| フ | U+30D5 | KATAKANA LETTER HU | `fu` | `hu` | `fu` |
+| ・ | U+30FB | KATAKANA MIDDLE DOT | ` ` | `*` | `-` |
+| ･ | U+FF65 | HALFWIDTH KATAKANA MIDDLE DOT | ` ` | `*` | `-` |
+| ｯ | U+FF6F | HALFWIDTH KATAKANA LETTER SMALL TU | `tsu` | `tu` | `t` |
+| ｰ | U+FF70 | HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK | `-` | `+` | — |
+| ｼ | U+FF7C | HALFWIDTH KATAKANA LETTER SI | `shi` | `si` | `shi` |
+| ﾁ | U+FF81 | HALFWIDTH KATAKANA LETTER TI | `chi` | `ti` | `chi` |
+| ﾂ | U+FF82 | HALFWIDTH KATAKANA LETTER TU | `tsu` | `tu` | `tsu` |
+| ﾌ | U+FF8C | HALFWIDTH KATAKANA LETTER HU | `fu` | `hu` | `fu` |
+
+### ja-kunrei — Japanese Kunrei
+
+Block: 189 assigned codepoints, 189 mapped by at least one library.
+
+Coverage: translit maps 178/189, Unidecode maps 181/189. **2** mapped only by translit, **5** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ゕ | U+3095 | HIRAGANA LETTER SMALL KA | `ka` |
+| ゖ | U+3096 | HIRAGANA LETTER SMALL KE | `ke` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ゝ | U+309D | HIRAGANA ITERATION MARK | `"` |
+| ゞ | U+309E | HIRAGANA VOICED ITERATION MARK | `"` |
+| ゠ | U+30A0 | KATAKANA-HIRAGANA DOUBLE HYPHEN | `=` |
+| ヽ | U+30FD | KATAKANA ITERATION MARK | `"` |
+| ヾ | U+30FE | KATAKANA VOICED ITERATION MARK | `"` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| し | U+3057 | HIRAGANA LETTER SI | `si` | `shi` | `shi` |
+| ち | U+3061 | HIRAGANA LETTER TI | `ti` | `chi` | `chi` |
+| っ | U+3063 | HIRAGANA LETTER SMALL TU | `tu` | `tsu` | `t` |
+| つ | U+3064 | HIRAGANA LETTER TU | `tu` | `tsu` | `tsu` |
+| シ | U+30B7 | KATAKANA LETTER SI | `si` | `shi` | `shi` |
+| チ | U+30C1 | KATAKANA LETTER TI | `ti` | `chi` | `chi` |
+| ッ | U+30C3 | KATAKANA LETTER SMALL TU | `tu` | `tsu` | `t` |
+| ツ | U+30C4 | KATAKANA LETTER TU | `tu` | `tsu` | `tsu` |
+| ・ | U+30FB | KATAKANA MIDDLE DOT | ` ` | `*` | `-` |
+
+### ko — Korean
+
+Block: 11172 assigned codepoints, 11172 mapped by at least one library.
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| 갂 | U+AC02 | HANGUL SYLLABLE GAGG | `gakk` | `gagg` | `Gakk` |
+| 갗 | U+AC17 | HANGUL SYLLABLE GAC | `gach` | `gac` | `Gach` |
+| 갞 | U+AC1E | HANGUL SYLLABLE GAEGG | `gaekk` | `gaegg` | `Gaekk` |
+| 갳 | U+AC33 | HANGUL SYLLABLE GAEC | `gaech` | `gaec` | `Gaech` |
+| 갺 | U+AC3A | HANGUL SYLLABLE GYAGG | `gyakk` | `gyagg` | `Gyakk` |
+| 걏 | U+AC4F | HANGUL SYLLABLE GYAC | `gyach` | `gyac` | `Gyach` |
+| 걖 | U+AC56 | HANGUL SYLLABLE GYAEGG | `gyaekk` | `gyaegg` | `Gyaekk` |
+| 걫 | U+AC6B | HANGUL SYLLABLE GYAEC | `gyaech` | `gyaec` | `Gyaech` |
+| 걲 | U+AC72 | HANGUL SYLLABLE GEOGG | `geokk` | `geogg` | `Geokk` |
+| 겇 | U+AC87 | HANGUL SYLLABLE GEOC | `geoch` | `geoc` | `Geoch` |
+| 겎 | U+AC8E | HANGUL SYLLABLE GEGG | `gekk` | `gegg` | `Gekk` |
+| 겣 | U+ACA3 | HANGUL SYLLABLE GEC | `gech` | `gec` | `Gech` |
+| 겪 | U+ACAA | HANGUL SYLLABLE GYEOGG | `gyeokk` | `gyeogg` | `Gyeokk` |
+| 겿 | U+ACBF | HANGUL SYLLABLE GYEOC | `gyeoch` | `gyeoc` | `Gyeoch` |
+| 곆 | U+ACC6 | HANGUL SYLLABLE GYEGG | `gyekk` | `gyegg` | `Gyekk` |
+| 곛 | U+ACDB | HANGUL SYLLABLE GYEC | `gyech` | `gyec` | `Gyech` |
+| 곢 | U+ACE2 | HANGUL SYLLABLE GOGG | `gokk` | `gogg` | `Gokk` |
+| 곷 | U+ACF7 | HANGUL SYLLABLE GOC | `goch` | `goc` | `Goch` |
+| 곾 | U+ACFE | HANGUL SYLLABLE GWAGG | `gwakk` | `gwagg` | `Gwakk` |
+| 괓 | U+AD13 | HANGUL SYLLABLE GWAC | `gwach` | `gwac` | `Gwach` |
+| 괚 | U+AD1A | HANGUL SYLLABLE GWAEGG | `gwaekk` | `gwaegg` | `Gwaekk` |
+| 괯 | U+AD2F | HANGUL SYLLABLE GWAEC | `gwaech` | `gwaec` | `Gwaech` |
+| 괶 | U+AD36 | HANGUL SYLLABLE GOEGG | `goekk` | `goegg` | `Goekk` |
+| 굋 | U+AD4B | HANGUL SYLLABLE GOEC | `goech` | `goec` | `Goech` |
+| 굒 | U+AD52 | HANGUL SYLLABLE GYOGG | `gyokk` | `gyogg` | `Gyokk` |
+| 굧 | U+AD67 | HANGUL SYLLABLE GYOC | `gyoch` | `gyoc` | `Gyoch` |
+| 굮 | U+AD6E | HANGUL SYLLABLE GUGG | `gukk` | `gugg` | `Gukk` |
+| 궃 | U+AD83 | HANGUL SYLLABLE GUC | `guch` | `guc` | `Guch` |
+| 궈 | U+AD88 | HANGUL SYLLABLE GWEO | `gwo` | `gweo` | `Gwo` |
+| 궉 | U+AD89 | HANGUL SYLLABLE GWEOG | `gwog` | `gweog` | `Gwog` |
+| 궊 | U+AD8A | HANGUL SYLLABLE GWEOGG | `gwokk` | `gweogg` | `Gwokk` |
+| 궋 | U+AD8B | HANGUL SYLLABLE GWEOGS | `gwogs` | `gweogs` | `Gwogs` |
+| 권 | U+AD8C | HANGUL SYLLABLE GWEON | `gwon` | `gweon` | `Gwon` |
+| 궍 | U+AD8D | HANGUL SYLLABLE GWEONJ | `gwonj` | `gweonj` | `Gwonj` |
+| 궎 | U+AD8E | HANGUL SYLLABLE GWEONH | `gwonh` | `gweonh` | `Gwonh` |
+| 궏 | U+AD8F | HANGUL SYLLABLE GWEOD | `gwod` | `gweod` | `Gwod` |
+| 궐 | U+AD90 | HANGUL SYLLABLE GWEOL | `gwol` | `gweol` | `Gwol` |
+| 궑 | U+AD91 | HANGUL SYLLABLE GWEOLG | `gwolg` | `gweolg` | `Gwolg` |
+| 궒 | U+AD92 | HANGUL SYLLABLE GWEOLM | `gwolm` | `gweolm` | `Gwolm` |
+| 궓 | U+AD93 | HANGUL SYLLABLE GWEOLB | `gwolb` | `gweolb` | `Gwolb` |
+| 궔 | U+AD94 | HANGUL SYLLABLE GWEOLS | `gwols` | `gweols` | `Gwols` |
+| 궕 | U+AD95 | HANGUL SYLLABLE GWEOLT | `gwolt` | `gweolt` | `Gwolt` |
+| 궖 | U+AD96 | HANGUL SYLLABLE GWEOLP | `gwolp` | `gweolp` | `Gwolp` |
+| 궗 | U+AD97 | HANGUL SYLLABLE GWEOLH | `gwolh` | `gweolh` | `Gwolh` |
+| 궘 | U+AD98 | HANGUL SYLLABLE GWEOM | `gwom` | `gweom` | `Gwom` |
+| 궙 | U+AD99 | HANGUL SYLLABLE GWEOB | `gwob` | `gweob` | `Gwob` |
+| 궚 | U+AD9A | HANGUL SYLLABLE GWEOBS | `gwobs` | `gweobs` | `Gwobs` |
+| 궛 | U+AD9B | HANGUL SYLLABLE GWEOS | `gwos` | `gweos` | `Gwos` |
+| 궜 | U+AD9C | HANGUL SYLLABLE GWEOSS | `gwoss` | `gweoss` | `Gwoss` |
+| 궝 | U+AD9D | HANGUL SYLLABLE GWEONG | `gwong` | `gweong` | `Gwong` |
+| | | *...3712 more differences* | | | |
+
+### zh — Chinese
+
+Block: 20992 assigned codepoints, 20954 mapped by at least one library.
+
+Coverage: translit maps 20924/20954, Unidecode maps 20642/20954. **291** mapped only by translit, **9** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| 丆 | U+4E06 | CJK UNIFIED IDEOGRAPH-4E06 | `han` |
+| 乊 | U+4E4A | CJK UNIFIED IDEOGRAPH-4E4A | `yi` |
+| 乛 | U+4E5B | CJK UNIFIED IDEOGRAPH-4E5B | `ya` |
+| 乥 | U+4E65 | CJK UNIFIED IDEOGRAPH-4E65 | `hu` |
+| 乮 | U+4E6E | CJK UNIFIED IDEOGRAPH-4E6E | `mao` |
+| 乽 | U+4E7D | CJK UNIFIED IDEOGRAPH-4E7D | `zhe` |
+| 亪 | U+4EAA | CJK UNIFIED IDEOGRAPH-4EAA | `ye` |
+| 仩 | U+4EE9 | CJK UNIFIED IDEOGRAPH-4EE9 | `chang` |
+| 伬 | U+4F2C | CJK UNIFIED IDEOGRAPH-4F2C | `ze` |
+| 佦 | U+4F66 | CJK UNIFIED IDEOGRAPH-4F66 | `shi` |
+| 佨 | U+4F68 | CJK UNIFIED IDEOGRAPH-4F68 | `bao` |
+| 俧 | U+4FE7 | CJK UNIFIED IDEOGRAPH-4FE7 | `zhi` |
+| 俬 | U+4FEC | CJK UNIFIED IDEOGRAPH-4FEC | `si` |
+| 倿 | U+503F | CJK UNIFIED IDEOGRAPH-503F | `ning` |
+| 傦 | U+50A6 | CJK UNIFIED IDEOGRAPH-50A6 | `gu` |
+| 僲 | U+50F2 | CJK UNIFIED IDEOGRAPH-50F2 | `xian` |
+| 儏 | U+510F | CJK UNIFIED IDEOGRAPH-510F | `can` |
+| 兯 | U+516F | CJK UNIFIED IDEOGRAPH-516F | `han` |
+| 匇 | U+5307 | CJK UNIFIED IDEOGRAPH-5307 | `yi` |
+| 厁 | U+5381 | CJK UNIFIED IDEOGRAPH-5381 | `san` |
+| 厑 | U+5391 | CJK UNIFIED IDEOGRAPH-5391 | `ya` |
+| 叾 | U+53FE | CJK UNIFIED IDEOGRAPH-53FE | `liao` |
+| 呚 | U+545A | CJK UNIFIED IDEOGRAPH-545A | `wen` |
+| 哖 | U+54D6 | CJK UNIFIED IDEOGRAPH-54D6 | `nian` |
+| 哛 | U+54DB | CJK UNIFIED IDEOGRAPH-54DB | `fen` |
+| 啹 | U+5579 | CJK UNIFIED IDEOGRAPH-5579 | `ju` |
+| 嗴 | U+55F4 | CJK UNIFIED IDEOGRAPH-55F4 | `qiang` |
+| 嚑 | U+5691 | CJK UNIFIED IDEOGRAPH-5691 | `xun` |
+| 嚒 | U+5692 | CJK UNIFIED IDEOGRAPH-5692 | `me` |
+| 囕 | U+56D5 | CJK UNIFIED IDEOGRAPH-56D5 | `lan` |
+| | | *...261 more* | |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| 兙 | U+5159 | CJK UNIFIED IDEOGRAPH-5159 | `Shi ` |
+| 兡 | U+5161 | CJK UNIFIED IDEOGRAPH-5161 | `Bai ` |
+| 嗧 | U+55E7 | CJK UNIFIED IDEOGRAPH-55E7 | `Jia ` |
+| 桛 | U+685B | CJK UNIFIED IDEOGRAPH-685B | `Kasei ` |
+| 瓧 | U+74E7 | CJK UNIFIED IDEOGRAPH-74E7 | `Dekaguramu ` |
+| 瓰 | U+74F0 | CJK UNIFIED IDEOGRAPH-74F0 | `Deshiguramu ` |
+| 瓱 | U+74F1 | CJK UNIFIED IDEOGRAPH-74F1 | `Miriguramu ` |
+| 瓼 | U+74FC | CJK UNIFIED IDEOGRAPH-74FC | `Sarake ` |
+| 甅 | U+7505 | CJK UNIFIED IDEOGRAPH-7505 | `Senchigura ` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| 一 | U+4E00 | CJK UNIFIED IDEOGRAPH-4E00 | `yi` | `Yi ` | `Yi` |
+| 丁 | U+4E01 | CJK UNIFIED IDEOGRAPH-4E01 | `ding` | `Ding ` | `Ding` |
+| 丂 | U+4E02 | CJK UNIFIED IDEOGRAPH-4E02 | `kao` | `Kao ` | `Kao` |
+| 七 | U+4E03 | CJK UNIFIED IDEOGRAPH-4E03 | `qi` | `Qi ` | `Qi` |
+| 丄 | U+4E04 | CJK UNIFIED IDEOGRAPH-4E04 | `shang` | `Shang ` | `Shang` |
+| 丅 | U+4E05 | CJK UNIFIED IDEOGRAPH-4E05 | `xia` | `Xia ` | `Xia` |
+| 万 | U+4E07 | CJK UNIFIED IDEOGRAPH-4E07 | `wan` | `Mo ` | `Wan` |
+| 丈 | U+4E08 | CJK UNIFIED IDEOGRAPH-4E08 | `zhang` | `Zhang ` | `Zhang` |
+| 三 | U+4E09 | CJK UNIFIED IDEOGRAPH-4E09 | `san` | `San ` | `San` |
+| 上 | U+4E0A | CJK UNIFIED IDEOGRAPH-4E0A | `shang` | `Shang ` | `Shang` |
+| 下 | U+4E0B | CJK UNIFIED IDEOGRAPH-4E0B | `xia` | `Xia ` | `Xia` |
+| 丌 | U+4E0C | CJK UNIFIED IDEOGRAPH-4E0C | `ji` | `Ji ` | `Ji` |
+| 不 | U+4E0D | CJK UNIFIED IDEOGRAPH-4E0D | `bu` | `Bu ` | `Bu` |
+| 与 | U+4E0E | CJK UNIFIED IDEOGRAPH-4E0E | `yu` | `Yu ` | `Yu` |
+| 丏 | U+4E0F | CJK UNIFIED IDEOGRAPH-4E0F | `mian` | `Mian ` | `Mian` |
+| 丐 | U+4E10 | CJK UNIFIED IDEOGRAPH-4E10 | `gai` | `Gai ` | `Gai` |
+| 丑 | U+4E11 | CJK UNIFIED IDEOGRAPH-4E11 | `chou` | `Chou ` | `Chou` |
+| 丒 | U+4E12 | CJK UNIFIED IDEOGRAPH-4E12 | `chou` | `Chou ` | `Chou` |
+| 专 | U+4E13 | CJK UNIFIED IDEOGRAPH-4E13 | `zhuan` | `Zhuan ` | `Zhuan` |
+| 且 | U+4E14 | CJK UNIFIED IDEOGRAPH-4E14 | `qie` | `Qie ` | `Qie` |
+| 丕 | U+4E15 | CJK UNIFIED IDEOGRAPH-4E15 | `pi` | `Pi ` | `Pi` |
+| 世 | U+4E16 | CJK UNIFIED IDEOGRAPH-4E16 | `shi` | `Shi ` | `Shi` |
+| 丗 | U+4E17 | CJK UNIFIED IDEOGRAPH-4E17 | `shi` | `Shi ` | `Shi` |
+| 丘 | U+4E18 | CJK UNIFIED IDEOGRAPH-4E18 | `qiu` | `Qiu ` | `Qiu` |
+| 丙 | U+4E19 | CJK UNIFIED IDEOGRAPH-4E19 | `bing` | `Bing ` | `Bing` |
+| 业 | U+4E1A | CJK UNIFIED IDEOGRAPH-4E1A | `ye` | `Ye ` | `Ye` |
+| 丛 | U+4E1B | CJK UNIFIED IDEOGRAPH-4E1B | `cong` | `Cong ` | `Cong` |
+| 东 | U+4E1C | CJK UNIFIED IDEOGRAPH-4E1C | `dong` | `Dong ` | `Dong` |
+| 丝 | U+4E1D | CJK UNIFIED IDEOGRAPH-4E1D | `si` | `Si ` | `Si` |
+| 丞 | U+4E1E | CJK UNIFIED IDEOGRAPH-4E1E | `cheng` | `Cheng ` | `Cheng` |
+| 丟 | U+4E1F | CJK UNIFIED IDEOGRAPH-4E1F | `diu` | `Diu ` | `Diu` |
+| 丠 | U+4E20 | CJK UNIFIED IDEOGRAPH-4E20 | `qiu` | `Qiu ` | `Qiu` |
+| 両 | U+4E21 | CJK UNIFIED IDEOGRAPH-4E21 | `liang` | `Liang ` | `Liang` |
+| 丢 | U+4E22 | CJK UNIFIED IDEOGRAPH-4E22 | `diu` | `Diu ` | `Diu` |
+| 丣 | U+4E23 | CJK UNIFIED IDEOGRAPH-4E23 | `you` | `You ` | `You` |
+| 两 | U+4E24 | CJK UNIFIED IDEOGRAPH-4E24 | `liang` | `Liang ` | `Liang` |
+| 严 | U+4E25 | CJK UNIFIED IDEOGRAPH-4E25 | `yan` | `Yan ` | `Yan` |
+| 並 | U+4E26 | CJK UNIFIED IDEOGRAPH-4E26 | `bing` | `Bing ` | `Bing` |
+| 丧 | U+4E27 | CJK UNIFIED IDEOGRAPH-4E27 | `sang` | `Sang ` | `Sang` |
+| 丨 | U+4E28 | CJK UNIFIED IDEOGRAPH-4E28 | `gun` | `Gun ` | `Gun` |
+| 丩 | U+4E29 | CJK UNIFIED IDEOGRAPH-4E29 | `jiu` | `Jiu ` | `Jiu` |
+| 个 | U+4E2A | CJK UNIFIED IDEOGRAPH-4E2A | `ge` | `Ge ` | `Ge` |
+| 丫 | U+4E2B | CJK UNIFIED IDEOGRAPH-4E2B | `ya` | `Ya ` | `Ya` |
+| 丬 | U+4E2C | CJK UNIFIED IDEOGRAPH-4E2C | `qiang` | `Qiang ` | `Qiang` |
+| 中 | U+4E2D | CJK UNIFIED IDEOGRAPH-4E2D | `zhong` | `Zhong ` | `Zhong` |
+| 丮 | U+4E2E | CJK UNIFIED IDEOGRAPH-4E2E | `ji` | `Ji ` | `Ji` |
+| 丯 | U+4E2F | CJK UNIFIED IDEOGRAPH-4E2F | `jie` | `Jie ` | `Jie` |
+| 丰 | U+4E30 | CJK UNIFIED IDEOGRAPH-4E30 | `feng` | `Feng ` | `Feng` |
+| 丱 | U+4E31 | CJK UNIFIED IDEOGRAPH-4E31 | `guan` | `Guan ` | `Guan` |
+| 串 | U+4E32 | CJK UNIFIED IDEOGRAPH-4E32 | `chuan` | `Chuan ` | `Chuan` |
+| | | *...20583 more differences* | | | |
+
+### ar — Arabic
+
+Block: 248 assigned codepoints, 219 mapped by at least one library.
+
+Coverage: translit maps 162/219, Unidecode maps 173/219. **23** mapped only by translit, **34** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ؖ | U+0616 | ARABIC SMALL HIGH LIGATURE ALEF WITH LAM WITH YEH | `aly` |
+| ؘ | U+0618 | ARABIC SMALL FATHA | `a` |
+| ؙ | U+0619 | ARABIC SMALL DAMMA | `u` |
+| ؚ | U+061A | ARABIC SMALL KASRA | `i` |
+| ء | U+0621 | ARABIC LETTER HAMZA | `'` |
+| إ | U+0625 | ARABIC LETTER ALEF WITH HAMZA BELOW | `a` |
+| ا | U+0627 | ARABIC LETTER ALEF | `a` |
+| ػ | U+063B | ARABIC LETTER KEHEH WITH TWO DOTS ABOVE | `k` |
+| ؼ | U+063C | ARABIC LETTER KEHEH WITH THREE DOTS BELOW | `k` |
+| ؽ | U+063D | ARABIC LETTER FARSI YEH WITH INVERTED V | `y` |
+| ؾ | U+063E | ARABIC LETTER FARSI YEH WITH TWO DOTS ABOVE | `y` |
+| ؿ | U+063F | ARABIC LETTER FARSI YEH WITH THREE DOTS ABOVE | `y` |
+| ٗ | U+0657 | ARABIC INVERTED DAMMA | `u` |
+| ٝ | U+065D | ARABIC REVERSED DAMMA | `u` |
+| ٞ | U+065E | ARABIC FATHA WITH TWO DOTS | `a` |
+| ٯ | U+066F | ARABIC LETTER DOTLESS QAF | `q` |
+| ې | U+06D0 | ARABIC LETTER E | `e` |
+| ۑ | U+06D1 | ARABIC LETTER YEH WITH THREE DOTS BELOW | `y` |
+| ۖ | U+06D6 | ARABIC SMALL HIGH LIGATURE SAD WITH LAM WITH ALEF MAKSURA | `la` |
+| ۗ | U+06D7 | ARABIC SMALL HIGH LIGATURE QAF WITH LAM WITH ALEF MAKSURA | `la` |
+| ۮ | U+06EE | ARABIC LETTER DAL WITH INVERTED V | `d` |
+| ۯ | U+06EF | ARABIC LETTER REH WITH INVERTED V | `r` |
+| ۿ | U+06FF | ARABIC LETTER HEH WITH INVERTED V | `h` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ّ | U+0651 | ARABIC SHADDA | `W` |
+| ٔ | U+0654 | ARABIC HAMZA ABOVE | `'` |
+| ٕ | U+0655 | ARABIC HAMZA BELOW | `'` |
+| ٪ | U+066A | ARABIC PERCENT SIGN | `%` |
+| ٫ | U+066B | ARABIC DECIMAL SEPARATOR | `.` |
+| ٬ | U+066C | ARABIC THOUSANDS SEPARATOR | `,` |
+| ٭ | U+066D | ARABIC FIVE POINTED STAR | `*` |
+| ٷ | U+0677 | ARABIC LETTER U WITH HAMZA ABOVE | `'u` |
+| ٺ | U+067A | ARABIC LETTER TTEHEH | `tth` |
+| ٻ | U+067B | ARABIC LETTER BEEH | `b` |
+| ٿ | U+067F | ARABIC LETTER TEHEH | `th` |
+| ڀ | U+0680 | ARABIC LETTER BEHEH | `bh` |
+| ڃ | U+0683 | ARABIC LETTER NYEH | `ny` |
+| ڄ | U+0684 | ARABIC LETTER DYEH | `dy` |
+| ڇ | U+0687 | ARABIC LETTER TCHEHEH | `cch` |
+| ڌ | U+068C | ARABIC LETTER DAHAL | `dh` |
+| ڍ | U+068D | ARABIC LETTER DDAHAL | `ddh` |
+| ڎ | U+068E | ARABIC LETTER DUL | `d` |
+| ڦ | U+06A6 | ARABIC LETTER PEHEH | `ph` |
+| ڱ | U+06B1 | ARABIC LETTER NGOEH | `N` |
+| ڳ | U+06B3 | ARABIC LETTER GUEH | `G` |
+| ڻ | U+06BB | ARABIC LETTER RNOON | `N` |
+| ۅ | U+06C5 | ARABIC LETTER KIRGHIZ OE | `oe` |
+| ۆ | U+06C6 | ARABIC LETTER OE | `oe` |
+| ۇ | U+06C7 | ARABIC LETTER U | `u` |
+| ۈ | U+06C8 | ARABIC LETTER YU | `yu` |
+| ۉ | U+06C9 | ARABIC LETTER KIRGHIZ YU | `yu` |
+| ۋ | U+06CB | ARABIC LETTER VE | `v` |
+| ۔ | U+06D4 | ARABIC FULL STOP | `.` |
+| ە | U+06D5 | ARABIC LETTER AE | `ae` |
+| | | *...4 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| أ | U+0623 | ARABIC LETTER ALEF WITH HAMZA ABOVE | `a` | `'` | `'` |
+| ؤ | U+0624 | ARABIC LETTER WAW WITH HAMZA ABOVE | `'` | `w'` | `u'` |
+| ئ | U+0626 | ARABIC LETTER YEH WITH HAMZA ABOVE | `'` | `y'` | `i'` |
+| ة | U+0629 | ARABIC LETTER TEH MARBUTA | `h` | `@` | `h` |
+| ح | U+062D | ARABIC LETTER HAH | `h` | `H` | `h` |
+| ص | U+0635 | ARABIC LETTER SAD | `s` | `S` | `s` |
+| ض | U+0636 | ARABIC LETTER DAD | `d` | `D` | `d` |
+| ط | U+0637 | ARABIC LETTER TAH | `t` | `T` | `t` |
+| ظ | U+0638 | ARABIC LETTER ZAH | `z` | `Z` | `dh` |
+| ع | U+0639 | ARABIC LETTER AIN | `'` | ``` | ``` |
+| غ | U+063A | ARABIC LETTER GHAIN | `gh` | `G` | `gh` |
+| ى | U+0649 | ARABIC LETTER ALEF MAKSURA | `a` | `~` | `a` |
+| ٱ | U+0671 | ARABIC LETTER ALEF WASLA | `a` | `'` | `'` |
+| ٲ | U+0672 | ARABIC LETTER ALEF WITH WAVY HAMZA ABOVE | `a` | `'` | `a` |
+| ٳ | U+0673 | ARABIC LETTER ALEF WITH WAVY HAMZA BELOW | `a` | `'` | `u'` |
+| ٵ | U+0675 | ARABIC LETTER HIGH HAMZA ALEF | `a` | `'` | `a` |
+| ٶ | U+0676 | ARABIC LETTER HIGH HAMZA WAW | `w` | `'w` | `o` |
+| ٸ | U+0678 | ARABIC LETTER HIGH HAMZA YEH | `y` | `'y` | `i` |
+| ٹ | U+0679 | ARABIC LETTER TTEH | `t` | `tt` | `t` |
+| ٽ | U+067D | ARABIC LETTER TEH WITH THREE DOTS ABOVE DOWNWARDS | `t` | `T` | `t` |
+| ځ | U+0681 | ARABIC LETTER HAH WITH HAMZA ABOVE | `h` | `'h` | `dz` |
+| ڂ | U+0682 | ARABIC LETTER HAH WITH TWO DOTS VERTICAL ABOVE | `h` | `H` | `dz` |
+| څ | U+0685 | ARABIC LETTER HAH WITH THREE DOTS ABOVE | `h` | `H` | `ts` |
+| ڈ | U+0688 | ARABIC LETTER DDAL | `d` | `dd` | `d` |
+| ډ | U+0689 | ARABIC LETTER DAL WITH RING | `d` | `D` | `d` |
+| ڊ | U+068A | ARABIC LETTER DAL WITH DOT BELOW | `d` | `D` | `d` |
+| ڋ | U+068B | ARABIC LETTER DAL WITH DOT BELOW AND SMALL TAH | `d` | `Dt` | `dd` |
+| ڏ | U+068F | ARABIC LETTER DAL WITH THREE DOTS ABOVE DOWNWARDS | `d` | `D` | `d` |
+| ڐ | U+0690 | ARABIC LETTER DAL WITH FOUR DOTS ABOVE | `d` | `D` | `d` |
+| ڑ | U+0691 | ARABIC LETTER RREH | `r` | `rr` | `r` |
+| ڒ | U+0692 | ARABIC LETTER REH WITH SMALL V | `r` | `R` | `r` |
+| ړ | U+0693 | ARABIC LETTER REH WITH RING | `r` | `R` | `r` |
+| ڔ | U+0694 | ARABIC LETTER REH WITH DOT BELOW | `r` | `R` | `r` |
+| ڕ | U+0695 | ARABIC LETTER REH WITH SMALL V BELOW | `r` | `R` | `r` |
+| ږ | U+0696 | ARABIC LETTER REH WITH DOT BELOW AND DOT ABOVE | `r` | `R` | `zh` |
+| ڗ | U+0697 | ARABIC LETTER REH WITH TWO DOTS ABOVE | `r` | `R` | `d` |
+| ژ | U+0698 | ARABIC LETTER JEH | `zh` | `j` | `zh` |
+| ڙ | U+0699 | ARABIC LETTER REH WITH FOUR DOTS ABOVE | `r` | `R` | `r` |
+| ښ | U+069A | ARABIC LETTER SEEN WITH DOT BELOW AND DOT ABOVE | `s` | `S` | `sh` |
+| ڛ | U+069B | ARABIC LETTER SEEN WITH THREE DOTS BELOW | `s` | `S` | `s` |
+| ڜ | U+069C | ARABIC LETTER SEEN WITH THREE DOTS BELOW AND THREE DOTS ABOVE | `s` | `S` | `ch` |
+| ڝ | U+069D | ARABIC LETTER SAD WITH TWO DOTS BELOW | `s` | `S` | `ts` |
+| ڞ | U+069E | ARABIC LETTER SAD WITH THREE DOTS ABOVE | `s` | `S` | `ch` |
+| ڟ | U+069F | ARABIC LETTER TAH WITH THREE DOTS ABOVE | `t` | `T` | `th` |
+| ڠ | U+06A0 | ARABIC LETTER AIN WITH THREE DOTS ABOVE | `'` | `GH` | `ng` |
+| ڡ | U+06A1 | ARABIC LETTER DOTLESS FEH | `f` | `F` | `f` |
+| ڢ | U+06A2 | ARABIC LETTER FEH WITH DOT MOVED BELOW | `f` | `F` | `f` |
+| ڣ | U+06A3 | ARABIC LETTER FEH WITH DOT BELOW | `f` | `F` | `p` |
+| ڧ | U+06A7 | ARABIC LETTER QAF WITH DOT ABOVE | `q` | `Q` | `q` |
+| ڨ | U+06A8 | ARABIC LETTER QAF WITH THREE DOTS ABOVE | `q` | `Q` | `g` |
+| | | *...28 more differences* | | | |
+
+### fa — Persian
+
+Block: 391 assigned codepoints, 329 mapped by at least one library.
+
+Coverage: translit maps 163/329, Unidecode maps 173/329. **23** mapped only by translit, **33** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ؖ | U+0616 | ARABIC SMALL HIGH LIGATURE ALEF WITH LAM WITH YEH | `aly` |
+| ؘ | U+0618 | ARABIC SMALL FATHA | `a` |
+| ؙ | U+0619 | ARABIC SMALL DAMMA | `u` |
+| ؚ | U+061A | ARABIC SMALL KASRA | `i` |
+| ء | U+0621 | ARABIC LETTER HAMZA | `'` |
+| إ | U+0625 | ARABIC LETTER ALEF WITH HAMZA BELOW | `e` |
+| ا | U+0627 | ARABIC LETTER ALEF | `a` |
+| ػ | U+063B | ARABIC LETTER KEHEH WITH TWO DOTS ABOVE | `k` |
+| ؼ | U+063C | ARABIC LETTER KEHEH WITH THREE DOTS BELOW | `k` |
+| ؽ | U+063D | ARABIC LETTER FARSI YEH WITH INVERTED V | `y` |
+| ؾ | U+063E | ARABIC LETTER FARSI YEH WITH TWO DOTS ABOVE | `y` |
+| ؿ | U+063F | ARABIC LETTER FARSI YEH WITH THREE DOTS ABOVE | `y` |
+| ٗ | U+0657 | ARABIC INVERTED DAMMA | `u` |
+| ٝ | U+065D | ARABIC REVERSED DAMMA | `u` |
+| ٞ | U+065E | ARABIC FATHA WITH TWO DOTS | `a` |
+| ٯ | U+066F | ARABIC LETTER DOTLESS QAF | `q` |
+| ې | U+06D0 | ARABIC LETTER E | `e` |
+| ۑ | U+06D1 | ARABIC LETTER YEH WITH THREE DOTS BELOW | `y` |
+| ۖ | U+06D6 | ARABIC SMALL HIGH LIGATURE SAD WITH LAM WITH ALEF MAKSURA | `la` |
+| ۗ | U+06D7 | ARABIC SMALL HIGH LIGATURE QAF WITH LAM WITH ALEF MAKSURA | `la` |
+| ۮ | U+06EE | ARABIC LETTER DAL WITH INVERTED V | `d` |
+| ۯ | U+06EF | ARABIC LETTER REH WITH INVERTED V | `r` |
+| ۿ | U+06FF | ARABIC LETTER HEH WITH INVERTED V | `h` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ّ | U+0651 | ARABIC SHADDA | `W` |
+| ٔ | U+0654 | ARABIC HAMZA ABOVE | `'` |
+| ٕ | U+0655 | ARABIC HAMZA BELOW | `'` |
+| ٪ | U+066A | ARABIC PERCENT SIGN | `%` |
+| ٫ | U+066B | ARABIC DECIMAL SEPARATOR | `.` |
+| ٬ | U+066C | ARABIC THOUSANDS SEPARATOR | `,` |
+| ٭ | U+066D | ARABIC FIVE POINTED STAR | `*` |
+| ٷ | U+0677 | ARABIC LETTER U WITH HAMZA ABOVE | `'u` |
+| ٺ | U+067A | ARABIC LETTER TTEHEH | `tth` |
+| ٻ | U+067B | ARABIC LETTER BEEH | `b` |
+| ٿ | U+067F | ARABIC LETTER TEHEH | `th` |
+| ڀ | U+0680 | ARABIC LETTER BEHEH | `bh` |
+| ڃ | U+0683 | ARABIC LETTER NYEH | `ny` |
+| ڄ | U+0684 | ARABIC LETTER DYEH | `dy` |
+| ڇ | U+0687 | ARABIC LETTER TCHEHEH | `cch` |
+| ڌ | U+068C | ARABIC LETTER DAHAL | `dh` |
+| ڍ | U+068D | ARABIC LETTER DDAHAL | `ddh` |
+| ڎ | U+068E | ARABIC LETTER DUL | `d` |
+| ڦ | U+06A6 | ARABIC LETTER PEHEH | `ph` |
+| ڱ | U+06B1 | ARABIC LETTER NGOEH | `N` |
+| ڳ | U+06B3 | ARABIC LETTER GUEH | `G` |
+| ڻ | U+06BB | ARABIC LETTER RNOON | `N` |
+| ۅ | U+06C5 | ARABIC LETTER KIRGHIZ OE | `oe` |
+| ۆ | U+06C6 | ARABIC LETTER OE | `oe` |
+| ۇ | U+06C7 | ARABIC LETTER U | `u` |
+| ۈ | U+06C8 | ARABIC LETTER YU | `yu` |
+| ۉ | U+06C9 | ARABIC LETTER KIRGHIZ YU | `yu` |
+| ۋ | U+06CB | ARABIC LETTER VE | `v` |
+| ە | U+06D5 | ARABIC LETTER AE | `ae` |
+| ۞ | U+06DE | ARABIC START OF RUB EL HIZB | `#` |
+| | | *...3 more* | |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| أ | U+0623 | ARABIC LETTER ALEF WITH HAMZA ABOVE | `a` | `'` | `'` |
+| ؤ | U+0624 | ARABIC LETTER WAW WITH HAMZA ABOVE | `'` | `w'` | `u'` |
+| ئ | U+0626 | ARABIC LETTER YEH WITH HAMZA ABOVE | `'` | `y'` | `i'` |
+| ة | U+0629 | ARABIC LETTER TEH MARBUTA | `e` | `@` | `h` |
+| ث | U+062B | ARABIC LETTER THEH | `s` | `th` | `th` |
+| ح | U+062D | ARABIC LETTER HAH | `h` | `H` | `h` |
+| ذ | U+0630 | ARABIC LETTER THAL | `z` | `dh` | `dh` |
+| ص | U+0635 | ARABIC LETTER SAD | `s` | `S` | `s` |
+| ض | U+0636 | ARABIC LETTER DAD | `z` | `D` | `d` |
+| ط | U+0637 | ARABIC LETTER TAH | `t` | `T` | `t` |
+| ظ | U+0638 | ARABIC LETTER ZAH | `z` | `Z` | `dh` |
+| ع | U+0639 | ARABIC LETTER AIN | `'` | ``` | ``` |
+| غ | U+063A | ARABIC LETTER GHAIN | `gh` | `G` | `gh` |
+| و | U+0648 | ARABIC LETTER WAW | `v` | `w` | `w` |
+| ى | U+0649 | ARABIC LETTER ALEF MAKSURA | `a` | `~` | `a` |
+| ُ | U+064F | ARABIC DAMMA | `o` | `u` | `u` |
+| ِ | U+0650 | ARABIC KASRA | `e` | `i` | `i` |
+| ٱ | U+0671 | ARABIC LETTER ALEF WASLA | `a` | `'` | `'` |
+| ٲ | U+0672 | ARABIC LETTER ALEF WITH WAVY HAMZA ABOVE | `a` | `'` | `a` |
+| ٳ | U+0673 | ARABIC LETTER ALEF WITH WAVY HAMZA BELOW | `a` | `'` | `u'` |
+| ٵ | U+0675 | ARABIC LETTER HIGH HAMZA ALEF | `a` | `'` | `a` |
+| ٶ | U+0676 | ARABIC LETTER HIGH HAMZA WAW | `w` | `'w` | `o` |
+| ٸ | U+0678 | ARABIC LETTER HIGH HAMZA YEH | `y` | `'y` | `i` |
+| ٹ | U+0679 | ARABIC LETTER TTEH | `t` | `tt` | `t` |
+| ٽ | U+067D | ARABIC LETTER TEH WITH THREE DOTS ABOVE DOWNWARDS | `t` | `T` | `t` |
+| ځ | U+0681 | ARABIC LETTER HAH WITH HAMZA ABOVE | `h` | `'h` | `dz` |
+| ڂ | U+0682 | ARABIC LETTER HAH WITH TWO DOTS VERTICAL ABOVE | `h` | `H` | `dz` |
+| څ | U+0685 | ARABIC LETTER HAH WITH THREE DOTS ABOVE | `h` | `H` | `ts` |
+| ڈ | U+0688 | ARABIC LETTER DDAL | `d` | `dd` | `d` |
+| ډ | U+0689 | ARABIC LETTER DAL WITH RING | `d` | `D` | `d` |
+| ڊ | U+068A | ARABIC LETTER DAL WITH DOT BELOW | `d` | `D` | `d` |
+| ڋ | U+068B | ARABIC LETTER DAL WITH DOT BELOW AND SMALL TAH | `d` | `Dt` | `dd` |
+| ڏ | U+068F | ARABIC LETTER DAL WITH THREE DOTS ABOVE DOWNWARDS | `d` | `D` | `d` |
+| ڐ | U+0690 | ARABIC LETTER DAL WITH FOUR DOTS ABOVE | `d` | `D` | `d` |
+| ڑ | U+0691 | ARABIC LETTER RREH | `r` | `rr` | `r` |
+| ڒ | U+0692 | ARABIC LETTER REH WITH SMALL V | `r` | `R` | `r` |
+| ړ | U+0693 | ARABIC LETTER REH WITH RING | `r` | `R` | `r` |
+| ڔ | U+0694 | ARABIC LETTER REH WITH DOT BELOW | `r` | `R` | `r` |
+| ڕ | U+0695 | ARABIC LETTER REH WITH SMALL V BELOW | `r` | `R` | `r` |
+| ږ | U+0696 | ARABIC LETTER REH WITH DOT BELOW AND DOT ABOVE | `r` | `R` | `zh` |
+| ڗ | U+0697 | ARABIC LETTER REH WITH TWO DOTS ABOVE | `r` | `R` | `d` |
+| ژ | U+0698 | ARABIC LETTER JEH | `zh` | `j` | `zh` |
+| ڙ | U+0699 | ARABIC LETTER REH WITH FOUR DOTS ABOVE | `r` | `R` | `r` |
+| ښ | U+069A | ARABIC LETTER SEEN WITH DOT BELOW AND DOT ABOVE | `s` | `S` | `sh` |
+| ڛ | U+069B | ARABIC LETTER SEEN WITH THREE DOTS BELOW | `s` | `S` | `s` |
+| ڜ | U+069C | ARABIC LETTER SEEN WITH THREE DOTS BELOW AND THREE DOTS ABOVE | `s` | `S` | `ch` |
+| ڝ | U+069D | ARABIC LETTER SAD WITH TWO DOTS BELOW | `s` | `S` | `ts` |
+| ڞ | U+069E | ARABIC LETTER SAD WITH THREE DOTS ABOVE | `s` | `S` | `ch` |
+| ڟ | U+069F | ARABIC LETTER TAH WITH THREE DOTS ABOVE | `t` | `T` | `th` |
+| ڠ | U+06A0 | ARABIC LETTER AIN WITH THREE DOTS ABOVE | `'` | `GH` | `ng` |
+| | | *...33 more differences* | | | |
+
+### he — Hebrew
+
+Block: 88 assigned codepoints, 53 mapped by at least one library.
+
+Coverage: translit maps 46/53, Unidecode maps 49/53. **1** mapped only by translit, **4** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ְ | U+05B0 | HEBREW POINT SHEVA | `e` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ׀ | U+05C0 | HEBREW PUNCTUATION PASEQ | `|` |
+| ׆ | U+05C6 | HEBREW PUNCTUATION NUN HAFUKHA | `n` |
+| ע | U+05E2 | HEBREW LETTER AYIN | ``` |
+| ׯ | U+05EF | HEBREW YOD TRIANGLE | `YYY` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| א | U+05D0 | HEBREW LETTER ALEF | `'` | `A` | `'` |
 | ב | U+05D1 | HEBREW LETTER BET | `v` | `b` | `v` |
 | ח | U+05D7 | HEBREW LETTER HET | `ch` | `H` | `h` |
+| ט | U+05D8 | HEBREW LETTER TET | `t` | `T` | `t` |
+| ך | U+05DA | HEBREW LETTER FINAL KAF | `kh` | `KH` | `kh` |
 | כ | U+05DB | HEBREW LETTER KAF | `kh` | `KH` | `kh` |
+| ף | U+05E3 | HEBREW LETTER FINAL PE | `f` | `p` | `f` |
+| פ | U+05E4 | HEBREW LETTER PE | `f` | `p` | `f` |
+| ץ | U+05E5 | HEBREW LETTER FINAL TSADI | `ts` | `TS` | `ts` |
+| צ | U+05E6 | HEBREW LETTER TSADI | `ts` | `TS` | `ts` |
+| ק | U+05E7 | HEBREW LETTER QOF | `q` | `k` | `k` |
+| ש | U+05E9 | HEBREW LETTER SHIN | `sh` | `SH` | `s` |
+| װ | U+05F0 | HEBREW LIGATURE YIDDISH DOUBLE VAV | `v` | `V` | `v` |
+| ױ | U+05F1 | HEBREW LIGATURE YIDDISH VAV YOD | `vy` | `OY` | `oy` |
+| ײ | U+05F2 | HEBREW LIGATURE YIDDISH DOUBLE YOD | `y` | `EY` | `ey` |
 
 ### hi — Hindi
 
+Block: 128 assigned codepoints, 127 mapped by at least one library.
+
+Coverage: translit maps 101/127, Unidecode maps 103/127. **4** mapped only by translit, **6** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ऄ | U+0904 | DEVANAGARI LETTER SHORT A | `a` |
+| ॕ | U+0955 | DEVANAGARI VOWEL SIGN CANDRA LONG E | `e` |
+| ॖ | U+0956 | DEVANAGARI VOWEL SIGN UE | `u` |
+| ॗ | U+0957 | DEVANAGARI VOWEL SIGN UUE | `u` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ़ | U+093C | DEVANAGARI SIGN NUKTA | `'` |
+| ऽ | U+093D | DEVANAGARI SIGN AVAGRAHA | `'` |
+| ॑ | U+0951 | DEVANAGARI STRESS SIGN UDATTA | `'` |
+| ॒ | U+0952 | DEVANAGARI STRESS SIGN ANUDATTA | `'` |
+| ॓ | U+0953 | DEVANAGARI GRAVE ACCENT | ``` |
+| ॔ | U+0954 | DEVANAGARI ACUTE ACCENT | `'` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| भ | U+092D | DEVANAGARI LETTER BHA | `bha` | `bh` | `bh` |
-| ा | U+093E | DEVANAGARI VOWEL SIGN AA | `a` | `aa` | `a` |
-| र | U+0930 | DEVANAGARI LETTER RA | `ra` | `r` | `r` |
-| त | U+0924 | DEVANAGARI LETTER TA | `ta` | `t` | `t` |
-| ग | U+0917 | DEVANAGARI LETTER GA | `ga` | `g` | `g` |
-| ण | U+0923 | DEVANAGARI LETTER NNA | `na` | `nn` | `n` |
-| ज | U+091C | DEVANAGARI LETTER JA | `ja` | `j` | `j` |
-| य | U+092F | DEVANAGARI LETTER YA | `ya` | `y` | `y` |
-| द | U+0926 | DEVANAGARI LETTER DA | `da` | `d` | `d` |
-| क | U+0915 | DEVANAGARI LETTER KA | `ka` | `k` | `k` |
-| ष | U+0937 | DEVANAGARI LETTER SSA | `sha` | `ss` | `s` |
-| श | U+0936 | DEVANAGARI LETTER SHA | `sha` | `sh` | `s` |
-| म | U+092E | DEVANAGARI LETTER MA | `ma` | `m` | `m` |
+| ँ | U+0901 | DEVANAGARI SIGN CANDRABINDU | `m` | `N` | `m` |
 | ं | U+0902 | DEVANAGARI SIGN ANUSVARA | `m` | `N` | `m` |
-| स | U+0938 | DEVANAGARI LETTER SA | `sa` | `s` | `s` |
+| ः | U+0903 | DEVANAGARI SIGN VISARGA | `h` | `H` | `h` |
+| ई | U+0908 | DEVANAGARI LETTER II | `i` | `ii` | `i` |
+| ऊ | U+090A | DEVANAGARI LETTER UU | `u` | `uu` | `u` |
+| ऋ | U+090B | DEVANAGARI LETTER VOCALIC R | `r` | `R` | `r` |
+| ऌ | U+090C | DEVANAGARI LETTER VOCALIC L | `l` | `L` | `l` |
+| ऍ | U+090D | DEVANAGARI LETTER CANDRA E | `e` | `eN` | `e` |
+| ऑ | U+0911 | DEVANAGARI LETTER CANDRA O | `o` | `oN` | `o` |
+| क | U+0915 | DEVANAGARI LETTER KA | `ka` | `k` | `k` |
+| ख | U+0916 | DEVANAGARI LETTER KHA | `kha` | `kh` | `kh` |
+| ग | U+0917 | DEVANAGARI LETTER GA | `ga` | `g` | `g` |
+| घ | U+0918 | DEVANAGARI LETTER GHA | `gha` | `gh` | `gh` |
+| ङ | U+0919 | DEVANAGARI LETTER NGA | `nga` | `ng` | `n` |
+| च | U+091A | DEVANAGARI LETTER CA | `cha` | `c` | `c` |
+| छ | U+091B | DEVANAGARI LETTER CHA | `chha` | `ch` | `ch` |
+| ज | U+091C | DEVANAGARI LETTER JA | `ja` | `j` | `j` |
+| झ | U+091D | DEVANAGARI LETTER JHA | `jha` | `jh` | `jh` |
+| ञ | U+091E | DEVANAGARI LETTER NYA | `nya` | `ny` | `n` |
+| ट | U+091F | DEVANAGARI LETTER TTA | `ta` | `tt` | `t` |
+| ठ | U+0920 | DEVANAGARI LETTER TTHA | `tha` | `tth` | `th` |
+| ड | U+0921 | DEVANAGARI LETTER DDA | `da` | `dd` | `d` |
+| ढ | U+0922 | DEVANAGARI LETTER DDHA | `dha` | `ddh` | `dh` |
+| ण | U+0923 | DEVANAGARI LETTER NNA | `na` | `nn` | `n` |
+| त | U+0924 | DEVANAGARI LETTER TA | `ta` | `t` | `t` |
 | थ | U+0925 | DEVANAGARI LETTER THA | `tha` | `th` | `th` |
+| द | U+0926 | DEVANAGARI LETTER DA | `da` | `d` | `d` |
+| ध | U+0927 | DEVANAGARI LETTER DHA | `dha` | `dh` | `dh` |
+| न | U+0928 | DEVANAGARI LETTER NA | `na` | `n` | `n` |
+| ऩ | U+0929 | DEVANAGARI LETTER NNNA | `na` | `nnn` | `n` |
+| प | U+092A | DEVANAGARI LETTER PA | `pa` | `p` | `p` |
+| फ | U+092B | DEVANAGARI LETTER PHA | `pha` | `ph` | `ph` |
+| ब | U+092C | DEVANAGARI LETTER BA | `ba` | `b` | `b` |
+| भ | U+092D | DEVANAGARI LETTER BHA | `bha` | `bh` | `bh` |
+| म | U+092E | DEVANAGARI LETTER MA | `ma` | `m` | `m` |
+| य | U+092F | DEVANAGARI LETTER YA | `ya` | `y` | `y` |
+| र | U+0930 | DEVANAGARI LETTER RA | `ra` | `r` | `r` |
+| ऱ | U+0931 | DEVANAGARI LETTER RRA | `ra` | `rr` | `r` |
+| ल | U+0932 | DEVANAGARI LETTER LA | `la` | `l` | `l` |
+| ळ | U+0933 | DEVANAGARI LETTER LLA | `la` | `l` | `l` |
+| ऴ | U+0934 | DEVANAGARI LETTER LLLA | `la` | `lll` | `l` |
+| व | U+0935 | DEVANAGARI LETTER VA | `va` | `v` | `v` |
+| श | U+0936 | DEVANAGARI LETTER SHA | `sha` | `sh` | `s` |
+| ष | U+0937 | DEVANAGARI LETTER SSA | `sha` | `ss` | `s` |
+| स | U+0938 | DEVANAGARI LETTER SA | `sa` | `s` | `s` |
 | ह | U+0939 | DEVANAGARI LETTER HA | `ha` | `h` | `h` |
+| ा | U+093E | DEVANAGARI VOWEL SIGN AA | `a` | `aa` | `a` |
+| ी | U+0940 | DEVANAGARI VOWEL SIGN II | `i` | `ii` | `i` |
+| ू | U+0942 | DEVANAGARI VOWEL SIGN UU | `u` | `uu` | `u` |
+| ृ | U+0943 | DEVANAGARI VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| | | *...18 more differences* | | | |
 
 ### bn — Bengali
 
-Coverage: translit maps 21/23 chars, Unidecode maps 22/23. **0** mapped only by translit, **1** mapped only by Unidecode.
+Block: 96 assigned codepoints, 95 mapped by at least one library.
+
+Coverage: translit maps 78/95, Unidecode maps 87/95. **1** mapped only by translit, **10** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ৎ | U+09CE | BENGALI LETTER KHANDA TA | `t` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
 | Char | Codepoint | Name | Unidecode |
 |------|-----------|------|-----------|
 | ় | U+09BC | BENGALI SIGN NUKTA | `'` |
+| ৗ | U+09D7 | BENGALI AU LENGTH MARK | `+` |
+| ৲ | U+09F2 | BENGALI RUPEE MARK | `Rs` |
+| ৳ | U+09F3 | BENGALI RUPEE SIGN | `Rs` |
+| ৴ | U+09F4 | BENGALI CURRENCY NUMERATOR ONE | `1/` |
+| ৵ | U+09F5 | BENGALI CURRENCY NUMERATOR TWO | `2/` |
+| ৶ | U+09F6 | BENGALI CURRENCY NUMERATOR THREE | `3/` |
+| ৷ | U+09F7 | BENGALI CURRENCY NUMERATOR FOUR | `4/` |
+| ৸ | U+09F8 | BENGALI CURRENCY NUMERATOR ONE LESS THAN THE DENOMINATOR | ` 1 - 1/` |
+| ৹ | U+09F9 | BENGALI CURRENCY DENOMINATOR SIXTEEN | `/16` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| গ | U+0997 | BENGALI LETTER GA | `ga` | `g` | `g` |
-| ণ | U+09A3 | BENGALI LETTER NNA | `na` | `nn` | `n` |
-| প | U+09AA | BENGALI LETTER PA | `pa` | `p` | `p` |
-| র | U+09B0 | BENGALI LETTER RA | `ra` | `r` | `r` |
-| জ | U+099C | BENGALI LETTER JA | `ja` | `j` | `j` |
-| া | U+09BE | BENGALI VOWEL SIGN AA | `a` | `aa` | `a` |
-| ত | U+09A4 | BENGALI LETTER TA | `ta` | `t` | `t` |
-| ন | U+09A8 | BENGALI LETTER NA | `na` | `n` | `n` |
-| ী | U+09C0 | BENGALI VOWEL SIGN II | `i` | `ii` | `i` |
-| ব | U+09AC | BENGALI LETTER BA | `ba` | `b` | `b` |
+| ঁ | U+0981 | BENGALI SIGN CANDRABINDU | `m` | `N` | `m` |
 | ং | U+0982 | BENGALI SIGN ANUSVARA | `m` | `N` | `m` |
-| ল | U+09B2 | BENGALI LETTER LA | `la` | `l` | `l` |
-| দ | U+09A6 | BENGALI LETTER DA | `da` | `d` | `d` |
-| শ | U+09B6 | BENGALI LETTER SHA | `sha` | `sh` | `s` |
+| ঃ | U+0983 | BENGALI SIGN VISARGA | `h` | `H` | `h` |
+| ঈ | U+0988 | BENGALI LETTER II | `i` | `ii` | `i` |
+| ঊ | U+098A | BENGALI LETTER UU | `u` | `uu` | `u` |
+| ঋ | U+098B | BENGALI LETTER VOCALIC R | `r` | `R` | `r` |
+| ঌ | U+098C | BENGALI LETTER VOCALIC L | `l` | `RR` | `l` |
 | ক | U+0995 | BENGALI LETTER KA | `ka` | `k` | `k` |
-| ষ | U+09B7 | BENGALI LETTER SSA | `sha` | `ss` | `s` |
-| য | U+09AF | BENGALI LETTER YA | `ya` | `y` | `y` |
+| খ | U+0996 | BENGALI LETTER KHA | `kha` | `kh` | `kh` |
+| গ | U+0997 | BENGALI LETTER GA | `ga` | `g` | `g` |
+| ঘ | U+0998 | BENGALI LETTER GHA | `gha` | `gh` | `gh` |
+| ঙ | U+0999 | BENGALI LETTER NGA | `nga` | `ng` | `n` |
+| চ | U+099A | BENGALI LETTER CA | `cha` | `c` | `c` |
+| ছ | U+099B | BENGALI LETTER CHA | `chha` | `ch` | `ch` |
+| জ | U+099C | BENGALI LETTER JA | `ja` | `j` | `j` |
+| ঝ | U+099D | BENGALI LETTER JHA | `jha` | `jh` | `jh` |
+| ঞ | U+099E | BENGALI LETTER NYA | `nya` | `ny` | `n` |
 | ট | U+099F | BENGALI LETTER TTA | `ta` | `tt` | `t` |
+| ঠ | U+09A0 | BENGALI LETTER TTHA | `tha` | `tth` | `th` |
+| ড | U+09A1 | BENGALI LETTER DDA | `da` | `dd` | `d` |
+| ঢ | U+09A2 | BENGALI LETTER DDHA | `dha` | `ddh` | `dh` |
+| ণ | U+09A3 | BENGALI LETTER NNA | `na` | `nn` | `n` |
+| ত | U+09A4 | BENGALI LETTER TA | `ta` | `t` | `t` |
+| থ | U+09A5 | BENGALI LETTER THA | `tha` | `th` | `th` |
+| দ | U+09A6 | BENGALI LETTER DA | `da` | `d` | `d` |
+| ধ | U+09A7 | BENGALI LETTER DHA | `dha` | `dh` | `dh` |
+| ন | U+09A8 | BENGALI LETTER NA | `na` | `n` | `n` |
+| প | U+09AA | BENGALI LETTER PA | `pa` | `p` | `p` |
+| ফ | U+09AB | BENGALI LETTER PHA | `pha` | `ph` | `ph` |
+| ব | U+09AC | BENGALI LETTER BA | `ba` | `b` | `b` |
+| ভ | U+09AD | BENGALI LETTER BHA | `bha` | `bh` | `bh` |
+| ম | U+09AE | BENGALI LETTER MA | `ma` | `m` | `m` |
+| য | U+09AF | BENGALI LETTER YA | `ya` | `y` | `y` |
+| র | U+09B0 | BENGALI LETTER RA | `ra` | `r` | `r` |
+| ল | U+09B2 | BENGALI LETTER LA | `la` | `l` | `l` |
+| শ | U+09B6 | BENGALI LETTER SHA | `sha` | `sh` | `s` |
+| ষ | U+09B7 | BENGALI LETTER SSA | `sha` | `ss` | `s` |
+| স | U+09B8 | BENGALI LETTER SA | `sa` | `s` | `s` |
+| হ | U+09B9 | BENGALI LETTER HA | `ha` | `h` | `h` |
+| া | U+09BE | BENGALI VOWEL SIGN AA | `a` | `aa` | `a` |
+| ী | U+09C0 | BENGALI VOWEL SIGN II | `i` | `ii` | `i` |
+| ূ | U+09C2 | BENGALI VOWEL SIGN UU | `u` | `uu` | `u` |
+| ৃ | U+09C3 | BENGALI VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| ৄ | U+09C4 | BENGALI VOWEL SIGN VOCALIC RR | `r` | `RR` | `r` |
+| ড় | U+09DC | BENGALI LETTER RRA | `ra` | `rr` | `r` |
+| ঢ় | U+09DD | BENGALI LETTER RHA | `rha` | `rh` | `rh` |
+| য় | U+09DF | BENGALI LETTER YYA | `ya` | `yy` | `y` |
+| ৠ | U+09E0 | BENGALI LETTER VOCALIC RR | `r` | `RR` | `r` |
+| ৡ | U+09E1 | BENGALI LETTER VOCALIC LL | `l` | `LL` | `l` |
+| ৢ | U+09E2 | BENGALI VOWEL SIGN VOCALIC L | `l` | `L` | `l` |
+| | | *...3 more differences* | | | |
 
 ### ta — Tamil
 
+Block: 72 assigned codepoints, 71 mapped by at least one library.
+
+Coverage: translit maps 62/71, Unidecode maps 61/71. **2** mapped only by translit, **1** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ஶ | U+0BB6 | TAMIL LETTER SHA | `sha` |
+| ௐ | U+0BD0 | TAMIL OM | `om` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ௗ | U+0BD7 | TAMIL AU LENGTH MARK | `+` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| த | U+0BA4 | TAMIL LETTER TA | `ta` | `t` | `t` |
-| ம | U+0BAE | TAMIL LETTER MA | `ma` | `m` | `m` |
-| ழ | U+0BB4 | TAMIL LETTER LLLA | `zha` | `lll` | `l` |
-| ந | U+0BA8 | TAMIL LETTER NA | `na` | `n` | `n` |
-| ா | U+0BBE | TAMIL VOWEL SIGN AA | `a` | `aa` | `a` |
-| ட | U+0B9F | TAMIL LETTER TTA | `ta` | `tt` | `t` |
-| ய | U+0BAF | TAMIL LETTER YA | `ya` | `y` | `y` |
-| வ | U+0BB5 | TAMIL LETTER VA | `va` | `v` | `v` |
-| ன | U+0BA9 | TAMIL LETTER NNNA | `na` | `nnn` | `n` |
-| ற | U+0BB1 | TAMIL LETTER RRA | `ra` | `rr` | `r` |
+| ஂ | U+0B82 | TAMIL SIGN ANUSVARA | `m` | `N` | `m` |
+| ஃ | U+0B83 | TAMIL SIGN VISARGA | `h` | `H` | `k` |
+| ஈ | U+0B88 | TAMIL LETTER II | `i` | `ii` | `i` |
+| ஊ | U+0B8A | TAMIL LETTER UU | `u` | `uu` | `u` |
+| ஏ | U+0B8F | TAMIL LETTER EE | `e` | `ee` | `e` |
+| ஓ | U+0B93 | TAMIL LETTER OO | `o` | `oo` | `o` |
 | க | U+0B95 | TAMIL LETTER KA | `ka` | `k` | `k` |
-| ே | U+0BC7 | TAMIL VOWEL SIGN EE | `e` | `ee` | `e` |
-| ள | U+0BB3 | TAMIL LETTER LLA | `la` | `ll` | `l` |
+| ங | U+0B99 | TAMIL LETTER NGA | `nga` | `ng` | `n` |
+| ச | U+0B9A | TAMIL LETTER CA | `cha` | `c` | `c` |
+| ஜ | U+0B9C | TAMIL LETTER JA | `ja` | `j` | `j` |
+| ஞ | U+0B9E | TAMIL LETTER NYA | `nya` | `ny` | `n` |
+| ட | U+0B9F | TAMIL LETTER TTA | `ta` | `tt` | `t` |
+| ண | U+0BA3 | TAMIL LETTER NNA | `na` | `nn` | `n` |
+| த | U+0BA4 | TAMIL LETTER TA | `ta` | `t` | `t` |
+| ந | U+0BA8 | TAMIL LETTER NA | `na` | `n` | `n` |
+| ன | U+0BA9 | TAMIL LETTER NNNA | `na` | `nnn` | `n` |
+| ப | U+0BAA | TAMIL LETTER PA | `pa` | `p` | `p` |
+| ம | U+0BAE | TAMIL LETTER MA | `ma` | `m` | `m` |
+| ய | U+0BAF | TAMIL LETTER YA | `ya` | `y` | `y` |
+| ர | U+0BB0 | TAMIL LETTER RA | `ra` | `r` | `r` |
+| ற | U+0BB1 | TAMIL LETTER RRA | `ra` | `rr` | `r` |
 | ல | U+0BB2 | TAMIL LETTER LA | `la` | `l` | `l` |
+| ள | U+0BB3 | TAMIL LETTER LLA | `la` | `ll` | `l` |
+| ழ | U+0BB4 | TAMIL LETTER LLLA | `zha` | `lll` | `l` |
+| வ | U+0BB5 | TAMIL LETTER VA | `va` | `v` | `v` |
+| ஷ | U+0BB7 | TAMIL LETTER SSA | `sha` | `ss` | `s` |
+| ஸ | U+0BB8 | TAMIL LETTER SA | `sa` | `s` | `s` |
+| ஹ | U+0BB9 | TAMIL LETTER HA | `ha` | `h` | `h` |
+| ா | U+0BBE | TAMIL VOWEL SIGN AA | `a` | `aa` | `a` |
+| ீ | U+0BC0 | TAMIL VOWEL SIGN II | `i` | `ii` | `i` |
+| ூ | U+0BC2 | TAMIL VOWEL SIGN UU | `u` | `uu` | `u` |
+| ே | U+0BC7 | TAMIL VOWEL SIGN EE | `e` | `ee` | `e` |
+| ோ | U+0BCB | TAMIL VOWEL SIGN OO | `o` | `oo` | `o` |
+| ௰ | U+0BF0 | TAMIL NUMBER TEN | `10` | `+10+` | `10` |
+| ௱ | U+0BF1 | TAMIL NUMBER ONE HUNDRED | `100` | `+100+` | `100` |
+| ௲ | U+0BF2 | TAMIL NUMBER ONE THOUSAND | `1000` | `+1000+` | `1000` |
 
 ### te — Telugu
 
+Block: 100 assigned codepoints, 99 mapped by at least one library.
+
+Coverage: translit maps 79/99, Unidecode maps 79/99. **2** mapped only by translit, **2** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ౢ | U+0C62 | TELUGU VOWEL SIGN VOCALIC L | `l` |
+| ౣ | U+0C63 | TELUGU VOWEL SIGN VOCALIC LL | `l` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ౕ | U+0C55 | TELUGU LENGTH MARK | `+` |
+| ౖ | U+0C56 | TELUGU AI LENGTH MARK | `+` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| త | U+0C24 | TELUGU LETTER TA | `ta` | `t` | `t` |
-| ల | U+0C32 | TELUGU LETTER LA | `la` | `l` | `l` |
-| గ | U+0C17 | TELUGU LETTER GA | `ga` | `g` | `g` |
-| భ | U+0C2D | TELUGU LETTER BHA | `bha` | `bh` | `bh` |
-| ా | U+0C3E | TELUGU VOWEL SIGN AA | `a` | `aa` | `a` |
-| ష | U+0C37 | TELUGU LETTER SSA | `sha` | `ss` | `s` |
-| ద | U+0C26 | TELUGU LETTER DA | `da` | `d` | `d` |
-| ర | U+0C30 | TELUGU LETTER RA | `ra` | `r` | `r` |
-| వ | U+0C35 | TELUGU LETTER VA | `va` | `v` | `v` |
-| డ | U+0C21 | TELUGU LETTER DDA | `da` | `dd` | `d` |
-| క | U+0C15 | TELUGU LETTER KA | `ka` | `k` | `k` |
-| ట | U+0C1F | TELUGU LETTER TTA | `ta` | `tt` | `t` |
+| ఁ | U+0C01 | TELUGU SIGN CANDRABINDU | `m` | `N` | `n` |
 | ం | U+0C02 | TELUGU SIGN ANUSVARA | `m` | `N` | `m` |
-| బ | U+0C2C | TELUGU LETTER BA | `ba` | `b` | `b` |
-| న | U+0C28 | TELUGU LETTER NA | `na` | `n` | `n` |
+| ః | U+0C03 | TELUGU SIGN VISARGA | `h` | `H` | `h` |
+| ఈ | U+0C08 | TELUGU LETTER II | `i` | `ii` | `i` |
+| ఊ | U+0C0A | TELUGU LETTER UU | `u` | `uu` | `u` |
+| ఋ | U+0C0B | TELUGU LETTER VOCALIC R | `r` | `R` | `r` |
+| ఌ | U+0C0C | TELUGU LETTER VOCALIC L | `l` | `L` | `l` |
+| ఏ | U+0C0F | TELUGU LETTER EE | `e` | `ee` | `e` |
+| ఓ | U+0C13 | TELUGU LETTER OO | `o` | `oo` | `o` |
+| క | U+0C15 | TELUGU LETTER KA | `ka` | `k` | `k` |
+| ఖ | U+0C16 | TELUGU LETTER KHA | `kha` | `kh` | `kh` |
+| గ | U+0C17 | TELUGU LETTER GA | `ga` | `g` | `g` |
+| ఘ | U+0C18 | TELUGU LETTER GHA | `gha` | `gh` | `gh` |
+| ఙ | U+0C19 | TELUGU LETTER NGA | `nga` | `ng` | `n` |
 | చ | U+0C1A | TELUGU LETTER CA | `cha` | `c` | `c` |
+| ఛ | U+0C1B | TELUGU LETTER CHA | `chha` | `ch` | `ch` |
+| జ | U+0C1C | TELUGU LETTER JA | `ja` | `j` | `j` |
+| ఝ | U+0C1D | TELUGU LETTER JHA | `jha` | `jh` | `jh` |
+| ఞ | U+0C1E | TELUGU LETTER NYA | `nya` | `ny` | `n` |
+| ట | U+0C1F | TELUGU LETTER TTA | `ta` | `tt` | `t` |
+| ఠ | U+0C20 | TELUGU LETTER TTHA | `tha` | `tth` | `th` |
+| డ | U+0C21 | TELUGU LETTER DDA | `da` | `dd` | `d` |
+| ఢ | U+0C22 | TELUGU LETTER DDHA | `dha` | `ddh` | `dh` |
+| ణ | U+0C23 | TELUGU LETTER NNA | `na` | `nn` | `n` |
+| త | U+0C24 | TELUGU LETTER TA | `ta` | `t` | `t` |
+| థ | U+0C25 | TELUGU LETTER THA | `tha` | `th` | `th` |
+| ద | U+0C26 | TELUGU LETTER DA | `da` | `d` | `d` |
+| ధ | U+0C27 | TELUGU LETTER DHA | `dha` | `dh` | `dh` |
+| న | U+0C28 | TELUGU LETTER NA | `na` | `n` | `n` |
+| ప | U+0C2A | TELUGU LETTER PA | `pa` | `p` | `p` |
+| ఫ | U+0C2B | TELUGU LETTER PHA | `pha` | `ph` | `ph` |
+| బ | U+0C2C | TELUGU LETTER BA | `ba` | `b` | `b` |
+| భ | U+0C2D | TELUGU LETTER BHA | `bha` | `bh` | `bh` |
+| మ | U+0C2E | TELUGU LETTER MA | `ma` | `m` | `m` |
+| య | U+0C2F | TELUGU LETTER YA | `ya` | `y` | `y` |
+| ర | U+0C30 | TELUGU LETTER RA | `ra` | `r` | `r` |
+| ఱ | U+0C31 | TELUGU LETTER RRA | `ra` | `rr` | `r` |
+| ల | U+0C32 | TELUGU LETTER LA | `la` | `l` | `l` |
+| ళ | U+0C33 | TELUGU LETTER LLA | `la` | `ll` | `l` |
+| వ | U+0C35 | TELUGU LETTER VA | `va` | `v` | `v` |
+| శ | U+0C36 | TELUGU LETTER SHA | `sha` | `sh` | `s` |
+| ష | U+0C37 | TELUGU LETTER SSA | `sha` | `ss` | `s` |
+| స | U+0C38 | TELUGU LETTER SA | `sa` | `s` | `s` |
+| హ | U+0C39 | TELUGU LETTER HA | `ha` | `h` | `h` |
+| ా | U+0C3E | TELUGU VOWEL SIGN AA | `a` | `aa` | `a` |
+| ీ | U+0C40 | TELUGU VOWEL SIGN II | `i` | `ii` | `i` |
+| ూ | U+0C42 | TELUGU VOWEL SIGN UU | `u` | `uu` | `u` |
+| ృ | U+0C43 | TELUGU VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| ౄ | U+0C44 | TELUGU VOWEL SIGN VOCALIC RR | `r` | `RR` | `r` |
+| ే | U+0C47 | TELUGU VOWEL SIGN EE | `e` | `ee` | `e` |
+| | | *...3 more differences* | | | |
 
 ### gu — Gujarati
 
+Block: 91 assigned codepoints, 87 mapped by at least one library.
+
+Coverage: translit maps 79/87, Unidecode maps 77/87. **4** mapped only by translit, **2** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ઌ | U+0A8C | GUJARATI LETTER VOCALIC L | `l` |
+| ૡ | U+0AE1 | GUJARATI LETTER VOCALIC LL | `l` |
+| ૢ | U+0AE2 | GUJARATI VOWEL SIGN VOCALIC L | `l` |
+| ૣ | U+0AE3 | GUJARATI VOWEL SIGN VOCALIC LL | `l` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ઼ | U+0ABC | GUJARATI SIGN NUKTA | `'` |
+| ઽ | U+0ABD | GUJARATI SIGN AVAGRAHA | `'` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| ગ | U+0A97 | GUJARATI LETTER GA | `ga` | `g` | `g` |
-| જ | U+0A9C | GUJARATI LETTER JA | `ja` | `j` | `j` |
-| ર | U+0AB0 | GUJARATI LETTER RA | `ra` | `r` | `r` |
-| ા | U+0ABE | GUJARATI VOWEL SIGN AA | `a` | `aa` | `a` |
-| ત | U+0AA4 | GUJARATI LETTER TA | `ta` | `t` | `t` |
-| ભ | U+0AAD | GUJARATI LETTER BHA | `bha` | `bh` | `bh` |
-| ન | U+0AA8 | GUJARATI LETTER NA | `na` | `n` | `n` |
+| ઁ | U+0A81 | GUJARATI SIGN CANDRABINDU | `m` | `N` | `m` |
 | ં | U+0A82 | GUJARATI SIGN ANUSVARA | `m` | `N` | `m` |
+| ઃ | U+0A83 | GUJARATI SIGN VISARGA | `h` | `H` | `h` |
+| ઈ | U+0A88 | GUJARATI LETTER II | `i` | `ii` | `i` |
+| ઊ | U+0A8A | GUJARATI LETTER UU | `u` | `uu` | `u` |
+| ઋ | U+0A8B | GUJARATI LETTER VOCALIC R | `r` | `R` | `r` |
+| ઍ | U+0A8D | GUJARATI VOWEL CANDRA E | `e` | `eN` | `e` |
+| ઑ | U+0A91 | GUJARATI VOWEL CANDRA O | `o` | `oN` | `o` |
 | ક | U+0A95 | GUJARATI LETTER KA | `ka` | `k` | `k` |
-| છ | U+0A9B | GUJARATI LETTER CHA | `chha` | `ch` | `ch` |
-| પ | U+0AAA | GUJARATI LETTER PA | `pa` | `p` | `p` |
-| શ | U+0AB6 | GUJARATI LETTER SHA | `sha` | `sh` | `s` |
+| ખ | U+0A96 | GUJARATI LETTER KHA | `kha` | `kh` | `kh` |
+| ગ | U+0A97 | GUJARATI LETTER GA | `ga` | `g` | `g` |
+| ઘ | U+0A98 | GUJARATI LETTER GHA | `gha` | `gh` | `gh` |
+| ઙ | U+0A99 | GUJARATI LETTER NGA | `nga` | `ng` | `n` |
 | ચ | U+0A9A | GUJARATI LETTER CA | `cha` | `c` | `c` |
+| છ | U+0A9B | GUJARATI LETTER CHA | `chha` | `ch` | `ch` |
+| જ | U+0A9C | GUJARATI LETTER JA | `ja` | `j` | `j` |
+| ઝ | U+0A9D | GUJARATI LETTER JHA | `jha` | `jh` | `jh` |
+| ઞ | U+0A9E | GUJARATI LETTER NYA | `nya` | `ny` | `n` |
+| ટ | U+0A9F | GUJARATI LETTER TTA | `ta` | `tt` | `t` |
+| ઠ | U+0AA0 | GUJARATI LETTER TTHA | `tha` | `tth` | `th` |
+| ડ | U+0AA1 | GUJARATI LETTER DDA | `da` | `dd` | `d` |
+| ઢ | U+0AA2 | GUJARATI LETTER DDHA | `dha` | `ddh` | `dh` |
+| ણ | U+0AA3 | GUJARATI LETTER NNA | `na` | `nn` | `n` |
+| ત | U+0AA4 | GUJARATI LETTER TA | `ta` | `t` | `t` |
+| થ | U+0AA5 | GUJARATI LETTER THA | `tha` | `th` | `th` |
+| દ | U+0AA6 | GUJARATI LETTER DA | `da` | `d` | `d` |
+| ધ | U+0AA7 | GUJARATI LETTER DHA | `dha` | `dh` | `dh` |
+| ન | U+0AA8 | GUJARATI LETTER NA | `na` | `n` | `n` |
+| પ | U+0AAA | GUJARATI LETTER PA | `pa` | `p` | `p` |
+| ફ | U+0AAB | GUJARATI LETTER PHA | `pha` | `ph` | `ph` |
+| બ | U+0AAC | GUJARATI LETTER BA | `ba` | `b` | `b` |
+| ભ | U+0AAD | GUJARATI LETTER BHA | `bha` | `bh` | `bh` |
 | મ | U+0AAE | GUJARATI LETTER MA | `ma` | `m` | `m` |
+| ર | U+0AB0 | GUJARATI LETTER RA | `ra` | `r` | `r` |
+| લ | U+0AB2 | GUJARATI LETTER LA | `la` | `l` | `l` |
+| ળ | U+0AB3 | GUJARATI LETTER LLA | `la` | `ll` | `l` |
+| વ | U+0AB5 | GUJARATI LETTER VA | `va` | `v` | `v` |
+| શ | U+0AB6 | GUJARATI LETTER SHA | `sha` | `sh` | `s` |
+| ષ | U+0AB7 | GUJARATI LETTER SSA | `sha` | `ss` | `s` |
+| સ | U+0AB8 | GUJARATI LETTER SA | `sa` | `s` | `s` |
+| હ | U+0AB9 | GUJARATI LETTER HA | `ha` | `h` | `h` |
+| ા | U+0ABE | GUJARATI VOWEL SIGN AA | `a` | `aa` | `a` |
+| ી | U+0AC0 | GUJARATI VOWEL SIGN II | `i` | `ii` | `i` |
+| ૂ | U+0AC2 | GUJARATI VOWEL SIGN UU | `u` | `uu` | `u` |
+| ૃ | U+0AC3 | GUJARATI VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| ૄ | U+0AC4 | GUJARATI VOWEL SIGN VOCALIC RR | `r` | `RR` | `r` |
+| ૅ | U+0AC5 | GUJARATI VOWEL SIGN CANDRA E | `e` | `eN` | `e` |
+| ૉ | U+0AC9 | GUJARATI VOWEL SIGN CANDRA O | `o` | `oN` | `o` |
+| ૐ | U+0AD0 | GUJARATI OM | `om` | `AUM` | `Om` |
+| ૠ | U+0AE0 | GUJARATI LETTER VOCALIC RR | `r` | `RR` | `r` |
 
 ### kn — Kannada
 
+Block: 91 assigned codepoints, 90 mapped by at least one library.
+
+Coverage: translit maps 79/90, Unidecode maps 79/90. **3** mapped only by translit, **3** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ಁ | U+0C81 | KANNADA SIGN CANDRABINDU | `m` |
+| ೢ | U+0CE2 | KANNADA VOWEL SIGN VOCALIC L | `l` |
+| ೣ | U+0CE3 | KANNADA VOWEL SIGN VOCALIC LL | `l` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ೕ | U+0CD5 | KANNADA LENGTH MARK | `+` |
+| ೖ | U+0CD6 | KANNADA AI LENGTH MARK | `+` |
+| ೞ | U+0CDE | KANNADA LETTER FA | `lll` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| ಕ | U+0C95 | KANNADA LETTER KA | `ka` | `k` | `k` |
-| ರ | U+0CB0 | KANNADA LETTER RA | `ra` | `r` | `r` |
-| ನ | U+0CA8 | KANNADA LETTER NA | `na` | `n` | `n` |
-| ಾ | U+0CBE | KANNADA VOWEL SIGN AA | `a` | `aa` | `a` |
-| ಟ | U+0C9F | KANNADA LETTER TTA | `ta` | `tt` | `t` |
-| ದ | U+0CA6 | KANNADA LETTER DA | `da` | `d` | `d` |
-| ಷ | U+0CB7 | KANNADA LETTER SSA | `sha` | `ss` | `s` |
-| ಣ | U+0CA3 | KANNADA LETTER NNA | `na` | `nn` | `n` |
-| ಭ | U+0CAD | KANNADA LETTER BHA | `bha` | `bh` | `bh` |
-| ತ | U+0CA4 | KANNADA LETTER TA | `ta` | `t` | `t` |
 | ಂ | U+0C82 | KANNADA SIGN ANUSVARA | `m` | `N` | `m` |
+| ಃ | U+0C83 | KANNADA SIGN VISARGA | `h` | `H` | `h` |
+| ಈ | U+0C88 | KANNADA LETTER II | `i` | `ii` | `i` |
+| ಊ | U+0C8A | KANNADA LETTER UU | `u` | `uu` | `u` |
+| ಋ | U+0C8B | KANNADA LETTER VOCALIC R | `r` | `R` | `r` |
+| ಌ | U+0C8C | KANNADA LETTER VOCALIC L | `l` | `L` | `l` |
+| ಏ | U+0C8F | KANNADA LETTER EE | `e` | `ee` | `e` |
+| ಓ | U+0C93 | KANNADA LETTER OO | `o` | `oo` | `o` |
+| ಕ | U+0C95 | KANNADA LETTER KA | `ka` | `k` | `k` |
+| ಖ | U+0C96 | KANNADA LETTER KHA | `kha` | `kh` | `kh` |
+| ಗ | U+0C97 | KANNADA LETTER GA | `ga` | `g` | `g` |
+| ಘ | U+0C98 | KANNADA LETTER GHA | `gha` | `gh` | `gh` |
+| ಙ | U+0C99 | KANNADA LETTER NGA | `nga` | `ng` | `n` |
+| ಚ | U+0C9A | KANNADA LETTER CA | `cha` | `c` | `c` |
+| ಛ | U+0C9B | KANNADA LETTER CHA | `chha` | `ch` | `ch` |
 | ಜ | U+0C9C | KANNADA LETTER JA | `ja` | `j` | `j` |
+| ಝ | U+0C9D | KANNADA LETTER JHA | `jha` | `jh` | `jh` |
+| ಞ | U+0C9E | KANNADA LETTER NYA | `nya` | `ny` | `n` |
+| ಟ | U+0C9F | KANNADA LETTER TTA | `ta` | `tt` | `t` |
+| ಠ | U+0CA0 | KANNADA LETTER TTHA | `tha` | `tth` | `th` |
+| ಡ | U+0CA1 | KANNADA LETTER DDA | `da` | `dd` | `d` |
+| ಢ | U+0CA2 | KANNADA LETTER DDHA | `dha` | `ddh` | `dh` |
+| ಣ | U+0CA3 | KANNADA LETTER NNA | `na` | `nn` | `n` |
+| ತ | U+0CA4 | KANNADA LETTER TA | `ta` | `t` | `t` |
+| ಥ | U+0CA5 | KANNADA LETTER THA | `tha` | `th` | `th` |
+| ದ | U+0CA6 | KANNADA LETTER DA | `da` | `d` | `d` |
+| ಧ | U+0CA7 | KANNADA LETTER DHA | `dha` | `dh` | `dh` |
+| ನ | U+0CA8 | KANNADA LETTER NA | `na` | `n` | `n` |
+| ಪ | U+0CAA | KANNADA LETTER PA | `pa` | `p` | `p` |
+| ಫ | U+0CAB | KANNADA LETTER PHA | `pha` | `ph` | `ph` |
+| ಬ | U+0CAC | KANNADA LETTER BA | `ba` | `b` | `b` |
+| ಭ | U+0CAD | KANNADA LETTER BHA | `bha` | `bh` | `bh` |
+| ಮ | U+0CAE | KANNADA LETTER MA | `ma` | `m` | `m` |
 | ಯ | U+0CAF | KANNADA LETTER YA | `ya` | `y` | `y` |
+| ರ | U+0CB0 | KANNADA LETTER RA | `ra` | `r` | `r` |
+| ಱ | U+0CB1 | KANNADA LETTER RRA | `ra` | `rr` | `r` |
+| ಲ | U+0CB2 | KANNADA LETTER LA | `la` | `l` | `l` |
+| ಳ | U+0CB3 | KANNADA LETTER LLA | `la` | `ll` | `l` |
+| ವ | U+0CB5 | KANNADA LETTER VA | `va` | `v` | `v` |
+| ಶ | U+0CB6 | KANNADA LETTER SHA | `sha` | `sh` | `s` |
+| ಷ | U+0CB7 | KANNADA LETTER SSA | `sha` | `ss` | `s` |
+| ಸ | U+0CB8 | KANNADA LETTER SA | `sa` | `s` | `s` |
+| ಹ | U+0CB9 | KANNADA LETTER HA | `ha` | `h` | `h` |
+| ಾ | U+0CBE | KANNADA VOWEL SIGN AA | `a` | `aa` | `a` |
+| ೀ | U+0CC0 | KANNADA VOWEL SIGN II | `i` | `ii` | `i` |
+| ೂ | U+0CC2 | KANNADA VOWEL SIGN UU | `u` | `uu` | `u` |
+| ೃ | U+0CC3 | KANNADA VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| ೄ | U+0CC4 | KANNADA VOWEL SIGN VOCALIC RR | `r` | `RR` | `r` |
+| ೇ | U+0CC7 | KANNADA VOWEL SIGN EE | `e` | `ee` | `e` |
+| ೋ | U+0CCB | KANNADA VOWEL SIGN OO | `o` | `oo` | `o` |
+| | | *...2 more differences* | | | |
 
 ### ml — Malayalam
 
+Block: 118 assigned codepoints, 115 mapped by at least one library.
+
+Coverage: translit maps 90/115, Unidecode maps 77/115. **14** mapped only by translit, **1** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ഁ | U+0D01 | MALAYALAM SIGN CANDRABINDU | `m` |
+| ഄ | U+0D04 | MALAYALAM LETTER VEDIC ANUSVARA | `a` |
+| ൄ | U+0D44 | MALAYALAM VOWEL SIGN VOCALIC RR | `r` |
+| ൢ | U+0D62 | MALAYALAM VOWEL SIGN VOCALIC L | `l` |
+| ൣ | U+0D63 | MALAYALAM VOWEL SIGN VOCALIC LL | `l` |
+| ൰ | U+0D70 | MALAYALAM NUMBER TEN | `10` |
+| ൱ | U+0D71 | MALAYALAM NUMBER ONE HUNDRED | `100` |
+| ൲ | U+0D72 | MALAYALAM NUMBER ONE THOUSAND | `1000` |
+| ൺ | U+0D7A | MALAYALAM LETTER CHILLU NN | `n` |
+| ൻ | U+0D7B | MALAYALAM LETTER CHILLU N | `n` |
+| ർ | U+0D7C | MALAYALAM LETTER CHILLU RR | `r` |
+| ൽ | U+0D7D | MALAYALAM LETTER CHILLU L | `l` |
+| ൾ | U+0D7E | MALAYALAM LETTER CHILLU LL | `l` |
+| ൿ | U+0D7F | MALAYALAM LETTER CHILLU K | `k` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ൗ | U+0D57 | MALAYALAM AU LENGTH MARK | `+` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| ക | U+0D15 | MALAYALAM LETTER KA | `ka` | `k` | `k` |
-| േ | U+0D47 | MALAYALAM VOWEL SIGN EE | `e` | `ee` | `e` |
-| ര | U+0D30 | MALAYALAM LETTER RA | `ra` | `r` | `r` |
-| ള | U+0D33 | MALAYALAM LETTER LLA | `la` | `ll` | `l` |
 | ം | U+0D02 | MALAYALAM SIGN ANUSVARA | `m` | `N` | `m` |
-| ന | U+0D28 | MALAYALAM LETTER NA | `na` | `n` | `n` |
-| ത | U+0D24 | MALAYALAM LETTER TA | `ta` | `t` | `t` |
-| യ | U+0D2F | MALAYALAM LETTER YA | `ya` | `y` | `y` |
-| ല | U+0D32 | MALAYALAM LETTER LA | `la` | `l` | `l` |
-| സ | U+0D38 | MALAYALAM LETTER SA | `sa` | `s` | `s` |
-| ഥ | U+0D25 | MALAYALAM LETTER THA | `tha` | `th` | `th` |
-| ാ | U+0D3E | MALAYALAM VOWEL SIGN AA | `a` | `aa` | `a` |
-| മ | U+0D2E | MALAYALAM LETTER MA | `ma` | `m` | `m` |
+| ഃ | U+0D03 | MALAYALAM SIGN VISARGA | `h` | `H` | `h` |
+| ഈ | U+0D08 | MALAYALAM LETTER II | `i` | `ii` | `i` |
+| ഊ | U+0D0A | MALAYALAM LETTER UU | `u` | `uu` | `u` |
+| ഋ | U+0D0B | MALAYALAM LETTER VOCALIC R | `r` | `R` | `r` |
+| ഌ | U+0D0C | MALAYALAM LETTER VOCALIC L | `l` | `L` | `l` |
+| ഏ | U+0D0F | MALAYALAM LETTER EE | `e` | `ee` | `e` |
+| ഓ | U+0D13 | MALAYALAM LETTER OO | `o` | `oo` | `o` |
+| ക | U+0D15 | MALAYALAM LETTER KA | `ka` | `k` | `k` |
+| ഖ | U+0D16 | MALAYALAM LETTER KHA | `kha` | `kh` | `kh` |
+| ഗ | U+0D17 | MALAYALAM LETTER GA | `ga` | `g` | `g` |
+| ഘ | U+0D18 | MALAYALAM LETTER GHA | `gha` | `gh` | `gh` |
+| ങ | U+0D19 | MALAYALAM LETTER NGA | `nga` | `ng` | `n` |
+| ച | U+0D1A | MALAYALAM LETTER CA | `cha` | `c` | `c` |
+| ഛ | U+0D1B | MALAYALAM LETTER CHA | `chha` | `ch` | `ch` |
+| ജ | U+0D1C | MALAYALAM LETTER JA | `ja` | `j` | `j` |
+| ഝ | U+0D1D | MALAYALAM LETTER JHA | `jha` | `jh` | `jh` |
+| ഞ | U+0D1E | MALAYALAM LETTER NYA | `nya` | `ny` | `n` |
+| ട | U+0D1F | MALAYALAM LETTER TTA | `ta` | `tt` | `t` |
+| ഠ | U+0D20 | MALAYALAM LETTER TTHA | `tha` | `tth` | `th` |
+| ഡ | U+0D21 | MALAYALAM LETTER DDA | `da` | `dd` | `d` |
+| ഢ | U+0D22 | MALAYALAM LETTER DDHA | `dha` | `ddh` | `dh` |
 | ണ | U+0D23 | MALAYALAM LETTER NNA | `na` | `nn` | `n` |
+| ത | U+0D24 | MALAYALAM LETTER TA | `ta` | `t` | `t` |
+| ഥ | U+0D25 | MALAYALAM LETTER THA | `tha` | `th` | `th` |
+| ദ | U+0D26 | MALAYALAM LETTER DA | `da` | `d` | `d` |
+| ധ | U+0D27 | MALAYALAM LETTER DHA | `dha` | `dh` | `dh` |
+| ന | U+0D28 | MALAYALAM LETTER NA | `na` | `n` | `n` |
+| പ | U+0D2A | MALAYALAM LETTER PA | `pa` | `p` | `p` |
+| ഫ | U+0D2B | MALAYALAM LETTER PHA | `pha` | `ph` | `ph` |
+| ബ | U+0D2C | MALAYALAM LETTER BA | `ba` | `b` | `b` |
+| ഭ | U+0D2D | MALAYALAM LETTER BHA | `bha` | `bh` | `bh` |
+| മ | U+0D2E | MALAYALAM LETTER MA | `ma` | `m` | `m` |
+| യ | U+0D2F | MALAYALAM LETTER YA | `ya` | `y` | `y` |
+| ര | U+0D30 | MALAYALAM LETTER RA | `ra` | `r` | `r` |
+| റ | U+0D31 | MALAYALAM LETTER RRA | `ra` | `rr` | `r` |
+| ല | U+0D32 | MALAYALAM LETTER LA | `la` | `l` | `l` |
+| ള | U+0D33 | MALAYALAM LETTER LLA | `la` | `ll` | `l` |
+| ഴ | U+0D34 | MALAYALAM LETTER LLLA | `zha` | `lll` | `l` |
+| വ | U+0D35 | MALAYALAM LETTER VA | `va` | `v` | `v` |
+| ശ | U+0D36 | MALAYALAM LETTER SHA | `sha` | `sh` | `s` |
+| ഷ | U+0D37 | MALAYALAM LETTER SSA | `sha` | `ss` | `s` |
+| സ | U+0D38 | MALAYALAM LETTER SA | `sa` | `s` | `s` |
+| ഹ | U+0D39 | MALAYALAM LETTER HA | `ha` | `h` | `h` |
+| ാ | U+0D3E | MALAYALAM VOWEL SIGN AA | `a` | `aa` | `a` |
+| ീ | U+0D40 | MALAYALAM VOWEL SIGN II | `i` | `ii` | `i` |
+| ൂ | U+0D42 | MALAYALAM VOWEL SIGN UU | `u` | `uu` | `u` |
+| ൃ | U+0D43 | MALAYALAM VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| േ | U+0D47 | MALAYALAM VOWEL SIGN EE | `e` | `ee` | `e` |
+| ോ | U+0D4B | MALAYALAM VOWEL SIGN OO | `o` | `oo` | `o` |
+| | | *...2 more differences* | | | |
 
 ### mr — Marathi
 
+Block: 128 assigned codepoints, 127 mapped by at least one library.
+
+Coverage: translit maps 101/127, Unidecode maps 103/127. **4** mapped only by translit, **6** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ऄ | U+0904 | DEVANAGARI LETTER SHORT A | `a` |
+| ॕ | U+0955 | DEVANAGARI VOWEL SIGN CANDRA LONG E | `e` |
+| ॖ | U+0956 | DEVANAGARI VOWEL SIGN UE | `u` |
+| ॗ | U+0957 | DEVANAGARI VOWEL SIGN UUE | `u` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ़ | U+093C | DEVANAGARI SIGN NUKTA | `'` |
+| ऽ | U+093D | DEVANAGARI SIGN AVAGRAHA | `'` |
+| ॑ | U+0951 | DEVANAGARI STRESS SIGN UDATTA | `'` |
+| ॒ | U+0952 | DEVANAGARI STRESS SIGN ANUDATTA | `'` |
+| ॓ | U+0953 | DEVANAGARI GRAVE ACCENT | ``` |
+| ॔ | U+0954 | DEVANAGARI ACUTE ACCENT | `'` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
+| ँ | U+0901 | DEVANAGARI SIGN CANDRABINDU | `m` | `N` | `m` |
+| ं | U+0902 | DEVANAGARI SIGN ANUSVARA | `m` | `N` | `m` |
+| ः | U+0903 | DEVANAGARI SIGN VISARGA | `h` | `H` | `h` |
+| ई | U+0908 | DEVANAGARI LETTER II | `i` | `ii` | `i` |
+| ऊ | U+090A | DEVANAGARI LETTER UU | `u` | `uu` | `u` |
+| ऋ | U+090B | DEVANAGARI LETTER VOCALIC R | `r` | `R` | `r` |
+| ऌ | U+090C | DEVANAGARI LETTER VOCALIC L | `l` | `L` | `l` |
+| ऍ | U+090D | DEVANAGARI LETTER CANDRA E | `e` | `eN` | `e` |
+| ऑ | U+0911 | DEVANAGARI LETTER CANDRA O | `o` | `oN` | `o` |
+| क | U+0915 | DEVANAGARI LETTER KA | `ka` | `k` | `k` |
+| ख | U+0916 | DEVANAGARI LETTER KHA | `kha` | `kh` | `kh` |
+| ग | U+0917 | DEVANAGARI LETTER GA | `ga` | `g` | `g` |
+| घ | U+0918 | DEVANAGARI LETTER GHA | `gha` | `gh` | `gh` |
+| ङ | U+0919 | DEVANAGARI LETTER NGA | `nga` | `ng` | `n` |
+| च | U+091A | DEVANAGARI LETTER CA | `cha` | `c` | `c` |
+| छ | U+091B | DEVANAGARI LETTER CHA | `chha` | `ch` | `ch` |
+| ज | U+091C | DEVANAGARI LETTER JA | `ja` | `j` | `j` |
+| झ | U+091D | DEVANAGARI LETTER JHA | `jha` | `jh` | `jh` |
+| ञ | U+091E | DEVANAGARI LETTER NYA | `nya` | `ny` | `n` |
+| ट | U+091F | DEVANAGARI LETTER TTA | `ta` | `tt` | `t` |
+| ठ | U+0920 | DEVANAGARI LETTER TTHA | `tha` | `tth` | `th` |
+| ड | U+0921 | DEVANAGARI LETTER DDA | `da` | `dd` | `d` |
+| ढ | U+0922 | DEVANAGARI LETTER DDHA | `dha` | `ddh` | `dh` |
+| ण | U+0923 | DEVANAGARI LETTER NNA | `na` | `nn` | `n` |
+| त | U+0924 | DEVANAGARI LETTER TA | `ta` | `t` | `t` |
+| थ | U+0925 | DEVANAGARI LETTER THA | `tha` | `th` | `th` |
+| द | U+0926 | DEVANAGARI LETTER DA | `da` | `d` | `d` |
+| ध | U+0927 | DEVANAGARI LETTER DHA | `dha` | `dh` | `dh` |
+| न | U+0928 | DEVANAGARI LETTER NA | `na` | `n` | `n` |
+| ऩ | U+0929 | DEVANAGARI LETTER NNNA | `na` | `nnn` | `n` |
+| प | U+092A | DEVANAGARI LETTER PA | `pa` | `p` | `p` |
+| फ | U+092B | DEVANAGARI LETTER PHA | `pha` | `ph` | `ph` |
+| ब | U+092C | DEVANAGARI LETTER BA | `ba` | `b` | `b` |
+| भ | U+092D | DEVANAGARI LETTER BHA | `bha` | `bh` | `bh` |
 | म | U+092E | DEVANAGARI LETTER MA | `ma` | `m` | `m` |
+| य | U+092F | DEVANAGARI LETTER YA | `ya` | `y` | `y` |
+| र | U+0930 | DEVANAGARI LETTER RA | `ra` | `r` | `r` |
+| ऱ | U+0931 | DEVANAGARI LETTER RRA | `ra` | `rr` | `r` |
+| ल | U+0932 | DEVANAGARI LETTER LA | `la` | `l` | `l` |
+| ळ | U+0933 | DEVANAGARI LETTER LLA | `la` | `l` | `l` |
+| ऴ | U+0934 | DEVANAGARI LETTER LLLA | `la` | `lll` | `l` |
+| व | U+0935 | DEVANAGARI LETTER VA | `va` | `v` | `v` |
+| श | U+0936 | DEVANAGARI LETTER SHA | `sha` | `sh` | `s` |
+| ष | U+0937 | DEVANAGARI LETTER SSA | `sha` | `ss` | `s` |
+| स | U+0938 | DEVANAGARI LETTER SA | `sa` | `s` | `s` |
 | ह | U+0939 | DEVANAGARI LETTER HA | `ha` | `h` | `h` |
 | ा | U+093E | DEVANAGARI VOWEL SIGN AA | `a` | `aa` | `a` |
-| र | U+0930 | DEVANAGARI LETTER RA | `ra` | `r` | `r` |
-| ष | U+0937 | DEVANAGARI LETTER SSA | `sha` | `ss` | `s` |
-| ट | U+091F | DEVANAGARI LETTER TTA | `ta` | `tt` | `t` |
-| भ | U+092D | DEVANAGARI LETTER BHA | `bha` | `bh` | `bh` |
-| त | U+0924 | DEVANAGARI LETTER TA | `ta` | `t` | `t` |
 | ी | U+0940 | DEVANAGARI VOWEL SIGN II | `i` | `ii` | `i` |
-| ल | U+0932 | DEVANAGARI LETTER LA | `la` | `l` | `l` |
-| क | U+0915 | DEVANAGARI LETTER KA | `ka` | `k` | `k` |
-| ज | U+091C | DEVANAGARI LETTER JA | `ja` | `j` | `j` |
-| य | U+092F | DEVANAGARI LETTER YA | `ya` | `y` | `y` |
+| ू | U+0942 | DEVANAGARI VOWEL SIGN UU | `u` | `uu` | `u` |
+| ृ | U+0943 | DEVANAGARI VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| | | *...18 more differences* | | | |
 
 ### ne — Nepali
 
+Block: 128 assigned codepoints, 127 mapped by at least one library.
+
+Coverage: translit maps 101/127, Unidecode maps 103/127. **4** mapped only by translit, **6** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ऄ | U+0904 | DEVANAGARI LETTER SHORT A | `a` |
+| ॕ | U+0955 | DEVANAGARI VOWEL SIGN CANDRA LONG E | `e` |
+| ॖ | U+0956 | DEVANAGARI VOWEL SIGN UE | `u` |
+| ॗ | U+0957 | DEVANAGARI VOWEL SIGN UUE | `u` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ़ | U+093C | DEVANAGARI SIGN NUKTA | `'` |
+| ऽ | U+093D | DEVANAGARI SIGN AVAGRAHA | `'` |
+| ॑ | U+0951 | DEVANAGARI STRESS SIGN UDATTA | `'` |
+| ॒ | U+0952 | DEVANAGARI STRESS SIGN ANUDATTA | `'` |
+| ॓ | U+0953 | DEVANAGARI GRAVE ACCENT | ``` |
+| ॔ | U+0954 | DEVANAGARI ACUTE ACCENT | `'` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| न | U+0928 | DEVANAGARI LETTER NA | `na` | `n` | `n` |
-| प | U+092A | DEVANAGARI LETTER PA | `pa` | `p` | `p` |
-| ा | U+093E | DEVANAGARI VOWEL SIGN AA | `a` | `aa` | `a` |
-| ल | U+0932 | DEVANAGARI LETTER LA | `la` | `l` | `l` |
-| श | U+0936 | DEVANAGARI LETTER SHA | `sha` | `sh` | `s` |
-| य | U+092F | DEVANAGARI LETTER YA | `ya` | `y` | `y` |
+| ँ | U+0901 | DEVANAGARI SIGN CANDRABINDU | `m` | `N` | `m` |
+| ं | U+0902 | DEVANAGARI SIGN ANUSVARA | `m` | `N` | `m` |
+| ः | U+0903 | DEVANAGARI SIGN VISARGA | `h` | `H` | `h` |
+| ई | U+0908 | DEVANAGARI LETTER II | `i` | `ii` | `i` |
+| ऊ | U+090A | DEVANAGARI LETTER UU | `u` | `uu` | `u` |
+| ऋ | U+090B | DEVANAGARI LETTER VOCALIC R | `r` | `R` | `r` |
+| ऌ | U+090C | DEVANAGARI LETTER VOCALIC L | `l` | `L` | `l` |
+| ऍ | U+090D | DEVANAGARI LETTER CANDRA E | `e` | `eN` | `e` |
+| ऑ | U+0911 | DEVANAGARI LETTER CANDRA O | `o` | `oN` | `o` |
 | क | U+0915 | DEVANAGARI LETTER KA | `ka` | `k` | `k` |
-| स | U+0938 | DEVANAGARI LETTER SA | `sa` | `s` | `s` |
-| व | U+0935 | DEVANAGARI LETTER VA | `va` | `v` | `v` |
+| ख | U+0916 | DEVANAGARI LETTER KHA | `kha` | `kh` | `kh` |
+| ग | U+0917 | DEVANAGARI LETTER GA | `ga` | `g` | `g` |
+| घ | U+0918 | DEVANAGARI LETTER GHA | `gha` | `gh` | `gh` |
+| ङ | U+0919 | DEVANAGARI LETTER NGA | `nga` | `ng` | `n` |
+| च | U+091A | DEVANAGARI LETTER CA | `cha` | `c` | `c` |
+| छ | U+091B | DEVANAGARI LETTER CHA | `chha` | `ch` | `ch` |
+| ज | U+091C | DEVANAGARI LETTER JA | `ja` | `j` | `j` |
+| झ | U+091D | DEVANAGARI LETTER JHA | `jha` | `jh` | `jh` |
+| ञ | U+091E | DEVANAGARI LETTER NYA | `nya` | `ny` | `n` |
+| ट | U+091F | DEVANAGARI LETTER TTA | `ta` | `tt` | `t` |
+| ठ | U+0920 | DEVANAGARI LETTER TTHA | `tha` | `tth` | `th` |
+| ड | U+0921 | DEVANAGARI LETTER DDA | `da` | `dd` | `d` |
+| ढ | U+0922 | DEVANAGARI LETTER DDHA | `dha` | `ddh` | `dh` |
+| ण | U+0923 | DEVANAGARI LETTER NNA | `na` | `nn` | `n` |
 | त | U+0924 | DEVANAGARI LETTER TA | `ta` | `t` | `t` |
-| र | U+0930 | DEVANAGARI LETTER RA | `ra` | `r` | `r` |
+| थ | U+0925 | DEVANAGARI LETTER THA | `tha` | `th` | `th` |
 | द | U+0926 | DEVANAGARI LETTER DA | `da` | `d` | `d` |
+| ध | U+0927 | DEVANAGARI LETTER DHA | `dha` | `dh` | `dh` |
+| न | U+0928 | DEVANAGARI LETTER NA | `na` | `n` | `n` |
+| ऩ | U+0929 | DEVANAGARI LETTER NNNA | `na` | `nnn` | `n` |
+| प | U+092A | DEVANAGARI LETTER PA | `pa` | `p` | `p` |
+| फ | U+092B | DEVANAGARI LETTER PHA | `pha` | `ph` | `ph` |
+| ब | U+092C | DEVANAGARI LETTER BA | `ba` | `b` | `b` |
+| भ | U+092D | DEVANAGARI LETTER BHA | `bha` | `bh` | `bh` |
+| म | U+092E | DEVANAGARI LETTER MA | `ma` | `m` | `m` |
+| य | U+092F | DEVANAGARI LETTER YA | `ya` | `y` | `y` |
+| र | U+0930 | DEVANAGARI LETTER RA | `ra` | `r` | `r` |
+| ऱ | U+0931 | DEVANAGARI LETTER RRA | `ra` | `rr` | `r` |
+| ल | U+0932 | DEVANAGARI LETTER LA | `la` | `l` | `l` |
+| ळ | U+0933 | DEVANAGARI LETTER LLA | `la` | `l` | `l` |
+| ऴ | U+0934 | DEVANAGARI LETTER LLLA | `la` | `lll` | `l` |
+| व | U+0935 | DEVANAGARI LETTER VA | `va` | `v` | `v` |
+| श | U+0936 | DEVANAGARI LETTER SHA | `sha` | `sh` | `s` |
+| ष | U+0937 | DEVANAGARI LETTER SSA | `sha` | `ss` | `s` |
+| स | U+0938 | DEVANAGARI LETTER SA | `sa` | `s` | `s` |
 | ह | U+0939 | DEVANAGARI LETTER HA | `ha` | `h` | `h` |
+| ा | U+093E | DEVANAGARI VOWEL SIGN AA | `a` | `aa` | `a` |
+| ी | U+0940 | DEVANAGARI VOWEL SIGN II | `i` | `ii` | `i` |
+| ू | U+0942 | DEVANAGARI VOWEL SIGN UU | `u` | `uu` | `u` |
+| ृ | U+0943 | DEVANAGARI VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| | | *...18 more differences* | | | |
 
 ### or — Odia
 
-Coverage: translit maps 18/20 chars, Unidecode maps 19/20. **0** mapped only by translit, **1** mapped only by Unidecode.
+Block: 91 assigned codepoints, 90 mapped by at least one library.
+
+Coverage: translit maps 78/90, Unidecode maps 77/90. **5** mapped only by translit, **4** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ଵ | U+0B35 | ORIYA LETTER VA | `va` |
+| ୄ | U+0B44 | ORIYA VOWEL SIGN VOCALIC RR | `r` |
+| ୕ | U+0B55 | ORIYA SIGN OVERLINE | `e` |
+| ୢ | U+0B62 | ORIYA VOWEL SIGN VOCALIC L | `l` |
+| ୣ | U+0B63 | ORIYA VOWEL SIGN VOCALIC LL | `l` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
 | Char | Codepoint | Name | Unidecode |
 |------|-----------|------|-----------|
 | ଼ | U+0B3C | ORIYA SIGN NUKTA | `'` |
+| ଽ | U+0B3D | ORIYA SIGN AVAGRAHA | `'` |
+| ୖ | U+0B56 | ORIYA AI LENGTH MARK | `+` |
+| ୗ | U+0B57 | ORIYA AU LENGTH MARK | `+` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| ଡ | U+0B21 | ORIYA LETTER DDA | `da` | `dd` | `d` |
-| ଶ | U+0B36 | ORIYA LETTER SHA | `sha` | `sh` | `s` |
-| ା | U+0B3E | ORIYA VOWEL SIGN AA | `a` | `aa` | `a` |
-| ଭ | U+0B2D | ORIYA LETTER BHA | `bha` | `bh` | `bh` |
-| ର | U+0B30 | ORIYA LETTER RA | `ra` | `r` | `r` |
-| ତ | U+0B24 | ORIYA LETTER TA | `ta` | `t` | `t` |
-| ପ | U+0B2A | ORIYA LETTER PA | `pa` | `p` | `p` |
-| ୂ | U+0B42 | ORIYA VOWEL SIGN UU | `u` | `uu` | `u` |
-| ବ | U+0B2C | ORIYA LETTER BA | `ba` | `b` | `b` |
+| ଁ | U+0B01 | ORIYA SIGN CANDRABINDU | `m` | `N` | `m` |
+| ଂ | U+0B02 | ORIYA SIGN ANUSVARA | `m` | `N` | `m` |
+| ଃ | U+0B03 | ORIYA SIGN VISARGA | `h` | `H` | `h` |
+| ଈ | U+0B08 | ORIYA LETTER II | `i` | `ii` | `i` |
+| ଊ | U+0B0A | ORIYA LETTER UU | `u` | `uu` | `u` |
+| ଋ | U+0B0B | ORIYA LETTER VOCALIC R | `r` | `R` | `r` |
+| ଌ | U+0B0C | ORIYA LETTER VOCALIC L | `l` | `L` | `l` |
 | କ | U+0B15 | ORIYA LETTER KA | `ka` | `k` | `k` |
-| ଳ | U+0B33 | ORIYA LETTER LLA | `la` | `ll` | `l` |
-| ସ | U+0B38 | ORIYA LETTER SA | `sa` | `s` | `s` |
+| ଖ | U+0B16 | ORIYA LETTER KHA | `kha` | `kh` | `kh` |
+| ଗ | U+0B17 | ORIYA LETTER GA | `ga` | `g` | `g` |
+| ଘ | U+0B18 | ORIYA LETTER GHA | `gha` | `gh` | `gh` |
+| ଙ | U+0B19 | ORIYA LETTER NGA | `nga` | `ng` | `n` |
+| ଚ | U+0B1A | ORIYA LETTER CA | `cha` | `c` | `c` |
+| ଛ | U+0B1B | ORIYA LETTER CHA | `chha` | `ch` | `ch` |
+| ଜ | U+0B1C | ORIYA LETTER JA | `ja` | `j` | `j` |
+| ଝ | U+0B1D | ORIYA LETTER JHA | `jha` | `jh` | `jh` |
+| ଞ | U+0B1E | ORIYA LETTER NYA | `nya` | `ny` | `n` |
+| ଟ | U+0B1F | ORIYA LETTER TTA | `ta` | `tt` | `t` |
+| ଠ | U+0B20 | ORIYA LETTER TTHA | `tha` | `tth` | `th` |
+| ଡ | U+0B21 | ORIYA LETTER DDA | `da` | `dd` | `d` |
+| ଢ | U+0B22 | ORIYA LETTER DDHA | `dha` | `ddh` | `dh` |
+| ଣ | U+0B23 | ORIYA LETTER NNA | `na` | `nn` | `n` |
+| ତ | U+0B24 | ORIYA LETTER TA | `ta` | `t` | `t` |
 | ଥ | U+0B25 | ORIYA LETTER THA | `tha` | `th` | `th` |
+| ଦ | U+0B26 | ORIYA LETTER DA | `da` | `d` | `d` |
+| ଧ | U+0B27 | ORIYA LETTER DHA | `dha` | `dh` | `dh` |
+| ନ | U+0B28 | ORIYA LETTER NA | `na` | `n` | `n` |
+| ପ | U+0B2A | ORIYA LETTER PA | `pa` | `p` | `p` |
+| ଫ | U+0B2B | ORIYA LETTER PHA | `pha` | `ph` | `ph` |
+| ବ | U+0B2C | ORIYA LETTER BA | `ba` | `b` | `b` |
+| ଭ | U+0B2D | ORIYA LETTER BHA | `bha` | `bh` | `bh` |
+| ମ | U+0B2E | ORIYA LETTER MA | `ma` | `m` | `m` |
+| ଯ | U+0B2F | ORIYA LETTER YA | `ya` | `y` | `y` |
+| ର | U+0B30 | ORIYA LETTER RA | `ra` | `r` | `r` |
+| ଲ | U+0B32 | ORIYA LETTER LA | `la` | `l` | `l` |
+| ଳ | U+0B33 | ORIYA LETTER LLA | `la` | `ll` | `l` |
+| ଶ | U+0B36 | ORIYA LETTER SHA | `sha` | `sh` | `s` |
+| ଷ | U+0B37 | ORIYA LETTER SSA | `sha` | `ss` | `s` |
+| ସ | U+0B38 | ORIYA LETTER SA | `sa` | `s` | `s` |
+| ହ | U+0B39 | ORIYA LETTER HA | `ha` | `h` | `h` |
+| ା | U+0B3E | ORIYA VOWEL SIGN AA | `a` | `aa` | `a` |
+| ୀ | U+0B40 | ORIYA VOWEL SIGN II | `i` | `ii` | `i` |
+| ୂ | U+0B42 | ORIYA VOWEL SIGN UU | `u` | `uu` | `u` |
+| ୃ | U+0B43 | ORIYA VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| ଡ଼ | U+0B5C | ORIYA LETTER RRA | `da` | `rr` | `r` |
+| ଢ଼ | U+0B5D | ORIYA LETTER RHA | `dha` | `rh` | `rh` |
+| ୟ | U+0B5F | ORIYA LETTER YYA | `ya` | `yy` | `y` |
+| ୠ | U+0B60 | ORIYA LETTER VOCALIC RR | `r` | `RR` | `r` |
+| ୡ | U+0B61 | ORIYA LETTER VOCALIC LL | `l` | `LL` | `l` |
 
 ### pa — Punjabi
 
-Coverage: translit maps 12/14 chars, Unidecode maps 14/14. **0** mapped only by translit, **2** mapped only by Unidecode.
+Block: 80 assigned codepoints, 76 mapped by at least one library.
+
+Coverage: translit maps 70/76, Unidecode maps 72/76. **2** mapped only by translit, **4** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ਁ | U+0A01 | GURMUKHI SIGN ADAK BINDI | `m` |
+| ਃ | U+0A03 | GURMUKHI SIGN VISARGA | `h` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
 | Char | Codepoint | Name | Unidecode |
 |------|-----------|------|-----------|
+| ਼ | U+0A3C | GURMUKHI SIGN NUKTA | `'` |
 | ੰ | U+0A70 | GURMUKHI TIPPI | `N` |
 | ੱ | U+0A71 | GURMUKHI ADDAK | `H` |
+| ੴ | U+0A74 | GURMUKHI EK ONKAR | `G.E.O.` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| ਪ | U+0A2A | GURMUKHI LETTER PA | `pa` | `p` | `p` |
+| ਂ | U+0A02 | GURMUKHI SIGN BINDI | `m` | `N` | `m` |
+| ਈ | U+0A08 | GURMUKHI LETTER II | `i` | `ii` | `i` |
+| ਊ | U+0A0A | GURMUKHI LETTER UU | `u` | `uu` | `u` |
+| ਏ | U+0A0F | GURMUKHI LETTER EE | `e` | `ee` | `e` |
+| ਓ | U+0A13 | GURMUKHI LETTER OO | `o` | `oo` | `o` |
+| ਕ | U+0A15 | GURMUKHI LETTER KA | `ka` | `k` | `k` |
+| ਖ | U+0A16 | GURMUKHI LETTER KHA | `kha` | `kh` | `kh` |
+| ਗ | U+0A17 | GURMUKHI LETTER GA | `ga` | `g` | `g` |
+| ਘ | U+0A18 | GURMUKHI LETTER GHA | `gha` | `gh` | `gh` |
+| ਙ | U+0A19 | GURMUKHI LETTER NGA | `nga` | `ng` | `n` |
+| ਚ | U+0A1A | GURMUKHI LETTER CA | `cha` | `c` | `c` |
+| ਛ | U+0A1B | GURMUKHI LETTER CHA | `chha` | `ch` | `ch` |
 | ਜ | U+0A1C | GURMUKHI LETTER JA | `ja` | `j` | `j` |
-| ਾ | U+0A3E | GURMUKHI VOWEL SIGN AA | `a` | `aa` | `a` |
+| ਝ | U+0A1D | GURMUKHI LETTER JHA | `jha` | `jh` | `jh` |
+| ਞ | U+0A1E | GURMUKHI LETTER NYA | `nya` | `ny` | `n` |
+| ਟ | U+0A1F | GURMUKHI LETTER TTA | `ta` | `tt` | `t` |
+| ਠ | U+0A20 | GURMUKHI LETTER TTHA | `tha` | `tth` | `th` |
+| ਡ | U+0A21 | GURMUKHI LETTER DDA | `da` | `dd` | `d` |
+| ਢ | U+0A22 | GURMUKHI LETTER DDHA | `dha` | `ddh` | `dh` |
+| ਣ | U+0A23 | GURMUKHI LETTER NNA | `na` | `nn` | `n` |
+| ਤ | U+0A24 | GURMUKHI LETTER TA | `ta` | `t` | `t` |
+| ਥ | U+0A25 | GURMUKHI LETTER THA | `tha` | `th` | `th` |
+| ਦ | U+0A26 | GURMUKHI LETTER DA | `da` | `d` | `d` |
+| ਧ | U+0A27 | GURMUKHI LETTER DHA | `dha` | `dh` | `dh` |
+| ਨ | U+0A28 | GURMUKHI LETTER NA | `na` | `n` | `n` |
+| ਪ | U+0A2A | GURMUKHI LETTER PA | `pa` | `p` | `p` |
+| ਫ | U+0A2B | GURMUKHI LETTER PHA | `pha` | `ph` | `ph` |
 | ਬ | U+0A2C | GURMUKHI LETTER BA | `ba` | `b` | `b` |
 | ਭ | U+0A2D | GURMUKHI LETTER BHA | `bha` | `bb` | `bh` |
+| ਮ | U+0A2E | GURMUKHI LETTER MA | `ma` | `m` | `m` |
+| ਯ | U+0A2F | GURMUKHI LETTER YA | `ya` | `y` | `y` |
 | ਰ | U+0A30 | GURMUKHI LETTER RA | `ra` | `r` | `r` |
-| ਤ | U+0A24 | GURMUKHI LETTER TA | `ta` | `t` | `t` |
-| ਦ | U+0A26 | GURMUKHI LETTER DA | `da` | `d` | `d` |
-| ਕ | U+0A15 | GURMUKHI LETTER KA | `ka` | `k` | `k` |
+| ਲ | U+0A32 | GURMUKHI LETTER LA | `la` | `l` | `l` |
+| ਲ਼ | U+0A33 | GURMUKHI LETTER LLA | `la` | `ll` | `l` |
+| ਵ | U+0A35 | GURMUKHI LETTER VA | `va` | `v` | `v` |
+| ਸ਼ | U+0A36 | GURMUKHI LETTER SHA | `sha` | `sh` | `s` |
+| ਸ | U+0A38 | GURMUKHI LETTER SA | `sa` | `s` | `s` |
 | ਹ | U+0A39 | GURMUKHI LETTER HA | `ha` | `h` | `h` |
+| ਾ | U+0A3E | GURMUKHI VOWEL SIGN AA | `a` | `aa` | `a` |
+| ੀ | U+0A40 | GURMUKHI VOWEL SIGN II | `i` | `ii` | `i` |
+| ੂ | U+0A42 | GURMUKHI VOWEL SIGN UU | `u` | `uu` | `u` |
+| ੇ | U+0A47 | GURMUKHI VOWEL SIGN EE | `e` | `ee` | `e` |
+| ੋ | U+0A4B | GURMUKHI VOWEL SIGN OO | `o` | `oo` | `o` |
+| ਖ਼ | U+0A59 | GURMUKHI LETTER KHHA | `kha` | `khh` | `kh` |
+| ਗ਼ | U+0A5A | GURMUKHI LETTER GHHA | `ga` | `ghh` | `g` |
+| ਜ਼ | U+0A5B | GURMUKHI LETTER ZA | `za` | `z` | `z` |
+| ੜ | U+0A5C | GURMUKHI LETTER RRA | `ra` | `rr` | `r` |
+| ਫ਼ | U+0A5E | GURMUKHI LETTER FA | `fa` | `f` | `ph` |
 
 ### sa — Sanskrit
 
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| स | U+0938 | DEVANAGARI LETTER SA | `sa` | `s` | `s` |
-| ं | U+0902 | DEVANAGARI SIGN ANUSVARA | `m` | `N` | `m` |
-| क | U+0915 | DEVANAGARI LETTER KA | `ka` | `k` | `k` |
-| ृ | U+0943 | DEVANAGARI VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
-| त | U+0924 | DEVANAGARI LETTER TA | `ta` | `t` | `t` |
-| म | U+092E | DEVANAGARI LETTER MA | `ma` | `m` | `m` |
-| ज | U+091C | DEVANAGARI LETTER JA | `ja` | `j` | `j` |
-| ग | U+0917 | DEVANAGARI LETTER GA | `ga` | `g` | `g` |
-| ः | U+0903 | DEVANAGARI SIGN VISARGA | `h` | `H` | `h` |
-| ा | U+093E | DEVANAGARI VOWEL SIGN AA | `a` | `aa` | `a` |
-| प | U+092A | DEVANAGARI LETTER PA | `pa` | `p` | `p` |
-| र | U+0930 | DEVANAGARI LETTER RA | `ra` | `r` | `r` |
-| च | U+091A | DEVANAGARI LETTER CA | `cha` | `c` | `c` |
-| ी | U+0940 | DEVANAGARI VOWEL SIGN II | `i` | `ii` | `i` |
-| न | U+0928 | DEVANAGARI LETTER NA | `na` | `n` | `n` |
-| भ | U+092D | DEVANAGARI LETTER BHA | `bha` | `bh` | `bh` |
-| ष | U+0937 | DEVANAGARI LETTER SSA | `sha` | `ss` | `s` |
+Block: 128 assigned codepoints, 127 mapped by at least one library.
 
-### as — Assamese
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| স | U+09B8 | BENGALI LETTER SA | `sa` | `s` | `s` |
-| ম | U+09AE | BENGALI LETTER MA | `ma` | `m` | `m` |
-| ভ | U+09AD | BENGALI LETTER BHA | `bha` | `bh` | `bh` |
-| া | U+09BE | BENGALI VOWEL SIGN AA | `a` | `aa` | `a` |
-| ৰ | U+09F0 | BENGALI LETTER RA WITH MIDDLE DIAGONAL | `ra` | `r'` | `r` |
-| ত | U+09A4 | BENGALI LETTER TA | `ta` | `t` | `t` |
-| প | U+09AA | BENGALI LETTER PA | `pa` | `p` | `p` |
-| ূ | U+09C2 | BENGALI VOWEL SIGN UU | `u` | `uu` | `u` |
-| ব | U+09AC | BENGALI LETTER BA | `ba` | `b` | `b` |
-| ঞ | U+099E | BENGALI LETTER NYA | `nya` | `ny` | `n` |
-| চ | U+099A | BENGALI LETTER CA | `cha` | `c` | `c` |
-| ল | U+09B2 | BENGALI LETTER LA | `la` | `l` | `l` |
-| খ | U+0996 | BENGALI LETTER KHA | `kha` | `kh` | `kh` |
-| ন | U+09A8 | BENGALI LETTER NA | `na` | `n` | `n` |
-| জ | U+099C | BENGALI LETTER JA | `ja` | `j` | `j` |
-| য | U+09AF | BENGALI LETTER YA | `ya` | `y` | `y` |
-
-### ka — Georgian
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| ქ | U+10E5 | GEORGIAN LETTER KHAR | `k` | `k`` | `k` |
-| თ | U+10D7 | GEORGIAN LETTER TAN | `t` | `t`` | `t` |
-| ხ | U+10EE | GEORGIAN LETTER XAN | `kh` | `x` | `kh` |
-| წ | U+10EC | GEORGIAN LETTER CIL | `ts` | `c` | `ts'` |
-| ფ | U+10E4 | GEORGIAN LETTER PHAR | `p` | `p`` | `p` |
-| ღ | U+10E6 | GEORGIAN LETTER GHAN | `gh` | `g'` | `gh` |
-
-### si — Sinhala
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| ශ | U+0DC1 | SINHALA LETTER TAALUJA SAYANNA | `sha` | `sh` | `s` |
-| ර | U+0DBB | SINHALA LETTER RAYANNA | `ra` | `r` | `r` |
-| ල | U+0DBD | SINHALA LETTER DANTAJA LAYANNA | `la` | `l` | `l` |
-| ං | U+0D82 | SINHALA SIGN ANUSVARAYA | `m` | `N` | `m` |
-| ක | U+0D9A | SINHALA LETTER ALPAPRAANA KAYANNA | `ka` | `k` | `k` |
-| ා | U+0DCF | SINHALA VOWEL SIGN AELA-PILLA | `a` | `aa` | `a` |
-| ප | U+0DB4 | SINHALA LETTER ALPAPRAANA PAYANNA | `pa` | `p` | `p` |
-| ජ | U+0DA2 | SINHALA LETTER ALPAPRAANA JAYANNA | `ja` | `j` | `j` |
-| ත | U+0DAD | SINHALA LETTER ALPAPRAANA TAYANNA | `ta` | `t` | `t` |
-| න | U+0DB1 | SINHALA LETTER DANTAJA NAYANNA | `na` | `n` | `n` |
-| ස | U+0DC3 | SINHALA LETTER DANTAJA SAYANNA | `sa` | `s` | `s` |
-| ම | U+0DB8 | SINHALA LETTER MAYANNA | `ma` | `m` | `m` |
-| ව | U+0DC0 | SINHALA LETTER VAYANNA | `va` | `v` | `v` |
-| ද | U+0DAF | SINHALA LETTER ALPAPRAANA DAYANNA | `da` | `d` | `d` |
-| ය | U+0DBA | SINHALA LETTER YAYANNA | `ya` | `y` | `y` |
-
-### th — Thai
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| า | U+0E32 | THAI CHARACTER SARA AA | `a` | `aa` | `a` |
-| อ | U+0E2D | THAI CHARACTER O ANG | `o` | ``` | `o` |
-| ู | U+0E39 | THAI CHARACTER SARA UU | `u` | `uu` | `u` |
-| ี | U+0E35 | THAI CHARACTER SARA II | `i` | `ii` | `i` |
-
-### lo — Lao
-
-Coverage: translit maps 15/15 chars, Unidecode maps 14/15. **1** mapped only by translit, **0** mapped only by Unidecode.
+Coverage: translit maps 101/127, Unidecode maps 103/127. **4** mapped only by translit, **6** mapped only by Unidecode.
 
 **Mapped only by translit** (Unidecode returns empty/`[?]`):
 
 | Char | Codepoint | Name | translit |
 |------|-----------|------|----------|
-| ັ | U+0EB1 | LAO VOWEL SIGN MAI KAN | `a` |
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| າ | U+0EB2 | LAO VOWEL SIGN AA | `a` | `aa` | `a` |
-| ຕ | U+0E95 | LAO LETTER TO | `t` | `h` | `t` |
-
-### km — Khmer
-
-Coverage: translit maps 15/17 chars, Unidecode maps 16/17. **0** mapped only by translit, **1** mapped only by Unidecode.
+| ऄ | U+0904 | DEVANAGARI LETTER SHORT A | `a` |
+| ॕ | U+0955 | DEVANAGARI VOWEL SIGN CANDRA LONG E | `e` |
+| ॖ | U+0956 | DEVANAGARI VOWEL SIGN UE | `u` |
+| ॗ | U+0957 | DEVANAGARI VOWEL SIGN UUE | `u` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
 | Char | Codepoint | Name | Unidecode |
 |------|-----------|------|-----------|
-| ះ | U+17C7 | KHMER SIGN REAHMUK | `H` |
+| ़ | U+093C | DEVANAGARI SIGN NUKTA | `'` |
+| ऽ | U+093D | DEVANAGARI SIGN AVAGRAHA | `'` |
+| ॑ | U+0951 | DEVANAGARI STRESS SIGN UDATTA | `'` |
+| ॒ | U+0952 | DEVANAGARI STRESS SIGN ANUDATTA | `'` |
+| ॓ | U+0953 | DEVANAGARI GRAVE ACCENT | ``` |
+| ॔ | U+0954 | DEVANAGARI ACUTE ACCENT | `'` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| ព | U+1796 | KHMER LETTER PO | `pa` | `b` | `p` |
-| រ | U+179A | KHMER LETTER RO | `ra` | `r` | `r` |
-| ា | U+17B6 | KHMER VOWEL SIGN AA | `a` | `aa` | `a` |
-| ជ | U+1787 | KHMER LETTER CO | `cha` | `j` | `ch` |
-| ណ | U+178E | KHMER LETTER NNO | `na` | `nn` | `n` |
-| ច | U+1785 | KHMER LETTER CA | `cha` | `c` | `ch` |
-| ក | U+1780 | KHMER LETTER KA | `ka` | `k` | `k` |
-| ម | U+1798 | KHMER LETTER MO | `ma` | `m` | `m` |
-| ប | U+1794 | KHMER LETTER BA | `ba` | `p` | `b` |
-| ទ | U+1791 | KHMER LETTER TO | `ta` | `d` | `t` |
-| ស | U+179F | KHMER LETTER SA | `sa` | `s` | `s` |
-| យ | U+1799 | KHMER LETTER YO | `ya` | `y` | `y` |
+| ँ | U+0901 | DEVANAGARI SIGN CANDRABINDU | `m` | `N` | `m` |
+| ं | U+0902 | DEVANAGARI SIGN ANUSVARA | `m` | `N` | `m` |
+| ः | U+0903 | DEVANAGARI SIGN VISARGA | `h` | `H` | `h` |
+| ई | U+0908 | DEVANAGARI LETTER II | `i` | `ii` | `i` |
+| ऊ | U+090A | DEVANAGARI LETTER UU | `u` | `uu` | `u` |
+| ऋ | U+090B | DEVANAGARI LETTER VOCALIC R | `r` | `R` | `r` |
+| ऌ | U+090C | DEVANAGARI LETTER VOCALIC L | `l` | `L` | `l` |
+| ऍ | U+090D | DEVANAGARI LETTER CANDRA E | `e` | `eN` | `e` |
+| ऑ | U+0911 | DEVANAGARI LETTER CANDRA O | `o` | `oN` | `o` |
+| क | U+0915 | DEVANAGARI LETTER KA | `ka` | `k` | `k` |
+| ख | U+0916 | DEVANAGARI LETTER KHA | `kha` | `kh` | `kh` |
+| ग | U+0917 | DEVANAGARI LETTER GA | `ga` | `g` | `g` |
+| घ | U+0918 | DEVANAGARI LETTER GHA | `gha` | `gh` | `gh` |
+| ङ | U+0919 | DEVANAGARI LETTER NGA | `nga` | `ng` | `n` |
+| च | U+091A | DEVANAGARI LETTER CA | `cha` | `c` | `c` |
+| छ | U+091B | DEVANAGARI LETTER CHA | `chha` | `ch` | `ch` |
+| ज | U+091C | DEVANAGARI LETTER JA | `ja` | `j` | `j` |
+| झ | U+091D | DEVANAGARI LETTER JHA | `jha` | `jh` | `jh` |
+| ञ | U+091E | DEVANAGARI LETTER NYA | `nya` | `ny` | `n` |
+| ट | U+091F | DEVANAGARI LETTER TTA | `ta` | `tt` | `t` |
+| ठ | U+0920 | DEVANAGARI LETTER TTHA | `tha` | `tth` | `th` |
+| ड | U+0921 | DEVANAGARI LETTER DDA | `da` | `dd` | `d` |
+| ढ | U+0922 | DEVANAGARI LETTER DDHA | `dha` | `ddh` | `dh` |
+| ण | U+0923 | DEVANAGARI LETTER NNA | `na` | `nn` | `n` |
+| त | U+0924 | DEVANAGARI LETTER TA | `ta` | `t` | `t` |
+| थ | U+0925 | DEVANAGARI LETTER THA | `tha` | `th` | `th` |
+| द | U+0926 | DEVANAGARI LETTER DA | `da` | `d` | `d` |
+| ध | U+0927 | DEVANAGARI LETTER DHA | `dha` | `dh` | `dh` |
+| न | U+0928 | DEVANAGARI LETTER NA | `na` | `n` | `n` |
+| ऩ | U+0929 | DEVANAGARI LETTER NNNA | `na` | `nnn` | `n` |
+| प | U+092A | DEVANAGARI LETTER PA | `pa` | `p` | `p` |
+| फ | U+092B | DEVANAGARI LETTER PHA | `pha` | `ph` | `ph` |
+| ब | U+092C | DEVANAGARI LETTER BA | `ba` | `b` | `b` |
+| भ | U+092D | DEVANAGARI LETTER BHA | `bha` | `bh` | `bh` |
+| म | U+092E | DEVANAGARI LETTER MA | `ma` | `m` | `m` |
+| य | U+092F | DEVANAGARI LETTER YA | `ya` | `y` | `y` |
+| र | U+0930 | DEVANAGARI LETTER RA | `ra` | `r` | `r` |
+| ऱ | U+0931 | DEVANAGARI LETTER RRA | `ra` | `rr` | `r` |
+| ल | U+0932 | DEVANAGARI LETTER LA | `la` | `l` | `l` |
+| ळ | U+0933 | DEVANAGARI LETTER LLA | `la` | `l` | `l` |
+| ऴ | U+0934 | DEVANAGARI LETTER LLLA | `la` | `lll` | `l` |
+| व | U+0935 | DEVANAGARI LETTER VA | `va` | `v` | `v` |
+| श | U+0936 | DEVANAGARI LETTER SHA | `sha` | `sh` | `s` |
+| ष | U+0937 | DEVANAGARI LETTER SSA | `sha` | `ss` | `s` |
+| स | U+0938 | DEVANAGARI LETTER SA | `sa` | `s` | `s` |
+| ह | U+0939 | DEVANAGARI LETTER HA | `ha` | `h` | `h` |
+| ा | U+093E | DEVANAGARI VOWEL SIGN AA | `a` | `aa` | `a` |
+| ी | U+0940 | DEVANAGARI VOWEL SIGN II | `i` | `ii` | `i` |
+| ू | U+0942 | DEVANAGARI VOWEL SIGN UU | `u` | `uu` | `u` |
+| ृ | U+0943 | DEVANAGARI VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| | | *...18 more differences* | | | |
 
-### my — Myanmar
+### as — Assamese
 
-Coverage: translit maps 15/18 chars, Unidecode maps 14/18. **3** mapped only by translit, **2** mapped only by Unidecode.
+Block: 96 assigned codepoints, 95 mapped by at least one library.
+
+Coverage: translit maps 78/95, Unidecode maps 87/95. **1** mapped only by translit, **10** mapped only by Unidecode.
 
 **Mapped only by translit** (Unidecode returns empty/`[?]`):
 
 | Char | Codepoint | Name | translit |
 |------|-----------|------|----------|
+| ৎ | U+09CE | BENGALI LETTER KHANDA TA | `t` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ় | U+09BC | BENGALI SIGN NUKTA | `'` |
+| ৗ | U+09D7 | BENGALI AU LENGTH MARK | `+` |
+| ৲ | U+09F2 | BENGALI RUPEE MARK | `Rs` |
+| ৳ | U+09F3 | BENGALI RUPEE SIGN | `Rs` |
+| ৴ | U+09F4 | BENGALI CURRENCY NUMERATOR ONE | `1/` |
+| ৵ | U+09F5 | BENGALI CURRENCY NUMERATOR TWO | `2/` |
+| ৶ | U+09F6 | BENGALI CURRENCY NUMERATOR THREE | `3/` |
+| ৷ | U+09F7 | BENGALI CURRENCY NUMERATOR FOUR | `4/` |
+| ৸ | U+09F8 | BENGALI CURRENCY NUMERATOR ONE LESS THAN THE DENOMINATOR | ` 1 - 1/` |
+| ৹ | U+09F9 | BENGALI CURRENCY DENOMINATOR SIXTEEN | `/16` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ঁ | U+0981 | BENGALI SIGN CANDRABINDU | `m` | `N` | `m` |
+| ং | U+0982 | BENGALI SIGN ANUSVARA | `m` | `N` | `m` |
+| ঃ | U+0983 | BENGALI SIGN VISARGA | `h` | `H` | `h` |
+| ঈ | U+0988 | BENGALI LETTER II | `i` | `ii` | `i` |
+| ঊ | U+098A | BENGALI LETTER UU | `u` | `uu` | `u` |
+| ঋ | U+098B | BENGALI LETTER VOCALIC R | `r` | `R` | `r` |
+| ঌ | U+098C | BENGALI LETTER VOCALIC L | `l` | `RR` | `l` |
+| ক | U+0995 | BENGALI LETTER KA | `ka` | `k` | `k` |
+| খ | U+0996 | BENGALI LETTER KHA | `kha` | `kh` | `kh` |
+| গ | U+0997 | BENGALI LETTER GA | `ga` | `g` | `g` |
+| ঘ | U+0998 | BENGALI LETTER GHA | `gha` | `gh` | `gh` |
+| ঙ | U+0999 | BENGALI LETTER NGA | `nga` | `ng` | `n` |
+| চ | U+099A | BENGALI LETTER CA | `cha` | `c` | `c` |
+| ছ | U+099B | BENGALI LETTER CHA | `chha` | `ch` | `ch` |
+| জ | U+099C | BENGALI LETTER JA | `ja` | `j` | `j` |
+| ঝ | U+099D | BENGALI LETTER JHA | `jha` | `jh` | `jh` |
+| ঞ | U+099E | BENGALI LETTER NYA | `nya` | `ny` | `n` |
+| ট | U+099F | BENGALI LETTER TTA | `ta` | `tt` | `t` |
+| ঠ | U+09A0 | BENGALI LETTER TTHA | `tha` | `tth` | `th` |
+| ড | U+09A1 | BENGALI LETTER DDA | `da` | `dd` | `d` |
+| ঢ | U+09A2 | BENGALI LETTER DDHA | `dha` | `ddh` | `dh` |
+| ণ | U+09A3 | BENGALI LETTER NNA | `na` | `nn` | `n` |
+| ত | U+09A4 | BENGALI LETTER TA | `ta` | `t` | `t` |
+| থ | U+09A5 | BENGALI LETTER THA | `tha` | `th` | `th` |
+| দ | U+09A6 | BENGALI LETTER DA | `da` | `d` | `d` |
+| ধ | U+09A7 | BENGALI LETTER DHA | `dha` | `dh` | `dh` |
+| ন | U+09A8 | BENGALI LETTER NA | `na` | `n` | `n` |
+| প | U+09AA | BENGALI LETTER PA | `pa` | `p` | `p` |
+| ফ | U+09AB | BENGALI LETTER PHA | `pha` | `ph` | `ph` |
+| ব | U+09AC | BENGALI LETTER BA | `ba` | `b` | `b` |
+| ভ | U+09AD | BENGALI LETTER BHA | `bha` | `bh` | `bh` |
+| ম | U+09AE | BENGALI LETTER MA | `ma` | `m` | `m` |
+| য | U+09AF | BENGALI LETTER YA | `ya` | `y` | `y` |
+| র | U+09B0 | BENGALI LETTER RA | `ra` | `r` | `r` |
+| ল | U+09B2 | BENGALI LETTER LA | `la` | `l` | `l` |
+| শ | U+09B6 | BENGALI LETTER SHA | `sha` | `sh` | `s` |
+| ষ | U+09B7 | BENGALI LETTER SSA | `sha` | `ss` | `s` |
+| স | U+09B8 | BENGALI LETTER SA | `sa` | `s` | `s` |
+| হ | U+09B9 | BENGALI LETTER HA | `ha` | `h` | `h` |
+| া | U+09BE | BENGALI VOWEL SIGN AA | `a` | `aa` | `a` |
+| ী | U+09C0 | BENGALI VOWEL SIGN II | `i` | `ii` | `i` |
+| ূ | U+09C2 | BENGALI VOWEL SIGN UU | `u` | `uu` | `u` |
+| ৃ | U+09C3 | BENGALI VOWEL SIGN VOCALIC R | `r` | `R` | `r` |
+| ৄ | U+09C4 | BENGALI VOWEL SIGN VOCALIC RR | `r` | `RR` | `r` |
+| ড় | U+09DC | BENGALI LETTER RRA | `ra` | `rr` | `r` |
+| ঢ় | U+09DD | BENGALI LETTER RHA | `rha` | `rh` | `rh` |
+| য় | U+09DF | BENGALI LETTER YYA | `ya` | `yy` | `y` |
+| ৠ | U+09E0 | BENGALI LETTER VOCALIC RR | `r` | `RR` | `r` |
+| ৡ | U+09E1 | BENGALI LETTER VOCALIC LL | `l` | `LL` | `l` |
+| ৢ | U+09E2 | BENGALI VOWEL SIGN VOCALIC L | `l` | `L` | `l` |
+| | | *...3 more differences* | | | |
+
+### hy — Armenian
+
+Block: 91 assigned codepoints, 90 mapped by at least one library.
+
+Coverage: translit maps 78/90, Unidecode maps 85/90. **0** mapped only by translit, **7** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ՙ | U+0559 | ARMENIAN MODIFIER LETTER LEFT HALF RING | `<` |
+| ՚ | U+055A | ARMENIAN APOSTROPHE | `'` |
+| ՛ | U+055B | ARMENIAN EMPHASIS MARK | `/` |
+| ՜ | U+055C | ARMENIAN EXCLAMATION MARK | `!` |
+| ՝ | U+055D | ARMENIAN COMMA | `,` |
+| ՟ | U+055F | ARMENIAN ABBREVIATION MARK | `.` |
+| ։ | U+0589 | ARMENIAN FULL STOP | `:` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Ը | U+0538 | ARMENIAN CAPITAL LETTER ET | `Y` | `E` | `Y` |
+| Թ | U+0539 | ARMENIAN CAPITAL LETTER TO | `T` | `T`` | `T'` |
+| Ո | U+0548 | ARMENIAN CAPITAL LETTER VO | `Vo` | `O` | `O` |
+| Չ | U+0549 | ARMENIAN CAPITAL LETTER CHA | `Ch` | `Ch`` | `Ch'` |
+| Ռ | U+054C | ARMENIAN CAPITAL LETTER RA | `R` | `Rh` | `Rr` |
+| Ց | U+0551 | ARMENIAN CAPITAL LETTER CO | `Ts` | `Ts`` | `Ts'` |
+| Ւ | U+0552 | ARMENIAN CAPITAL LETTER YIWN | `V` | `W` | `W` |
+| Փ | U+0553 | ARMENIAN CAPITAL LETTER PIWR | `P` | `P`` | `P'` |
+| Ք | U+0554 | ARMENIAN CAPITAL LETTER KEH | `K` | `K`` | `K'` |
+| ը | U+0568 | ARMENIAN SMALL LETTER ET | `y` | `e` | `y` |
+| թ | U+0569 | ARMENIAN SMALL LETTER TO | `t` | `t`` | `t'` |
+| ո | U+0578 | ARMENIAN SMALL LETTER VO | `vo` | `o` | `o` |
+| չ | U+0579 | ARMENIAN SMALL LETTER CHA | `ch` | `ch`` | `ch'` |
+| ռ | U+057C | ARMENIAN SMALL LETTER RA | `r` | `rh` | `rr` |
+| ց | U+0581 | ARMENIAN SMALL LETTER CO | `ts` | `ts`` | `ts'` |
+| ւ | U+0582 | ARMENIAN SMALL LETTER YIWN | `v` | `w` | `w` |
+| փ | U+0583 | ARMENIAN SMALL LETTER PIWR | `p` | `p`` | `p'` |
+| ք | U+0584 | ARMENIAN SMALL LETTER KEH | `k` | `k`` | `k'` |
+| և | U+0587 | ARMENIAN SMALL LIGATURE ECH YIWN | `yev` | `ew` | `ev` |
+
+### ka — Georgian
+
+Block: 88 assigned codepoints, 88 mapped by at least one library.
+
+Coverage: translit maps 66/88, Unidecode maps 78/88. **0** mapped only by translit, **12** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ⴡ | U+10C1 | GEORGIAN CAPITAL LETTER HE | `E` |
+| Ⴢ | U+10C2 | GEORGIAN CAPITAL LETTER HIE | `Y` |
+| Ⴣ | U+10C3 | GEORGIAN CAPITAL LETTER WE | `W` |
+| Ⴤ | U+10C4 | GEORGIAN CAPITAL LETTER HAR | `Xh` |
+| Ⴥ | U+10C5 | GEORGIAN CAPITAL LETTER HOE | `OE` |
+| ჱ | U+10F1 | GEORGIAN LETTER HE | `e` |
+| ჲ | U+10F2 | GEORGIAN LETTER HIE | `y` |
+| ჳ | U+10F3 | GEORGIAN LETTER WE | `w` |
+| ჴ | U+10F4 | GEORGIAN LETTER HAR | `xh` |
+| ჵ | U+10F5 | GEORGIAN LETTER HOE | `oe` |
+| ჶ | U+10F6 | GEORGIAN LETTER FI | `f` |
+| ჻ | U+10FB | GEORGIAN PARAGRAPH SEPARATOR | ` // ` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| Ⴇ | U+10A7 | GEORGIAN CAPITAL LETTER TAN | `T` | `T`` | `T` |
+| Ⴔ | U+10B4 | GEORGIAN CAPITAL LETTER PHAR | `P` | `P`` | `P` |
+| Ⴕ | U+10B5 | GEORGIAN CAPITAL LETTER KHAR | `K` | `K`` | `K` |
+| Ⴖ | U+10B6 | GEORGIAN CAPITAL LETTER GHAN | `Gh` | `G'` | `Gh` |
+| Ⴙ | U+10B9 | GEORGIAN CAPITAL LETTER CHIN | `Ch` | `Ch`` | `Ch` |
+| Ⴚ | U+10BA | GEORGIAN CAPITAL LETTER CAN | `Ts` | `C`` | `Ts` |
+| Ⴛ | U+10BB | GEORGIAN CAPITAL LETTER JIL | `Dz` | `Z'` | `Dz` |
+| Ⴜ | U+10BC | GEORGIAN CAPITAL LETTER CIL | `Ts` | `C` | `Ts'` |
+| Ⴞ | U+10BE | GEORGIAN CAPITAL LETTER XAN | `Kh` | `X` | `Kh` |
+| თ | U+10D7 | GEORGIAN LETTER TAN | `t` | `t`` | `t` |
+| ფ | U+10E4 | GEORGIAN LETTER PHAR | `p` | `p`` | `p` |
+| ქ | U+10E5 | GEORGIAN LETTER KHAR | `k` | `k`` | `k` |
+| ღ | U+10E6 | GEORGIAN LETTER GHAN | `gh` | `g'` | `gh` |
+| ჩ | U+10E9 | GEORGIAN LETTER CHIN | `ch` | `ch`` | `ch` |
+| ც | U+10EA | GEORGIAN LETTER CAN | `ts` | `c`` | `ts` |
+| ძ | U+10EB | GEORGIAN LETTER JIL | `dz` | `z'` | `dz` |
+| წ | U+10EC | GEORGIAN LETTER CIL | `ts` | `c` | `ts'` |
+| ხ | U+10EE | GEORGIAN LETTER XAN | `kh` | `x` | `kh` |
+
+### si — Sinhala
+
+Block: 91 assigned codepoints, 90 mapped by at least one library.
+
+Coverage: translit maps 86/90, Unidecode maps 79/90. **10** mapped only by translit, **3** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ෦ | U+0DE6 | SINHALA LITH DIGIT ZERO | `0` |
+| ෧ | U+0DE7 | SINHALA LITH DIGIT ONE | `1` |
+| ෨ | U+0DE8 | SINHALA LITH DIGIT TWO | `2` |
+| ෩ | U+0DE9 | SINHALA LITH DIGIT THREE | `3` |
+| ෪ | U+0DEA | SINHALA LITH DIGIT FOUR | `4` |
+| ෫ | U+0DEB | SINHALA LITH DIGIT FIVE | `5` |
+| ෬ | U+0DEC | SINHALA LITH DIGIT SIX | `6` |
+| ෭ | U+0DED | SINHALA LITH DIGIT SEVEN | `7` |
+| ෮ | U+0DEE | SINHALA LITH DIGIT EIGHT | `8` |
+| ෯ | U+0DEF | SINHALA LITH DIGIT NINE | `9` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ඍ | U+0D8D | SINHALA LETTER IRUYANNA | `R` |
+| ඐ | U+0D90 | SINHALA LETTER ILUUYANNA | `LL` |
+| ෴ | U+0DF4 | SINHALA PUNCTUATION KUNDDALIYA | ` . ` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ං | U+0D82 | SINHALA SIGN ANUSVARAYA | `m` | `N` | `m` |
+| ඃ | U+0D83 | SINHALA SIGN VISARGAYA | `h` | `H` | `h` |
+| ඎ | U+0D8E | SINHALA LETTER IRUUYANNA | `r` | `RR` | `r` |
+| ඏ | U+0D8F | SINHALA LETTER ILUYANNA | `rr` | `L` | `l` |
+| ක | U+0D9A | SINHALA LETTER ALPAPRAANA KAYANNA | `ka` | `k` | `k` |
+| ඛ | U+0D9B | SINHALA LETTER MAHAAPRAANA KAYANNA | `kha` | `kh` | `kh` |
+| ග | U+0D9C | SINHALA LETTER ALPAPRAANA GAYANNA | `ga` | `g` | `g` |
+| ඝ | U+0D9D | SINHALA LETTER MAHAAPRAANA GAYANNA | `gha` | `gh` | `gh` |
+| ඞ | U+0D9E | SINHALA LETTER KANTAJA NAASIKYAYA | `nga` | `ng` | `n` |
+| ඟ | U+0D9F | SINHALA LETTER SANYAKA GAYANNA | `nnga` | `nng` | `ng` |
+| ච | U+0DA0 | SINHALA LETTER ALPAPRAANA CAYANNA | `cha` | `c` | `c` |
+| ඡ | U+0DA1 | SINHALA LETTER MAHAAPRAANA CAYANNA | `chha` | `ch` | `ch` |
+| ජ | U+0DA2 | SINHALA LETTER ALPAPRAANA JAYANNA | `ja` | `j` | `j` |
+| ඣ | U+0DA3 | SINHALA LETTER MAHAAPRAANA JAYANNA | `jha` | `jh` | `jh` |
+| ඤ | U+0DA4 | SINHALA LETTER TAALUJA NAASIKYAYA | `nya` | `ny` | `n` |
+| ඥ | U+0DA5 | SINHALA LETTER TAALUJA SANYOOGA NAAKSIKYAYA | `jnya` | `jny` | `jn` |
+| ඦ | U+0DA6 | SINHALA LETTER SANYAKA JAYANNA | `nyja` | `nyj` | `nj` |
+| ට | U+0DA7 | SINHALA LETTER ALPAPRAANA TTAYANNA | `tta` | `tt` | `t` |
+| ඨ | U+0DA8 | SINHALA LETTER MAHAAPRAANA TTAYANNA | `ttha` | `tth` | `th` |
+| ඩ | U+0DA9 | SINHALA LETTER ALPAPRAANA DDAYANNA | `dda` | `dd` | `d` |
+| ඪ | U+0DAA | SINHALA LETTER MAHAAPRAANA DDAYANNA | `ddha` | `ddh` | `dh` |
+| ණ | U+0DAB | SINHALA LETTER MUURDHAJA NAYANNA | `nna` | `nn` | `n` |
+| ඬ | U+0DAC | SINHALA LETTER SANYAKA DDAYANNA | `nndda` | `nndd` | `nd` |
+| ත | U+0DAD | SINHALA LETTER ALPAPRAANA TAYANNA | `ta` | `t` | `t` |
+| ථ | U+0DAE | SINHALA LETTER MAHAAPRAANA TAYANNA | `tha` | `th` | `th` |
+| ද | U+0DAF | SINHALA LETTER ALPAPRAANA DAYANNA | `da` | `d` | `d` |
+| ධ | U+0DB0 | SINHALA LETTER MAHAAPRAANA DAYANNA | `dha` | `dh` | `dh` |
+| න | U+0DB1 | SINHALA LETTER DANTAJA NAYANNA | `na` | `n` | `n` |
+| ඳ | U+0DB3 | SINHALA LETTER SANYAKA DAYANNA | `nda` | `nd` | `nd` |
+| ප | U+0DB4 | SINHALA LETTER ALPAPRAANA PAYANNA | `pa` | `p` | `p` |
+| ඵ | U+0DB5 | SINHALA LETTER MAHAAPRAANA PAYANNA | `pha` | `ph` | `ph` |
+| බ | U+0DB6 | SINHALA LETTER ALPAPRAANA BAYANNA | `ba` | `b` | `b` |
+| භ | U+0DB7 | SINHALA LETTER MAHAAPRAANA BAYANNA | `bha` | `bh` | `bh` |
+| ම | U+0DB8 | SINHALA LETTER MAYANNA | `ma` | `m` | `m` |
+| ඹ | U+0DB9 | SINHALA LETTER AMBA BAYANNA | `mba` | `mb` | `mb` |
+| ය | U+0DBA | SINHALA LETTER YAYANNA | `ya` | `y` | `y` |
+| ර | U+0DBB | SINHALA LETTER RAYANNA | `ra` | `r` | `r` |
+| ල | U+0DBD | SINHALA LETTER DANTAJA LAYANNA | `la` | `l` | `l` |
+| ව | U+0DC0 | SINHALA LETTER VAYANNA | `va` | `v` | `v` |
+| ශ | U+0DC1 | SINHALA LETTER TAALUJA SAYANNA | `sha` | `sh` | `s` |
+| ෂ | U+0DC2 | SINHALA LETTER MUURDHAJA SAYANNA | `sha` | `ss` | `s` |
+| ස | U+0DC3 | SINHALA LETTER DANTAJA SAYANNA | `sa` | `s` | `s` |
+| හ | U+0DC4 | SINHALA LETTER HAYANNA | `ha` | `h` | `h` |
+| ළ | U+0DC5 | SINHALA LETTER MUURDHAJA LAYANNA | `lla` | `ll` | `l` |
+| ෆ | U+0DC6 | SINHALA LETTER FAYANNA | `fa` | `f` | `f` |
+| ා | U+0DCF | SINHALA VOWEL SIGN AELA-PILLA | `a` | `aa` | `a` |
+| ැ | U+0DD0 | SINHALA VOWEL SIGN KETTI AEDA-PILLA | `aa` | `ae` | `ae` |
+| ෑ | U+0DD1 | SINHALA VOWEL SIGN DIGA AEDA-PILLA | `ae` | `aae` | `ae` |
+| ෘ | U+0DD8 | SINHALA VOWEL SIGN GAETTA-PILLA | `r` | `R` | `r` |
+| ෟ | U+0DDF | SINHALA VOWEL SIGN GAYANUKITTA | `l` | `L` | `u` |
+| | | *...2 more differences* | | | |
+
+### th — Thai
+
+Block: 87 assigned codepoints, 80 mapped by at least one library.
+
+Coverage: translit maps 73/80, Unidecode maps 80/80. **0** mapped only by translit, **7** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ฯ | U+0E2F | THAI CHARACTER PAIYANNOI | `~` |
+| ฺ | U+0E3A | THAI CHARACTER PHINTHU | `'` |
+| ๅ | U+0E45 | THAI CHARACTER LAKKHANGYAO | `ao` |
+| ๆ | U+0E46 | THAI CHARACTER MAIYAMOK | `+` |
+| ๏ | U+0E4F | THAI CHARACTER FONGMAN | ` * ` |
+| ๚ | U+0E5A | THAI CHARACTER ANGKHANKHU | ` // ` |
+| ๛ | U+0E5B | THAI CHARACTER KHOMUT | ` /// ` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| จ | U+0E08 | THAI CHARACTER CHO CHAN | `ch` | `cch` | `ch` |
+| ซ | U+0E0B | THAI CHARACTER SO SO | `s` | `ch` | `s` |
+| ฤ | U+0E24 | THAI CHARACTER RU | `rue` | `R` | `rue` |
+| ฦ | U+0E26 | THAI CHARACTER LU | `lue` | `L` | `lue` |
+| อ | U+0E2D | THAI CHARACTER O ANG | `o` | ``` | `o` |
+| า | U+0E32 | THAI CHARACTER SARA AA | `a` | `aa` | `a` |
+| ี | U+0E35 | THAI CHARACTER SARA II | `i` | `ii` | `i` |
+| ื | U+0E37 | THAI CHARACTER SARA UEE | `ue` | `uue` | `ue` |
+| ู | U+0E39 | THAI CHARACTER SARA UU | `u` | `uu` | `u` |
+| ฿ | U+0E3F | THAI CURRENCY SYMBOL BAHT | `B` | `Bh.` | `B` |
+| ํ | U+0E4D | THAI CHARACTER NIKHAHIT | `m` | `M` | `m` |
+
+### lo — Lao
+
+Block: 83 assigned codepoints, 76 mapped by at least one library.
+
+Coverage: translit maps 58/76, Unidecode maps 58/76. **2** mapped only by translit, **2** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ຮ | U+0EAE | LAO LETTER HO TAM | `h` |
+| ັ | U+0EB1 | LAO VOWEL SIGN MAI KAN | `a` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ຯ | U+0EAF | LAO ELLIPSIS | `~` |
+| ໆ | U+0EC6 | LAO KO LA | `+` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ຕ | U+0E95 | LAO LETTER TO | `t` | `h` | `t` |
+| ອ | U+0EAD | LAO LETTER O | `o` | ``` | — |
+| າ | U+0EB2 | LAO VOWEL SIGN AA | `a` | `aa` | `a` |
+| ີ | U+0EB5 | LAO VOWEL SIGN II | `i` | `ii` | `i` |
+| ຶ | U+0EB6 | LAO VOWEL SIGN Y | `ue` | `y` | `u` |
+| ື | U+0EB7 | LAO VOWEL SIGN YY | `ue` | `yy` | `u` |
+| ູ | U+0EB9 | LAO VOWEL SIGN UU | `u` | `uu` | `ou` |
+| ຽ | U+0EBD | LAO SEMIVOWEL SIGN NYO | `y` | `ny` | `y` |
+| ແ | U+0EC1 | LAO VOWEL SIGN EI | `ae` | `ei` | `e` |
+| ໃ | U+0EC3 | LAO VOWEL SIGN AY | `ai` | `ay` | `ai` |
+| ໍ | U+0ECD | LAO NIGGAHITA | `m` | `M` | `o` |
+
+### km — Khmer
+
+Block: 114 assigned codepoints, 106 mapped by at least one library.
+
+Coverage: translit maps 85/106, Unidecode maps 94/106. **0** mapped only by translit, **9** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ឴ | U+17B4 | KHMER VOWEL INHERENT AQ | `a` |
+| ឵ | U+17B5 | KHMER VOWEL INHERENT AA | `aa` |
+| ំ | U+17C6 | KHMER SIGN NIKAHIT | `M` |
+| ះ | U+17C7 | KHMER SIGN REAHMUK | `H` |
+| ៈ | U+17C8 | KHMER SIGN YUUKALEAPINTU | `a`` |
+| ៌ | U+17CC | KHMER SIGN ROBAT | `r` |
+| ៎ | U+17CE | KHMER SIGN KAKABAT | `!` |
+| ៗ | U+17D7 | KHMER SIGN LEK TOO | `+` |
+| ៜ | U+17DC | KHMER SIGN AVAKRAHASANYA | `'` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ក | U+1780 | KHMER LETTER KA | `ka` | `k` | `k` |
+| ខ | U+1781 | KHMER LETTER KHA | `kha` | `kh` | `kh` |
+| គ | U+1782 | KHMER LETTER KO | `ka` | `g` | `k` |
+| ឃ | U+1783 | KHMER LETTER KHO | `kha` | `gh` | `kh` |
+| ង | U+1784 | KHMER LETTER NGO | `nga` | `ng` | `ng` |
+| ច | U+1785 | KHMER LETTER CA | `cha` | `c` | `ch` |
+| ឆ | U+1786 | KHMER LETTER CHA | `chha` | `ch` | `chh` |
+| ជ | U+1787 | KHMER LETTER CO | `cha` | `j` | `ch` |
+| ឈ | U+1788 | KHMER LETTER CHO | `chha` | `jh` | `chh` |
+| ញ | U+1789 | KHMER LETTER NYO | `nya` | `ny` | `nh` |
+| ដ | U+178A | KHMER LETTER DA | `da` | `t` | `d` |
+| ឋ | U+178B | KHMER LETTER TTHA | `ttha` | `tth` | `th` |
+| ឌ | U+178C | KHMER LETTER DO | `da` | `d` | `d` |
+| ឍ | U+178D | KHMER LETTER TTHO | `ttha` | `ddh` | `th` |
+| ណ | U+178E | KHMER LETTER NNO | `na` | `nn` | `n` |
+| ត | U+178F | KHMER LETTER TA | `ta` | `t` | `t` |
+| ថ | U+1790 | KHMER LETTER THA | `tha` | `th` | `th` |
+| ទ | U+1791 | KHMER LETTER TO | `ta` | `d` | `t` |
+| ធ | U+1792 | KHMER LETTER THO | `tha` | `dh` | `th` |
+| ន | U+1793 | KHMER LETTER NO | `na` | `n` | `n` |
+| ប | U+1794 | KHMER LETTER BA | `ba` | `p` | `b` |
+| ផ | U+1795 | KHMER LETTER PHA | `pha` | `ph` | `ph` |
+| ព | U+1796 | KHMER LETTER PO | `pa` | `b` | `p` |
+| ភ | U+1797 | KHMER LETTER PHO | `pha` | `bh` | `ph` |
+| ម | U+1798 | KHMER LETTER MO | `ma` | `m` | `m` |
+| យ | U+1799 | KHMER LETTER YO | `ya` | `y` | `y` |
+| រ | U+179A | KHMER LETTER RO | `ra` | `r` | `r` |
+| ល | U+179B | KHMER LETTER LO | `la` | `l` | `l` |
+| វ | U+179C | KHMER LETTER VO | `va` | `v` | `v` |
+| ឝ | U+179D | KHMER LETTER SHA | `sha` | `sh` | `s` |
+| ឞ | U+179E | KHMER LETTER SSO | `sha` | `ss` | `s` |
+| ស | U+179F | KHMER LETTER SA | `sa` | `s` | `s` |
+| ហ | U+17A0 | KHMER LETTER HA | `ha` | `h` | `h` |
+| ឡ | U+17A1 | KHMER LETTER LA | `la` | `l` | `l` |
+| អ | U+17A2 | KHMER LETTER QA | `a` | `q` | `'` |
+| ឤ | U+17A4 | KHMER INDEPENDENT VOWEL QAA | `a` | `aa` | `'a` |
+| ឥ | U+17A5 | KHMER INDEPENDENT VOWEL QI | `e` | `i` | `e` |
+| ឦ | U+17A6 | KHMER INDEPENDENT VOWEL QII | `e` | `ii` | `ei` |
+| ឩ | U+17A9 | KHMER INDEPENDENT VOWEL QUU | `u` | `uu` | `ou` |
+| ឪ | U+17AA | KHMER INDEPENDENT VOWEL QUUV | `u` | `uuv` | `au` |
+| ឬ | U+17AC | KHMER INDEPENDENT VOWEL RYY | `ry` | `ryy` | `rueu` |
+| ឮ | U+17AE | KHMER INDEPENDENT VOWEL LYY | `ly` | `lyy` | `lueu` |
+| ឱ | U+17B1 | KHMER INDEPENDENT VOWEL QOO TYPE ONE | `o` | `oo` | `ao` |
+| ឲ | U+17B2 | KHMER INDEPENDENT VOWEL QOO TYPE TWO | `o` | `oo` | `ao` |
+| ា | U+17B6 | KHMER VOWEL SIGN AA | `a` | `aa` | `a` |
+| ិ | U+17B7 | KHMER VOWEL SIGN I | `e` | `i` | `e` |
+| ី | U+17B8 | KHMER VOWEL SIGN II | `e` | `ii` | `ei` |
+| ឹ | U+17B9 | KHMER VOWEL SIGN Y | `o` | `y` | `oe` |
+| ឺ | U+17BA | KHMER VOWEL SIGN YY | `o` | `yy` | `eu` |
+| ូ | U+17BC | KHMER VOWEL SIGN UU | `u` | `uu` | `ou` |
+| | | *...9 more differences* | | | |
+
+### my — Myanmar
+
+Block: 160 assigned codepoints, 141 mapped by at least one library.
+
+Coverage: translit maps 78/141, Unidecode maps 77/141. **18** mapped only by translit, **17** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ါ | U+102B | MYANMAR VOWEL SIGN TALL AA | `a` |
+| ဳ | U+1033 | MYANMAR VOWEL SIGN MON II | `o` |
+| ဴ | U+1034 | MYANMAR VOWEL SIGN MON O | `o` |
+| ဵ | U+1035 | MYANMAR VOWEL SIGN E ABOVE | `e` |
+| ျ | U+103B | MYANMAR CONSONANT SIGN MEDIAL YA | `y` |
 | ြ | U+103C | MYANMAR CONSONANT SIGN MEDIAL RA | `r` |
-| ှ | U+103E | MYANMAR CONSONANT SIGN MEDIAL HA | `h` |
 | ွ | U+103D | MYANMAR CONSONANT SIGN MEDIAL WA | `w` |
+| ှ | U+103E | MYANMAR CONSONANT SIGN MEDIAL HA | `h` |
+| ႐ | U+1090 | MYANMAR SHAN DIGIT ZERO | `0` |
+| ႑ | U+1091 | MYANMAR SHAN DIGIT ONE | `1` |
+| ႒ | U+1092 | MYANMAR SHAN DIGIT TWO | `2` |
+| ႓ | U+1093 | MYANMAR SHAN DIGIT THREE | `3` |
+| ႔ | U+1094 | MYANMAR SHAN DIGIT FOUR | `4` |
+| ႕ | U+1095 | MYANMAR SHAN DIGIT FIVE | `5` |
+| ႖ | U+1096 | MYANMAR SHAN DIGIT SIX | `6` |
+| ႗ | U+1097 | MYANMAR SHAN DIGIT SEVEN | `7` |
+| ႘ | U+1098 | MYANMAR SHAN DIGIT EIGHT | `8` |
+| ႙ | U+1099 | MYANMAR SHAN DIGIT NINE | `9` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
@@ -605,109 +3661,462 @@ Coverage: translit maps 15/18 chars, Unidecode maps 14/18. **3** mapped only by 
 |------|-----------|------|-----------|
 | ံ | U+1036 | MYANMAR SIGN ANUSVARA | `N` |
 | ့ | U+1037 | MYANMAR SIGN DOT BELOW | `'` |
+| း | U+1038 | MYANMAR SIGN VISARGA | `:` |
+| ၌ | U+104C | MYANMAR SYMBOL LOCATIVE | `n*` |
+| ၍ | U+104D | MYANMAR SYMBOL COMPLETED | `r*` |
+| ၎ | U+104E | MYANMAR SYMBOL AFOREMENTIONED | `l*` |
+| ၏ | U+104F | MYANMAR SYMBOL GENITIVE | `e*` |
+| ၐ | U+1050 | MYANMAR LETTER SHA | `sh` |
+| ၑ | U+1051 | MYANMAR LETTER SSA | `ss` |
+| ၒ | U+1052 | MYANMAR LETTER VOCALIC R | `R` |
+| ၓ | U+1053 | MYANMAR LETTER VOCALIC RR | `RR` |
+| ၔ | U+1054 | MYANMAR LETTER VOCALIC L | `L` |
+| ၕ | U+1055 | MYANMAR LETTER VOCALIC LL | `LL` |
+| ၖ | U+1056 | MYANMAR VOWEL SIGN VOCALIC R | `R` |
+| ၗ | U+1057 | MYANMAR VOWEL SIGN VOCALIC RR | `RR` |
+| ၘ | U+1058 | MYANMAR VOWEL SIGN VOCALIC L | `L` |
+| ၙ | U+1059 | MYANMAR VOWEL SIGN VOCALIC LL | `LL` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| မ | U+1019 | MYANMAR LETTER MA | `ma` | `m` | `m` |
-| န | U+1014 | MYANMAR LETTER NA | `na` | `n` | `n` |
-| ာ | U+102C | MYANMAR VOWEL SIGN AA | `a` | `aa` | `a` |
+| က | U+1000 | MYANMAR LETTER KA | `ka` | `k` | `k` |
+| ခ | U+1001 | MYANMAR LETTER KHA | `kha` | `kh` | `kh` |
+| ဂ | U+1002 | MYANMAR LETTER GA | `ga` | `g` | `g` |
+| ဃ | U+1003 | MYANMAR LETTER GHA | `gha` | `gh` | `gh` |
 | င | U+1004 | MYANMAR LETTER NGA | `nga` | `ng` | `n` |
-| သ | U+101E | MYANMAR LETTER SA | `tha` | `s` | `s` |
+| စ | U+1005 | MYANMAR LETTER CA | `sa` | `c` | `c` |
+| ဆ | U+1006 | MYANMAR LETTER CHA | `hsa` | `ch` | `ch` |
+| ဇ | U+1007 | MYANMAR LETTER JA | `za` | `j` | `j` |
+| ဈ | U+1008 | MYANMAR LETTER JHA | `zha` | `jh` | `jh` |
+| ဉ | U+1009 | MYANMAR LETTER NYA | `nya` | `ny` | `n` |
 | ည | U+100A | MYANMAR LETTER NNYA | `nya` | `nny` | `nn` |
-| ရ | U+101B | MYANMAR LETTER RA | `ra` | `r` | `r` |
+| ဋ | U+100B | MYANMAR LETTER TTA | `ta` | `tt` | `t` |
+| ဌ | U+100C | MYANMAR LETTER TTHA | `tha` | `tth` | `th` |
+| ဍ | U+100D | MYANMAR LETTER DDA | `da` | `dd` | `d` |
+| ဎ | U+100E | MYANMAR LETTER DDHA | `dha` | `ddh` | `dh` |
+| ဏ | U+100F | MYANMAR LETTER NNA | `na` | `nn` | `n` |
 | တ | U+1010 | MYANMAR LETTER TA | `ta` | `tt` | `t` |
+| ထ | U+1011 | MYANMAR LETTER THA | `tha` | `th` | `th` |
+| ဒ | U+1012 | MYANMAR LETTER DA | `da` | `d` | `d` |
+| ဓ | U+1013 | MYANMAR LETTER DHA | `dha` | `dh` | `dh` |
+| န | U+1014 | MYANMAR LETTER NA | `na` | `n` | `n` |
+| ပ | U+1015 | MYANMAR LETTER PA | `pa` | `p` | `p` |
+| ဖ | U+1016 | MYANMAR LETTER PHA | `pha` | `ph` | `ph` |
+| ဗ | U+1017 | MYANMAR LETTER BA | `ba` | `b` | `b` |
+| ဘ | U+1018 | MYANMAR LETTER BHA | `bha` | `bh` | `bh` |
+| မ | U+1019 | MYANMAR LETTER MA | `ma` | `m` | `m` |
+| ယ | U+101A | MYANMAR LETTER YA | `ya` | `y` | `y` |
+| ရ | U+101B | MYANMAR LETTER RA | `ra` | `r` | `r` |
+| လ | U+101C | MYANMAR LETTER LA | `la` | `l` | `l` |
+| ဝ | U+101D | MYANMAR LETTER WA | `wa` | `w` | `v` |
+| သ | U+101E | MYANMAR LETTER SA | `tha` | `s` | `s` |
+| ဟ | U+101F | MYANMAR LETTER HA | `ha` | `h` | `h` |
+| ဠ | U+1020 | MYANMAR LETTER LLA | `la` | `ll` | `l` |
+| ဤ | U+1024 | MYANMAR LETTER II | `i` | `ii` | `i` |
+| ဦ | U+1026 | MYANMAR LETTER UU | `u` | `uu` | `u` |
+| ဪ | U+102A | MYANMAR LETTER AU | `o` | `au` | `o` |
+| ာ | U+102C | MYANMAR VOWEL SIGN AA | `a` | `aa` | `a` |
+| ီ | U+102E | MYANMAR VOWEL SIGN II | `i` | `ii` | `i` |
+| ူ | U+1030 | MYANMAR VOWEL SIGN UU | `u` | `uu` | `u` |
+| ဲ | U+1032 | MYANMAR VOWEL SIGN AI | `e` | `ai` | `ai` |
+| ၊ | U+104A | MYANMAR SIGN LITTLE SECTION | `,` | ` / ` | `,` |
+| ။ | U+104B | MYANMAR SIGN SECTION | `.` | ` // ` | `.` |
 
 ### bo — Tibetan
 
-Coverage: translit maps 16/17 chars, Unidecode maps 17/17. **0** mapped only by translit, **1** mapped only by Unidecode.
+Block: 211 assigned codepoints, 201 mapped by at least one library.
+
+Coverage: translit maps 138/201, Unidecode maps 147/201. **8** mapped only by translit, **17** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ༁ | U+0F01 | TIBETAN MARK GTER YIG MGO TRUNCATED A | `.` |
+| ༂ | U+0F02 | TIBETAN MARK GTER YIG MGO -UM RNAM BCAD MA | `.` |
+| ༃ | U+0F03 | TIBETAN MARK GTER YIG MGO -UM GTER TSHEG MA | `.` |
+| ༄ | U+0F04 | TIBETAN MARK INITIAL YIG MGO MDUN MA | `@` |
+| ༅ | U+0F05 | TIBETAN MARK CLOSING YIG MGO SGAB MA | `#` |
+| ༆ | U+0F06 | TIBETAN MARK CARET YIG MGO PHUR SHAD MA | `.` |
+| ༇ | U+0F07 | TIBETAN MARK YIG MGO TSHEG SHAD MA | `.` |
+| ༊ | U+0F0A | TIBETAN MARK BKA- SHOG YIG MGO | `*` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
 | Char | Codepoint | Name | Unidecode |
 |------|-----------|------|-----------|
-| ་ | U+0F0B | TIBETAN MARK INTERSYLLABIC TSHEG | `-` |
+| ༌ | U+0F0C | TIBETAN MARK DELIMITER TSHEG BSTAR | ` / ` |
+| ༴ | U+0F34 | TIBETAN MARK BSDUS RTAGS | `+` |
+| ༵ | U+0F35 | TIBETAN MARK NGAS BZUNG NYI ZLA | `*` |
+| ༶ | U+0F36 | TIBETAN MARK CARET -DZUD RTAGS BZHI MIG CAN | `^` |
+| ༷ | U+0F37 | TIBETAN MARK NGAS BZUNG SGOR RTAGS | `_` |
+| ༹ | U+0F39 | TIBETAN MARK TSA -PHRU | `~` |
+| ཪ | U+0F6A | TIBETAN LETTER FIXED-FORM RA | `r` |
+| ཾ | U+0F7E | TIBETAN SIGN RJES SU NGA RO | `M` |
+| ཿ | U+0F7F | TIBETAN SIGN RNAM BCAD | `H` |
+| ྀ | U+0F80 | TIBETAN VOWEL SIGN REVERSED I | `i` |
+| ཱྀ | U+0F81 | TIBETAN VOWEL SIGN REVERSED II | `ii` |
+| ྾ | U+0FBE | TIBETAN KU RU KHA | `X` |
+| ྿ | U+0FBF | TIBETAN KU RU KHA BZHI MIG CAN | ` :X: ` |
+| ࿀ | U+0FC0 | TIBETAN CANTILLATION SIGN HEAVY BEAT | ` /O/ ` |
+| ࿁ | U+0FC1 | TIBETAN CANTILLATION SIGN LIGHT BEAT | ` /o/ ` |
+| ࿂ | U+0FC2 | TIBETAN CANTILLATION SIGN CANG TE-U | ` \o\ ` |
+| ࿃ | U+0FC3 | TIBETAN CANTILLATION SIGN SBUB -CHAL | ` (O) ` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| བ | U+0F56 | TIBETAN LETTER BA | `ba` | `b` | `b` |
-| ད | U+0F51 | TIBETAN LETTER DA | `da` | `d` | `d` |
-| ར | U+0F62 | TIBETAN LETTER RA | `ra` | `r` | `r` |
-| ང | U+0F44 | TIBETAN LETTER NGA | `nga` | `ng` | `ng` |
-| ས | U+0F66 | TIBETAN LETTER SA | `sa` | `s` | `s` |
-| ྐ | U+0F90 | TIBETAN SUBJOINED LETTER KA | `ka` | `k` | `k` |
-| ྱ | U+0FB1 | TIBETAN SUBJOINED LETTER YA | `ya` | `y` | `y` |
-| ལ | U+0F63 | TIBETAN LETTER LA | `la` | `l` | `l` |
-| ྗ | U+0F97 | TIBETAN SUBJOINED LETTER JA | `ja` | `j` | `j` |
-| ན | U+0F53 | TIBETAN LETTER NA | `na` | `n` | `n` |
-| ྒ | U+0F92 | TIBETAN SUBJOINED LETTER GA | `ga` | `g` | `g` |
-| ག | U+0F42 | TIBETAN LETTER GA | `ga` | `g` | `g` |
+| ༀ | U+0F00 | TIBETAN SYLLABLE OM | `om` | `AUM` | `Om` |
+| ༈ | U+0F08 | TIBETAN MARK SBRUL SHAD | `;` | ` // ` | `!` |
+| ༉ | U+0F09 | TIBETAN MARK BSKUR YIG MGO | `*` | ` * ` | `*` |
+| ། | U+0F0D | TIBETAN MARK SHAD | `.` | ` / ` | `,` |
+| ༎ | U+0F0E | TIBETAN MARK NYIS SHAD | `.` | ` // ` | `.` |
+| ༏ | U+0F0F | TIBETAN MARK TSHEG SHAD | `.` | ` -/ ` | `;` |
+| ༐ | U+0F10 | TIBETAN MARK NYIS TSHEG SHAD | `.` | ` +/ ` | `|` |
+| ༑ | U+0F11 | TIBETAN MARK RIN CHEN SPUNGS SHAD | `.` | ` X/ ` | `|` |
+| ༒ | U+0F12 | TIBETAN MARK RGYA GRAM SHAD | `.` | ` /XX/ ` | `/` |
+| ༓ | U+0F13 | TIBETAN MARK CARET -DZUD RTAGS ME LONG CAN | `.` | ` /X/ ` | `*` |
+| ༔ | U+0F14 | TIBETAN MARK GTER TSHEG | `:` | `, ` | `:` |
+| ༪ | U+0F2A | TIBETAN DIGIT HALF ONE | `0.0` | `.5` | `1-` |
+| ༫ | U+0F2B | TIBETAN DIGIT HALF TWO | `0.5` | `1.5` | `2-` |
+| ༬ | U+0F2C | TIBETAN DIGIT HALF THREE | `1.0` | `2.5` | `3-` |
+| ༭ | U+0F2D | TIBETAN DIGIT HALF FOUR | `1.5` | `3.5` | `4-` |
+| ༮ | U+0F2E | TIBETAN DIGIT HALF FIVE | `2.0` | `4.5` | `5-` |
+| ༯ | U+0F2F | TIBETAN DIGIT HALF SIX | `2.5` | `5.5` | `6-` |
+| ༰ | U+0F30 | TIBETAN DIGIT HALF SEVEN | `3.0` | `6.5` | `7-` |
+| ༱ | U+0F31 | TIBETAN DIGIT HALF EIGHT | `3.5` | `7.5` | `8-` |
+| ༲ | U+0F32 | TIBETAN DIGIT HALF NINE | `4.0` | `8.5` | `9-` |
+| ༳ | U+0F33 | TIBETAN DIGIT HALF ZERO | `4.5` | `-.5` | `0-` |
+| ཀ | U+0F40 | TIBETAN LETTER KA | `ka` | `k` | `k` |
 | ཁ | U+0F41 | TIBETAN LETTER KHA | `kha` | `kh` | `kh` |
+| ག | U+0F42 | TIBETAN LETTER GA | `ga` | `g` | `g` |
+| གྷ | U+0F43 | TIBETAN LETTER GHA | `ga` | `gh` | `gh` |
+| ང | U+0F44 | TIBETAN LETTER NGA | `nga` | `ng` | `ng` |
+| ཅ | U+0F45 | TIBETAN LETTER CA | `cha` | `c` | `c` |
+| ཆ | U+0F46 | TIBETAN LETTER CHA | `chha` | `ch` | `ch` |
+| ཇ | U+0F47 | TIBETAN LETTER JA | `ja` | `j` | `j` |
+| ཉ | U+0F49 | TIBETAN LETTER NYA | `nya` | `ny` | `ny` |
+| ཊ | U+0F4A | TIBETAN LETTER TTA | `ta` | `tt` | `t` |
+| ཋ | U+0F4B | TIBETAN LETTER TTHA | `tha` | `tth` | `th` |
+| ཌ | U+0F4C | TIBETAN LETTER DDA | `da` | `dd` | `d` |
+| ཌྷ | U+0F4D | TIBETAN LETTER DDHA | `da` | `ddh` | `dh` |
+| ཎ | U+0F4E | TIBETAN LETTER NNA | `na` | `nn` | `n` |
 | ཏ | U+0F4F | TIBETAN LETTER TA | `ta` | `t` | `t` |
+| ཐ | U+0F50 | TIBETAN LETTER THA | `tha` | `th` | `th` |
+| ད | U+0F51 | TIBETAN LETTER DA | `da` | `d` | `d` |
+| དྷ | U+0F52 | TIBETAN LETTER DHA | `da` | `dh` | `dh` |
+| ན | U+0F53 | TIBETAN LETTER NA | `na` | `n` | `n` |
+| པ | U+0F54 | TIBETAN LETTER PA | `pa` | `p` | `p` |
+| ཕ | U+0F55 | TIBETAN LETTER PHA | `pha` | `ph` | `ph` |
+| བ | U+0F56 | TIBETAN LETTER BA | `ba` | `b` | `b` |
+| བྷ | U+0F57 | TIBETAN LETTER BHA | `ba` | `bh` | `bh` |
+| མ | U+0F58 | TIBETAN LETTER MA | `ma` | `m` | `m` |
+| ཙ | U+0F59 | TIBETAN LETTER TSA | `tsa` | `ts` | `ts` |
+| ཚ | U+0F5A | TIBETAN LETTER TSHA | `tsha` | `tsh` | `tsh` |
+| ཛ | U+0F5B | TIBETAN LETTER DZA | `dza` | `dz` | `dz` |
+| ཛྷ | U+0F5C | TIBETAN LETTER DZHA | `dza` | `dzh` | `dzh` |
+| ཝ | U+0F5D | TIBETAN LETTER WA | `wa` | `w` | `w` |
+| | | *...63 more differences* | | | |
 
 ### am — Amharic
 
-Coverage: translit maps 34/34 chars, Unidecode maps 33/34. **1** mapped only by translit, **0** mapped only by Unidecode.
+Block: 384 assigned codepoints, 370 mapped by at least one library.
+
+Coverage: translit maps 370/370, Unidecode maps 343/370. **27** mapped only by translit, **0** mapped only by Unidecode.
 
 **Mapped only by translit** (Unidecode returns empty/`[?]`):
 
 | Char | Codepoint | Name | translit |
 |------|-----------|------|----------|
+| ሇ | U+1207 | ETHIOPIC SYLLABLE HOA | `hwa` |
+| ቇ | U+1247 | ETHIOPIC SYLLABLE QOA | `qwa` |
+| ኇ | U+1287 | ETHIOPIC SYLLABLE XOA | `hwa` |
 | ኢ | U+12A2 | ETHIOPIC SYLLABLE GLOTTAL I | `i` |
+| ኯ | U+12AF | ETHIOPIC SYLLABLE KOA | `kwa` |
+| ዏ | U+12CF | ETHIOPIC SYLLABLE WOA | `wwa` |
+| ዯ | U+12EF | ETHIOPIC SYLLABLE YOA | `ywa` |
+| ጏ | U+130F | ETHIOPIC SYLLABLE GOA | `gwa` |
+| ጟ | U+131F | ETHIOPIC SYLLABLE GGWAA | `ggwa` |
+| ፇ | U+1347 | ETHIOPIC SYLLABLE TZOA | `swa` |
+| ፠ | U+1360 | ETHIOPIC SECTION MARK | ` ` |
+| ᎀ | U+1380 | ETHIOPIC SYLLABLE SEBATBEIT MWA | `mwa` |
+| ᎁ | U+1381 | ETHIOPIC SYLLABLE MWI | `mwi` |
+| ᎂ | U+1382 | ETHIOPIC SYLLABLE MWEE | `mwe` |
+| ᎃ | U+1383 | ETHIOPIC SYLLABLE MWE | `mwe` |
+| ᎄ | U+1384 | ETHIOPIC SYLLABLE SEBATBEIT BWA | `bwa` |
+| ᎅ | U+1385 | ETHIOPIC SYLLABLE BWI | `bwi` |
+| ᎆ | U+1386 | ETHIOPIC SYLLABLE BWEE | `bwe` |
+| ᎇ | U+1387 | ETHIOPIC SYLLABLE BWE | `bwe` |
+| ᎈ | U+1388 | ETHIOPIC SYLLABLE SEBATBEIT FWA | `fwa` |
+| ᎉ | U+1389 | ETHIOPIC SYLLABLE FWI | `fwi` |
+| ᎊ | U+138A | ETHIOPIC SYLLABLE FWEE | `fwe` |
+| ᎋ | U+138B | ETHIOPIC SYLLABLE FWE | `fwe` |
+| ᎌ | U+138C | ETHIOPIC SYLLABLE SEBATBEIT PWA | `pwa` |
+| ᎍ | U+138D | ETHIOPIC SYLLABLE PWI | `pwi` |
+| ᎎ | U+138E | ETHIOPIC SYLLABLE PWEE | `pwe` |
+| ᎏ | U+138F | ETHIOPIC SYLLABLE PWE | `pwe` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
-| የ | U+12E8 | ETHIOPIC SYLLABLE YA | `ye` | `ya` | `ye` |
-| ት | U+1275 | ETHIOPIC SYLLABLE TE | `t` | `te` | `t` |
-| ጵ | U+1335 | ETHIOPIC SYLLABLE PHE | `p` | `phe` | `p'` |
-| ያ | U+12EB | ETHIOPIC SYLLABLE YAA | `ya` | `yaa` | `ya` |
-| ፌ | U+134C | ETHIOPIC SYLLABLE FEE | `fe` | `fee` | `fe` |
-| ዴ | U+12F4 | ETHIOPIC SYLLABLE DEE | `de` | `dee` | `de` |
-| ራ | U+122B | ETHIOPIC SYLLABLE RAA | `ra` | `raa` | `ra` |
-| ላ | U+120B | ETHIOPIC SYLLABLE LAA | `la` | `laa` | `la` |
-| ክ | U+12AD | ETHIOPIC SYLLABLE KE | `k` | `ke` | `k` |
-| ፐ | U+1350 | ETHIOPIC SYLLABLE PA | `pe` | `pa` | `pe` |
-| ብ | U+1265 | ETHIOPIC SYLLABLE BE | `b` | `be` | `b` |
-| መ | U+1218 | ETHIOPIC SYLLABLE MA | `me` | `ma` | `me` |
-| ን | U+1295 | ETHIOPIC SYLLABLE NE | `n` | `ne` | `n` |
-| ግ | U+130D | ETHIOPIC SYLLABLE GE | `g` | `ge` | `g` |
-| ሥ | U+1225 | ETHIOPIC SYLLABLE SZE | `s` | `sze` | `s` |
-| ስ | U+1235 | ETHIOPIC SYLLABLE SE | `s` | `se` | `s` |
+| ሀ | U+1200 | ETHIOPIC SYLLABLE HA | `he` | `ha` | `ha` |
+| ሃ | U+1203 | ETHIOPIC SYLLABLE HAA | `ha` | `haa` | `ha` |
+| ሄ | U+1204 | ETHIOPIC SYLLABLE HEE | `he` | `hee` | `he` |
+| ህ | U+1205 | ETHIOPIC SYLLABLE HE | `h` | `he` | `h` |
 | ለ | U+1208 | ETHIOPIC SYLLABLE LA | `le` | `la` | `le` |
+| ላ | U+120B | ETHIOPIC SYLLABLE LAA | `la` | `laa` | `la` |
+| ሌ | U+120C | ETHIOPIC SYLLABLE LEE | `le` | `lee` | `le` |
+| ል | U+120D | ETHIOPIC SYLLABLE LE | `l` | `le` | `l` |
+| ሐ | U+1210 | ETHIOPIC SYLLABLE HHA | `hhe` | `hha` | `ha` |
+| ሓ | U+1213 | ETHIOPIC SYLLABLE HHAA | `hha` | `hhaa` | `ha` |
+| ሔ | U+1214 | ETHIOPIC SYLLABLE HHEE | `hhe` | `hhee` | `he` |
+| ሕ | U+1215 | ETHIOPIC SYLLABLE HHE | `hh` | `hhe` | `h` |
+| መ | U+1218 | ETHIOPIC SYLLABLE MA | `me` | `ma` | `me` |
+| ማ | U+121B | ETHIOPIC SYLLABLE MAA | `ma` | `maa` | `ma` |
+| ሜ | U+121C | ETHIOPIC SYLLABLE MEE | `me` | `mee` | `me` |
 | ም | U+121D | ETHIOPIC SYLLABLE ME | `m` | `me` | `m` |
+| ሠ | U+1220 | ETHIOPIC SYLLABLE SZA | `se` | `sza` | `se` |
+| ሡ | U+1221 | ETHIOPIC SYLLABLE SZU | `su` | `szu` | `su` |
+| ሢ | U+1222 | ETHIOPIC SYLLABLE SZI | `si` | `szi` | `si` |
+| ሣ | U+1223 | ETHIOPIC SYLLABLE SZAA | `sa` | `szaa` | `sa` |
+| ሤ | U+1224 | ETHIOPIC SYLLABLE SZEE | `se` | `szee` | `se` |
+| ሥ | U+1225 | ETHIOPIC SYLLABLE SZE | `s` | `sze` | `s` |
+| ሦ | U+1226 | ETHIOPIC SYLLABLE SZO | `so` | `szo` | `so` |
+| ሧ | U+1227 | ETHIOPIC SYLLABLE SZWA | `swa` | `szwa` | `swa` |
+| ረ | U+1228 | ETHIOPIC SYLLABLE RA | `re` | `ra` | `re` |
+| ራ | U+122B | ETHIOPIC SYLLABLE RAA | `ra` | `raa` | `ra` |
+| ሬ | U+122C | ETHIOPIC SYLLABLE REE | `re` | `ree` | `re` |
 | ር | U+122D | ETHIOPIC SYLLABLE RE | `r` | `re` | `r` |
-| ቤ | U+1264 | ETHIOPIC SYLLABLE BEE | `be` | `bee` | `be` |
-| ች | U+127D | ETHIOPIC SYLLABLE CE | `ch` | `ce` | `ch` |
+| ሰ | U+1230 | ETHIOPIC SYLLABLE SA | `se` | `sa` | `se` |
+| ሳ | U+1233 | ETHIOPIC SYLLABLE SAA | `sa` | `saa` | `sa` |
+| ሴ | U+1234 | ETHIOPIC SYLLABLE SEE | `se` | `see` | `se` |
+| ስ | U+1235 | ETHIOPIC SYLLABLE SE | `s` | `se` | `s` |
+| ሸ | U+1238 | ETHIOPIC SYLLABLE SHA | `she` | `sha` | `she` |
+| ሻ | U+123B | ETHIOPIC SYLLABLE SHAA | `sha` | `shaa` | `sha` |
+| ሼ | U+123C | ETHIOPIC SYLLABLE SHEE | `she` | `shee` | `she` |
+| ሽ | U+123D | ETHIOPIC SYLLABLE SHE | `sh` | `she` | `sh` |
+| ቀ | U+1240 | ETHIOPIC SYLLABLE QA | `qe` | `qa` | `k'e` |
+| ቃ | U+1243 | ETHIOPIC SYLLABLE QAA | `qa` | `qaa` | `k'a` |
+| ቄ | U+1244 | ETHIOPIC SYLLABLE QEE | `qe` | `qee` | `k'e` |
+| ቅ | U+1245 | ETHIOPIC SYLLABLE QE | `q` | `qe` | `k'` |
+| ቋ | U+124B | ETHIOPIC SYLLABLE QWAA | `qwa` | `qwaa` | `k'wa` |
+| ቌ | U+124C | ETHIOPIC SYLLABLE QWEE | `qwe` | `qwee` | `k'we` |
+| ቍ | U+124D | ETHIOPIC SYLLABLE QWE | `qw` | `qwe` | `k'wi` |
+| ቐ | U+1250 | ETHIOPIC SYLLABLE QHA | `qhe` | `qha` | `k'e` |
+| ቓ | U+1253 | ETHIOPIC SYLLABLE QHAA | `qha` | `qhaa` | `k'a` |
+| ቔ | U+1254 | ETHIOPIC SYLLABLE QHEE | `qhe` | `qhee` | `k'e` |
+| ቕ | U+1255 | ETHIOPIC SYLLABLE QHE | `qh` | `qhe` | `k'` |
+| ቛ | U+125B | ETHIOPIC SYLLABLE QHWAA | `qhwa` | `qhwaa` | `k'wa` |
+| ቜ | U+125C | ETHIOPIC SYLLABLE QHWEE | `qhwe` | `qhwee` | `k'we` |
+| ቝ | U+125D | ETHIOPIC SYLLABLE QHWE | `qhw` | `qhwe` | `k'wi` |
+| | | *...168 more differences* | | | |
 
 ### ru — Russian
 
+Block: 304 assigned codepoints, 301 mapped by at least one library.
+
+Coverage: translit maps 98/301, Unidecode maps 234/301. **0** mapped only by translit, **136** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| Ѡ | U+0460 | CYRILLIC CAPITAL LETTER OMEGA | `O` |
+| ѡ | U+0461 | CYRILLIC SMALL LETTER OMEGA | `o` |
+| Ѣ | U+0462 | CYRILLIC CAPITAL LETTER YAT | `E` |
+| ѣ | U+0463 | CYRILLIC SMALL LETTER YAT | `e` |
+| Ѥ | U+0464 | CYRILLIC CAPITAL LETTER IOTIFIED E | `Ie` |
+| ѥ | U+0465 | CYRILLIC SMALL LETTER IOTIFIED E | `ie` |
+| Ѧ | U+0466 | CYRILLIC CAPITAL LETTER LITTLE YUS | `E` |
+| ѧ | U+0467 | CYRILLIC SMALL LETTER LITTLE YUS | `e` |
+| Ѩ | U+0468 | CYRILLIC CAPITAL LETTER IOTIFIED LITTLE YUS | `Ie` |
+| ѩ | U+0469 | CYRILLIC SMALL LETTER IOTIFIED LITTLE YUS | `ie` |
+| Ѫ | U+046A | CYRILLIC CAPITAL LETTER BIG YUS | `O` |
+| ѫ | U+046B | CYRILLIC SMALL LETTER BIG YUS | `o` |
+| Ѭ | U+046C | CYRILLIC CAPITAL LETTER IOTIFIED BIG YUS | `Io` |
+| ѭ | U+046D | CYRILLIC SMALL LETTER IOTIFIED BIG YUS | `io` |
+| Ѯ | U+046E | CYRILLIC CAPITAL LETTER KSI | `Ks` |
+| ѯ | U+046F | CYRILLIC SMALL LETTER KSI | `ks` |
+| Ѱ | U+0470 | CYRILLIC CAPITAL LETTER PSI | `Ps` |
+| ѱ | U+0471 | CYRILLIC SMALL LETTER PSI | `ps` |
+| Ѳ | U+0472 | CYRILLIC CAPITAL LETTER FITA | `F` |
+| ѳ | U+0473 | CYRILLIC SMALL LETTER FITA | `f` |
+| Ѵ | U+0474 | CYRILLIC CAPITAL LETTER IZHITSA | `Y` |
+| ѵ | U+0475 | CYRILLIC SMALL LETTER IZHITSA | `y` |
+| Ѷ | U+0476 | CYRILLIC CAPITAL LETTER IZHITSA WITH DOUBLE GRAVE ACCENT | `Y` |
+| ѷ | U+0477 | CYRILLIC SMALL LETTER IZHITSA WITH DOUBLE GRAVE ACCENT | `y` |
+| Ѹ | U+0478 | CYRILLIC CAPITAL LETTER UK | `u` |
+| ѹ | U+0479 | CYRILLIC SMALL LETTER UK | `u` |
+| Ѻ | U+047A | CYRILLIC CAPITAL LETTER ROUND OMEGA | `O` |
+| ѻ | U+047B | CYRILLIC SMALL LETTER ROUND OMEGA | `o` |
+| Ѽ | U+047C | CYRILLIC CAPITAL LETTER OMEGA WITH TITLO | `O` |
+| ѽ | U+047D | CYRILLIC SMALL LETTER OMEGA WITH TITLO | `o` |
+| | | *...106 more* | |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
+| Ѐ | U+0400 | CYRILLIC CAPITAL LETTER IE WITH GRAVE | `E` | `Ie` | `E` |
+| Ё | U+0401 | CYRILLIC CAPITAL LETTER IO | `Yo` | `Io` | `E` |
+| Ѓ | U+0403 | CYRILLIC CAPITAL LETTER GJE | `G` | `Gj` | `G` |
+| Є | U+0404 | CYRILLIC CAPITAL LETTER UKRAINIAN IE | `Ye` | `Ie` | `Ie` |
+| Ќ | U+040C | CYRILLIC CAPITAL LETTER KJE | `K` | `Kj` | `K` |
+| Й | U+0419 | CYRILLIC CAPITAL LETTER SHORT I | `Y` | `I` | `Y` |
+| Ъ | U+042A | CYRILLIC CAPITAL LETTER HARD SIGN | `"` | `'` | `'` |
+| Ю | U+042E | CYRILLIC CAPITAL LETTER YU | `Yu` | `Iu` | `Yu` |
+| Я | U+042F | CYRILLIC CAPITAL LETTER YA | `Ya` | `Ia` | `Ya` |
 | й | U+0439 | CYRILLIC SMALL LETTER SHORT I | `y` | `i` | `y` |
+| ъ | U+044A | CYRILLIC SMALL LETTER HARD SIGN | `"` | `'` | `'` |
+| ю | U+044E | CYRILLIC SMALL LETTER YU | `yu` | `iu` | `yu` |
 | я | U+044F | CYRILLIC SMALL LETTER YA | `ya` | `ia` | `ya` |
+| ѐ | U+0450 | CYRILLIC SMALL LETTER IE WITH GRAVE | `e` | `ie` | `e` |
+| ё | U+0451 | CYRILLIC SMALL LETTER IO | `yo` | `io` | `e` |
+| ѓ | U+0453 | CYRILLIC SMALL LETTER GJE | `g` | `gj` | `g` |
+| є | U+0454 | CYRILLIC SMALL LETTER UKRAINIAN IE | `ye` | `ie` | `ie` |
+| ќ | U+045C | CYRILLIC SMALL LETTER KJE | `k` | `kj` | `k` |
+| Ґ | U+0490 | CYRILLIC CAPITAL LETTER GHE WITH UPTURN | `G` | `G'` | `G` |
+| ґ | U+0491 | CYRILLIC SMALL LETTER GHE WITH UPTURN | `g` | `g'` | `g` |
+
+### dv — Dhivehi
+
+Block: 50 assigned codepoints, 49 mapped by at least one library.
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ޅ | U+0785 | THAANA LETTER LHAVIYANI | `lh` | `L` | `lh` |
+| ޏ | U+078F | THAANA LETTER GNAVIYANI | `gn` | `ny` | `gn` |
+| ޢ | U+07A2 | THAANA LETTER AINU | `'` | ``` | `'` |
 
 ### jv — Javanese
 
-Coverage: translit maps 5/5 chars, Unidecode maps 0/5. **5** mapped only by translit, **0** mapped only by Unidecode.
+Block: 91 assigned codepoints, 90 mapped by at least one library.
+
+Coverage: translit maps 75/90, Unidecode maps 0/90. **75** mapped only by translit, **0** mapped only by Unidecode.
 
 **Mapped only by translit** (Unidecode returns empty/`[?]`):
 
 | Char | Codepoint | Name | translit |
 |------|-----------|------|----------|
+| ꦄ | U+A984 | JAVANESE LETTER A | `a` |
+| ꦅ | U+A985 | JAVANESE LETTER I KAWI | `aa` |
+| ꦆ | U+A986 | JAVANESE LETTER I | `i` |
+| ꦇ | U+A987 | JAVANESE LETTER II | `ii` |
+| ꦈ | U+A988 | JAVANESE LETTER U | `u` |
+| ꦉ | U+A989 | JAVANESE LETTER PA CEREK | `uu` |
+| ꦊ | U+A98A | JAVANESE LETTER NGA LELET | `e` |
+| ꦋ | U+A98B | JAVANESE LETTER NGA LELET RASWADI | `ai` |
+| ꦌ | U+A98C | JAVANESE LETTER E | `o` |
+| ꦍ | U+A98D | JAVANESE LETTER AI | `au` |
+| ꦎ | U+A98E | JAVANESE LETTER O | `e` |
+| ꦏ | U+A98F | JAVANESE LETTER KA | `o` |
 | ꦐ | U+A990 | JAVANESE LETTER KA SASAK | `ka` |
+| ꦑ | U+A991 | JAVANESE LETTER KA MURDA | `kha` |
+| ꦒ | U+A992 | JAVANESE LETTER GA | `ga` |
+| ꦓ | U+A993 | JAVANESE LETTER GA MURDA | `gha` |
+| ꦔ | U+A994 | JAVANESE LETTER NGA | `nga` |
+| ꦕ | U+A995 | JAVANESE LETTER CA | `cha` |
+| ꦖ | U+A996 | JAVANESE LETTER CA MURDA | `chha` |
+| ꦗ | U+A997 | JAVANESE LETTER JA | `ja` |
+| ꦘ | U+A998 | JAVANESE LETTER NYA MURDA | `jha` |
+| ꦙ | U+A999 | JAVANESE LETTER JA MAHAPRANA | `nya` |
+| ꦚ | U+A99A | JAVANESE LETTER NYA | `tta` |
+| ꦛ | U+A99B | JAVANESE LETTER TTA | `ttha` |
+| ꦜ | U+A99C | JAVANESE LETTER TTA MAHAPRANA | `dda` |
+| ꦝ | U+A99D | JAVANESE LETTER DDA | `ddha` |
+| ꦞ | U+A99E | JAVANESE LETTER DDA MAHAPRANA | `nna` |
 | ꦟ | U+A99F | JAVANESE LETTER NA MURDA | `ta` |
-| ꦪ | U+A9AA | JAVANESE LETTER YA | `ra` |
-| ꦣ | U+A9A3 | JAVANESE LETTER DA MAHAPRANA | `na` |
-| ꦨ | U+A9A8 | JAVANESE LETTER BA MURDA | `ma` |
+| ꦠ | U+A9A0 | JAVANESE LETTER TA | `tha` |
+| ꦡ | U+A9A1 | JAVANESE LETTER TA MURDA | `da` |
+| | | *...45 more* | |
+
+### mn — Mongolian
+
+Block: 157 assigned codepoints, 153 mapped by at least one library.
+
+Coverage: translit maps 146/153, Unidecode maps 148/153. **5** mapped only by translit, **7** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᠆ | U+1806 | MONGOLIAN TODO SOFT HYPHEN | `-` |
+| ᠊ | U+180A | MONGOLIAN NIRUGU | `-` |
+| ᡸ | U+1878 | MONGOLIAN LETTER CHA WITH TWO DOTS | `ch` |
+| ᢀ | U+1880 | MONGOLIAN LETTER ALI GALI ANUSVARA ONE | `m` |
+| ᢪ | U+18AA | MONGOLIAN LETTER MANCHU ALI GALI LHA | `lha` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ᡃ | U+1843 | MONGOLIAN LETTER TODO LONG VOWEL SIGN | `-` |
+| ᢂ | U+1882 | MONGOLIAN LETTER ALI GALI DAMARU | `X` |
+| ᢃ | U+1883 | MONGOLIAN LETTER ALI GALI UBADAMA | `W` |
+| ᢄ | U+1884 | MONGOLIAN LETTER ALI GALI INVERTED UBADAMA | `M` |
+| ᢅ | U+1885 | MONGOLIAN LETTER ALI GALI BALUDA | ` 3 ` |
+| ᢆ | U+1886 | MONGOLIAN LETTER ALI GALI THREE BALUDA | ` 333 ` |
+| ᢩ | U+18A9 | MONGOLIAN LETTER ALI GALI DAGALGA | `'` |
+
+| Char | Codepoint | Name | translit | Unidecode | anyascii |
+|------|-----------|------|----------|-----------|----------|
+| ᠀ | U+1800 | MONGOLIAN BIRGA | `.` | ` @ ` | `@` |
+| ᠁ | U+1801 | MONGOLIAN ELLIPSIS | `.` | ` ... ` | `...` |
+| ᠂ | U+1802 | MONGOLIAN COMMA | `,` | `, ` | `,` |
+| ᠃ | U+1803 | MONGOLIAN FULL STOP | `:` | `. ` | `.` |
+| ᠄ | U+1804 | MONGOLIAN COLON | `...` | `: ` | `:` |
+| ᠅ | U+1805 | MONGOLIAN FOUR DOTS | `:` | ` // ` | `*` |
+| ᠇ | U+1807 | MONGOLIAN SIBE SYLLABLE BOUNDARY MARKER | `.` | `-` | `-` |
+| ᠈ | U+1808 | MONGOLIAN MANCHU COMMA | `,` | `, ` | `,` |
+| ᠉ | U+1809 | MONGOLIAN MANCHU FULL STOP | `.` | `. ` | `.` |
+| ᠥ | U+1825 | MONGOLIAN LETTER OE | `oe` | `O` | `o` |
+| ᠦ | U+1826 | MONGOLIAN LETTER UE | `ue` | `U` | `u` |
+| ᠻ | U+183B | MONGOLIAN LETTER KHA | `kh` | `kha` | `k` |
+| ᡈ | U+1848 | MONGOLIAN LETTER TODO OE | `oe` | `O` | `o` |
+| ᡉ | U+1849 | MONGOLIAN LETTER TODO UE | `ue` | `U` | `u` |
+| ᡊ | U+184A | MONGOLIAN LETTER TODO ANG | `ang` | `ng` | `ng` |
+| ᡚ | U+185A | MONGOLIAN LETTER TODO JIA | `j` | `jy` | `j` |
+| ᡛ | U+185B | MONGOLIAN LETTER TODO NIA | `n` | `ny` | `ny` |
+| ᡠ | U+1860 | MONGOLIAN LETTER SIBE UE | `ue` | `U` | `u` |
+| ᡢ | U+1862 | MONGOLIAN LETTER SIBE ANG | `ang` | `ng` | `ng` |
+| ᢁ | U+1881 | MONGOLIAN LETTER ALI GALI VISARGA ONE | `h` | `H` | `h` |
+| ᢉ | U+1889 | MONGOLIAN LETTER ALI GALI KA | `ka` | `k` | `k` |
+| ᢊ | U+188A | MONGOLIAN LETTER ALI GALI NGA | `nga` | `ng` | `ng` |
+| ᢋ | U+188B | MONGOLIAN LETTER ALI GALI CA | `ca` | `c` | `ts` |
+| ᢌ | U+188C | MONGOLIAN LETTER ALI GALI TTA | `ta` | `tt` | `t` |
+| ᢍ | U+188D | MONGOLIAN LETTER ALI GALI TTHA | `tha` | `tth` | `th` |
+| ᢎ | U+188E | MONGOLIAN LETTER ALI GALI DDA | `da` | `dd` | `d` |
+| ᢏ | U+188F | MONGOLIAN LETTER ALI GALI NNA | `na` | `nn` | `n` |
+| ᢐ | U+1890 | MONGOLIAN LETTER ALI GALI TA | `ta` | `t` | `t` |
+| ᢑ | U+1891 | MONGOLIAN LETTER ALI GALI DA | `da` | `d` | `d` |
+| ᢒ | U+1892 | MONGOLIAN LETTER ALI GALI PA | `pa` | `p` | `p` |
+| ᢓ | U+1893 | MONGOLIAN LETTER ALI GALI PHA | `pha` | `ph` | `ph` |
+| ᢔ | U+1894 | MONGOLIAN LETTER ALI GALI SSA | `sha` | `ss` | `s` |
+| ᢕ | U+1895 | MONGOLIAN LETTER ALI GALI ZHA | `zha` | `zh` | `zh` |
+| ᢖ | U+1896 | MONGOLIAN LETTER ALI GALI ZA | `za` | `z` | `z` |
+| ᢗ | U+1897 | MONGOLIAN LETTER ALI GALI AH | `ah` | `a` | `'` |
+| ᢘ | U+1898 | MONGOLIAN LETTER TODO ALI GALI TA | `ta` | `t` | `t` |
+| ᢙ | U+1899 | MONGOLIAN LETTER TODO ALI GALI ZHA | `zha` | `zh` | `zh` |
+| ᢚ | U+189A | MONGOLIAN LETTER MANCHU ALI GALI GHA | `gha` | `gh` | `gh` |
+| ᢛ | U+189B | MONGOLIAN LETTER MANCHU ALI GALI NGA | `nga` | `ng` | `ng` |
+| ᢜ | U+189C | MONGOLIAN LETTER MANCHU ALI GALI CA | `ca` | `c` | `ts` |
+| ᢝ | U+189D | MONGOLIAN LETTER MANCHU ALI GALI JHA | `jha` | `jh` | `dzh` |
+| ᢞ | U+189E | MONGOLIAN LETTER MANCHU ALI GALI TTA | `ta` | `tta` | `t` |
+| ᢟ | U+189F | MONGOLIAN LETTER MANCHU ALI GALI DDHA | `dha` | `ddh` | `dh` |
+| ᢠ | U+18A0 | MONGOLIAN LETTER MANCHU ALI GALI TA | `ta` | `t` | `t` |
+| ᢡ | U+18A1 | MONGOLIAN LETTER MANCHU ALI GALI DHA | `dha` | `dh` | `dh` |
+| ᢢ | U+18A2 | MONGOLIAN LETTER MANCHU ALI GALI SSA | `sha` | `ss` | `s` |
+| ᢣ | U+18A3 | MONGOLIAN LETTER MANCHU ALI GALI CYA | `cya` | `cy` | `c` |
+| ᢤ | U+18A4 | MONGOLIAN LETTER MANCHU ALI GALI ZHA | `zha` | `zh` | `zh` |
+| ᢥ | U+18A5 | MONGOLIAN LETTER MANCHU ALI GALI ZA | `za` | `z` | `z` |
+| ᢨ | U+18A8 | MONGOLIAN LETTER MANCHU ALI GALI BHA | `bha` | `bh` | `bh` |
 
 ## Key Takeaways
 
-- **Total unique non-ASCII characters tested**: 717
-- **translit coverage**: 688/717 (96.0%)
-- **Unidecode coverage**: 685/717 (95.5%)
-- **anyascii coverage**: 693/717 (96.7%)
-- **Characters mapped only by translit**: 12
-- **Characters mapped only by Unidecode**: 9
-- **Different output (both mapped)**: 327
+- **Total assigned codepoints scanned**: 49089
+- **Mapped by at least one library**: 48819
+- **translit coverage**: 45481/48819 (93.2%)
+- **Unidecode coverage**: 47408/48819 (97.1%)
+- **anyascii coverage**: 48761/48819 (99.9%)
+- **Characters mapped only by translit**: 537
+- **Characters mapped only by Unidecode**: 2464
+- **Different output (both mapped)**: 26193
 
 ---
 
@@ -715,11 +4124,11 @@ Coverage: translit maps 5/5 chars, Unidecode maps 0/5. **5** mapped only by tran
 
 ## Analysis: Systematic Difference Patterns
 
-The 327 character-level differences fall into several systematic categories.
+The character-level differences fall into several systematic categories.
 
 ### 1. Inherent Vowel Handling (Abugida Scripts)
 
-**Affected**: Hindi, Bengali, Tamil, Telugu, Gujarati, Kannada, Malayalam, Marathi, Nepali, Odia, Punjabi, Sanskrit, Assamese, Sinhala, Tibetan, Myanmar (~200 differences)
+**Affected**: Hindi, Bengali, Tamil, Telugu, Gujarati, Kannada, Malayalam, Marathi, Nepali, Odia, Punjabi, Sanskrit, Assamese, Sinhala, Tibetan, Myanmar
 
 In Brahmic abugida scripts, each consonant letter carries an inherent /a/ vowel. translit includes this inherent vowel in the transliteration table (`ka`, `ga`, `ta`) and strips it when a virama (halant) or dependent vowel follows. Unidecode outputs bare consonants (`k`, `g`, `t`), producing less readable romanizations.
 
@@ -733,9 +4142,9 @@ Unidecode's approach produces `kaa` for का (doubling the vowel) and bare `k`
 
 ### 2. CJK Pinyin Casing and Spacing
 
-**Affected**: Chinese, Japanese (~26 differences)
+**Affected**: Chinese (~20,633 differences), Japanese
 
-Unidecode capitalizes every pinyin syllable and appends a trailing space (`Zhong `, `Hua `). translit uses lowercase (`zhong`, `hua`) and handles spacing contextually between ideographs.
+Unidecode capitalizes every pinyin syllable and appends a trailing space (`Zhong `, `Hua `). translit uses lowercase (`zhong`, `hua`) and handles spacing contextually between ideographs. This single design difference accounts for the majority of the 20,633 CJK diffs.
 
 | Input | translit | Unidecode |
 |-------|----------|-----------|
@@ -743,9 +4152,15 @@ Unidecode capitalizes every pinyin syllable and appends a trailing space (`Zhong
 
 translit's approach is correct for running text. Unidecode's per-character capitalization was designed for isolated lookups, not sentence transliteration.
 
-### 3. Language-Specific Rules
+### 3. Korean Romanization
 
-**Affected**: Swedish, Danish, Estonian, Icelandic, Bulgarian, Ukrainian, Russian, Greek (~25 differences)
+**Affected**: Korean (~3,762 differences)
+
+translit and Unidecode both map all 11,172 Hangul syllables, but use different romanization systems. translit follows Revised Romanization (the South Korean government standard), while Unidecode uses an older or variant system.
+
+### 4. Language-Specific Rules
+
+**Affected**: Swedish, Danish, Estonian, Icelandic, Bulgarian, Ukrainian, Russian, Greek
 
 translit applies national romanization standards when a language is specified:
 
@@ -760,11 +4175,17 @@ translit applies national romanization standards when a language is specified:
 
 Unidecode has no language parameter — it always applies a single generic mapping.
 
-### 4. Ethiopic Syllable Handling
+### 5. Cyrillic Coverage Gap
 
-**Affected**: Amharic (~21 differences)
+**Affected**: Bulgarian, Serbian, Ukrainian, Russian
 
-Ethiopic (Ge'ez) script encodes consonant+vowel as a single syllable character. translit and Unidecode disagree on whether to include the inherent vowel:
+translit maps ~96/301 Cyrillic codepoints (the commonly-used subset), while Unidecode maps ~234/301. This reflects a design choice: translit's default table focuses on the core Cyrillic alphabet used across major languages. Extended Cyrillic characters (historical, phonetic, or minority-language additions) are not yet mapped. Language-specific overrides cover the most important additions (e.g., Ukrainian ґ, ї, є, і).
+
+### 6. Ethiopic Syllable Handling
+
+**Affected**: Amharic (~218 differences)
+
+Ethiopic (Ge'ez) script encodes consonant+vowel as a single syllable character. translit and Unidecode disagree on whether to include the inherent vowel for 6th-order (bare consonant) forms:
 
 | Input | translit | Unidecode |
 |-------|----------|-----------|
@@ -772,11 +4193,11 @@ Ethiopic (Ge'ez) script encodes consonant+vowel as a single syllable character. 
 | ራ (raa) | `ra` | `raa` |
 | መ (ma) | `me` | `ma` |
 
-Both approaches are defensible. translit strips the inherent 6th-order vowel from consonant-final forms.
+translit strips the inherent schwa from consonant-final forms, which is more natural for reading.
 
-### 5. Khmer Consonant Errors in Unidecode
+### 7. Khmer Consonant Errors in Unidecode
 
-**Affected**: Khmer (~12 differences)
+**Affected**: Khmer (~59 differences)
 
 Unidecode has several Khmer mappings that appear incorrect:
 
@@ -788,21 +4209,25 @@ Unidecode has several Khmer mappings that appear incorrect:
 
 Unidecode swaps voicing for some Khmer consonants (mapping po→b, ba→p), which is likely a data error.
 
-### 6. Javanese: Full Coverage Gap
+### 8. Javanese: Full Coverage Gap in Unidecode
 
-translit maps all 5 Javanese consonants tested; Unidecode maps none (returns `[?]` for the entire Javanese block). This is a complete coverage gap in Unidecode.
+translit maps 75 Javanese codepoints; Unidecode maps none (returns `[?]` for the entire Javanese block U+A980–U+A9DF). This is a complete coverage gap in Unidecode.
 
-### 7. Intentional Empty Mappings (Diacritical/Modifier Characters)
+### 9. Intentional Empty Mappings (Combining Marks and Modifiers)
 
-Several characters are present in translit's default table with intentionally empty mappings. These are diacritical or modifier characters where no single ASCII character is a faithful representation. Unidecode maps them to rough approximations; translit suppresses them as the less-wrong default.
+Several characters across Indic, Khmer, and Myanmar blocks are present in translit's default table with intentionally empty mappings. These are combining marks (Unicode categories Mn/Mc) that modify adjacent consonants rather than representing independent sounds. Unidecode maps them to rough approximations; translit suppresses them as the less-wrong default.
+
+Notable examples:
 
 | Char | Codepoint | Name | Language(s) | translit | Unidecode | Rationale for empty |
 |------|-----------|------|-------------|----------|-----------|-------------------|
-| א | U+05D0 | Hebrew Letter Alef | he | *(empty)* | `A` | Silent letter / glottal stop carrier — no consonant value in most positions |
-| ় | U+09BC | Bengali Sign Nukta | bn | *(empty)* | `'` | Modifies preceding consonant; not independently pronounceable |
+| ় | U+09BC | Bengali Sign Nukta | bn, as | *(empty)* | `'` | Modifies preceding consonant; not independently pronounceable |
 | ଼ | U+0B3C | Odia Sign Nukta | or | *(empty)* | `'` | Same as Bengali nukta |
 | ੰ | U+0A70 | Gurmukhi Tippi | pa | *(empty)* | `N` | Nasalization marker — `N` is a functional approximation but can mislead |
-| ੱ | U+0A71 | Gurmukhi Addak | pa | *(empty)* | `H` | Gemination marker — `H` is Unidecode's convention, not phonologically motivated |
+| ੱ | U+0A71 | Gurmukhi Addak | pa | *(empty)* | `H` | Gemination marker — not phonologically motivated |
+| ះ | U+17C7 | Khmer Sign Reahmuk | km | *(empty)* | `H` | Visarga-like final marker; not an independent `H` sound |
+| ံ | U+1036 | Myanmar Sign Anusvara | my | *(empty)* | `N` | Nasalization of preceding vowel; standalone `N` misrepresents the phonology |
+| ့ | U+1037 | Myanmar Sign Dot Below | my | *(empty)* | `'` | Creaky tone marker; no segmental consonant value |
 
 These are deliberate design choices, not bugs. Language-specific overrides could map them if a particular romanization standard requires it.
 
@@ -843,7 +4268,7 @@ The glottal stop series is worst: U+12A0 (1st), U+12A4 (5th), and U+12A5 (6th) a
 
 translit strips the inherent schwa from 6th-order forms: ት → `t`, ም → `m`, ብ → `b`. Unidecode preserves it: ት → `te`, ም → `me`, ብ → `be`.
 
-translit's approach is more natural for reading, as 6th order represents a bare consonant (no following vowel) in Amharic phonology. This accounts for most of the 21 character-level differences with Unidecode.
+translit's approach is more natural for reading, as 6th order represents a bare consonant (no following vowel) in Amharic phonology.
 
 ### Amharic Language Override
 
@@ -855,10 +4280,11 @@ The `am` language override addresses Amharic-specific phonological mappings (23 
 
 ## Methodology Notes
 
-- All tests use the `lang` parameter for translit (language-aware mode), which is the recommended usage
+- Every assigned codepoint in each language's Unicode block(s) is tested — no sampling or text expansion
+- translit is called with the `lang` parameter (language-aware mode), which is the recommended usage
 - Unidecode and anyascii have no language parameter
-- "Mapped" means the library produced meaningful ASCII (not empty, not `[?]`, not the original character unchanged)
-- Character-level comparison tests individual characters, not word/sentence-level context. translit's virama handling (stripping inherent vowels before halant) is exercised at the word level in the full test suite
+- "Mapped" means at least one library produced meaningful ASCII (not empty, not `[?]`, not the original character unchanged)
+- Languages sharing script blocks (e.g., all Latin-based European languages share Latin Supplement/Extended-A/Extended-B) will show similar block sizes but may differ in output due to language-specific overrides
 - Regenerate this report: `python benchmarks/diff_vs_unidecode.py --markdown`
 
 ---

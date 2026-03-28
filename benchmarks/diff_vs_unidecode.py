@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Character-level correctness diff: translit vs Unidecode vs anyascii.
 
-For each of the 65 supported languages, takes ~4k characters of real text
-(repeating the canonical sample), runs all three libraries, and reports:
+For each of the 65 supported languages, iterates over EVERY codepoint in the
+relevant Unicode block(s) and compares transliteration output across all three
+libraries.  This is deterministic and comprehensive — it tests the full
+character inventory, not a sample.
 
+Reports:
 1. Characters where outputs differ
 2. Coverage: which library maps more characters (vs returning '?' or empty)
 3. Language-aware differences (e.g., German Ü→Ue vs Ü→U)
@@ -36,82 +39,107 @@ except ImportError:
     anyascii = None
 
 # ---------------------------------------------------------------------------
-# Language samples (from test_transliterate.py)
+# Unicode block ranges per language
+#
+# Each language maps to (description, [(start, end), ...]) where start/end
+# are inclusive codepoint boundaries.  Every assigned codepoint in these
+# ranges is tested with the language's `lang` parameter.
 # ---------------------------------------------------------------------------
 
-LANG_SAMPLES: dict[str, tuple[str, str]] = {
-    "bg": ("Република България е държава в Югоизточна Европа", "Bulgarian"),
-    "ca": ("Catalunya és una comunitat autònoma d'Espanya", "Catalan"),
-    "cs": ("Česká republika je stát ve střední Evropě", "Czech"),
-    "cy": ("Cymru yw gwlad sy'n rhan o'r Deyrnas Unedig", "Welsh"),
-    "da": ("København er Danmarks hovedstad og største by", "Danish"),
-    "de": ("Die Bundesrepublik Deutschland ist ein Bundesstaat in Mitteleuropa", "German"),
-    "el": ("Η Ελληνική Δημοκρατία είναι χώρα της νοτιοανατολικής Ευρώπης", "Greek"),
-    "es": ("España es un país soberano transcontinental", "Spanish"),
-    "et": ("Eesti Vabariik on riik Põhja-Euroopas Läänemere ääres", "Estonian"),
-    "fi": ("Suomen tasavalta on valtio Pohjois-Euroopassa", "Finnish"),
-    "fr": ("La République française est un État transcontinental", "French"),
-    "ga": ("Éire nó Poblacht na hÉireann is tír í", "Irish"),
-    "hr": ("Republika Hrvatska je država u srednjoj Europi", "Croatian"),
-    "hu": ("Magyarország közép-európai ország", "Hungarian"),
-    "is": ("Ísland er eyríki á norðanverðum Atlantshafi", "Icelandic"),
-    "it": ("La Repubblica Italiana è uno Stato membro dell'Unione europea", "Italian"),
-    "lt": ("Lietuvos Respublika yra valstybė šiaurės Europoje", "Lithuanian"),
-    "lv": ("Latvijas Republika ir valsts Ziemeļeiropā", "Latvian"),
-    "mt": ("Ir-Repubblika ta' Malta hija stat gżejjer fil-Mediterran", "Maltese"),
-    "nl": ("Het Koninkrijk der Nederlanden is een staat in West-Europa", "Dutch"),
-    "no": ("Kongeriket Norge er et nordisk land i Skandinavia", "Norwegian"),
-    "pl": ("Rzeczpospolita Polska jest państwem w Europie Środkowej", "Polish"),
-    "pt": ("A República Portuguesa é um país situado no sudoeste da Europa", "Portuguese"),
-    "ro": ("România este un stat situat în sud-estul Europei", "Romanian"),
-    "sk": ("Slovenská republika je štát v strednej Európe", "Slovak"),
-    "sl": ("Republika Slovenija je država v srednji Evropi", "Slovenian"),
-    "sq": ("Republika e Shqipërisë është një shtet në Europën Juglindore", "Albanian"),
-    "sr": ("Република Србија је држава у Југоисточној Европи", "Serbian"),
-    "sv": ("Konungariket Sverige är ett nordiskt land på Skandinaviska halvön", "Swedish"),
-    "tr": ("Türkiye Cumhuriyeti Avrupa ile Asya arasında yer alan bir ülkedir", "Turkish"),
-    "uk": ("Україна є державою у Східній та Центральній Європі", "Ukrainian"),
-    "vi": ("Cộng hòa xã hội chủ nghĩa Việt Nam là một quốc gia", "Vietnamese"),
-    "ja": ("日本国は東アジアに位置する島国である", "Japanese"),
-    "ja-kunrei": ("しちつふじ", "Japanese Kunrei"),
-    "ko": ("대한민국은 동아시아에 있는 공화국이다", "Korean"),
-    "zh": ("中华人民共和国是位于东亚的社会主义国家", "Chinese"),
-    "ar": ("المملكة العربية السعودية دولة عربية تقع في شبه الجزيرة العربية", "Arabic"),
-    "fa": ("جمهوری اسلامی ایران کشوری در خاورمیانه است", "Persian"),
-    "he": ("מדינת ישראל היא מדינה במזרח התיכון", "Hebrew"),
-    "hi": ("भारत गणराज्य दक्षिण एशिया में स्थित एक देश है", "Hindi"),
-    "bn": ("গণপ্রজাতন্ত্রী বাংলাদেশ দক্ষিণ এশিয়ার একটি রাষ্ট্র", "Bengali"),
-    "ta": ("தமிழ்நாடு இந்தியாவின் தெற்கே அமைந்துள்ள மாநிலம்", "Tamil"),
-    "te": ("తెలుగు భాష ద్రావిడ భాషా కుటుంబానికి చెందిన భాష", "Telugu"),
-    "gu": ("ગુજરાત ભારતનું એક રાજ્ય છે જે ભારતના પશ્ચિમ ભાગમાં", "Gujarati"),
-    "kn": ("ಕರ್ನಾಟಕ ದಕ್ಷಿಣ ಭಾರತದ ಒಂದು ರಾಜ್ಯ", "Kannada"),
-    "ml": ("കേരളം ഇന്ത്യയിലെ ഒരു സംസ്ഥാനമാണ്", "Malayalam"),
-    "mr": ("महाराष्ट्र हे भारतातील एक राज्य आहे", "Marathi"),
-    "ne": ("नेपाल एशियाको एक स्वतन्त्र देश हो", "Nepali"),
-    "or": ("ଓଡ଼ିଶା ଭାରତର ପୂର୍ବ ଉପକୂଳରେ ଅବସ୍ଥିତ", "Odia"),
-    "pa": ("ਪੰਜਾਬ ਭਾਰਤ ਦਾ ਇੱਕ ਰਾਜ ਹੈ", "Punjabi"),
-    "sa": ("संस्कृतम् जगतः एका प्राचीनतमा भाषा", "Sanskrit"),
-    "as": ("অসম ভাৰতৰ উত্তৰ পূৰ্বাঞ্চলৰ এখন ৰাজ্য", "Assamese"),
-    "hy": ("Հայաստան Հանրdelays", "Armenian"),
-    "ka": ("საქართველო სახელმწიფოა აღმოსავლეთ ევროპაში", "Georgian"),
-    "si": ("ශ්‍රී ලංකා ප්‍රජාතාන්ත්‍රික සමාජවාදී ජනරජය", "Sinhala"),
-    "th": ("ประเทศไทยเป็นรัฐชาติอันตั้งอยู่ในเอเชียตะวันออกเฉียงใต้", "Thai"),
-    "lo": ("ສາທາລະນະລັດ ປະຊາທິປະໄຕ ປະຊາຊົນລາວ", "Lao"),
-    "km": ("ព្រះរាជាណាចក្រកម្ពុជា ជាប្រទេសមួយ", "Khmer"),
-    "my": ("မြန်မာနိုင်ငံသည် အရှေ့တောင်အာရှတွင်", "Myanmar"),
-    "bo": ("བོད་རང་སྐྱོང་ལྗོངས་ནི་རྒྱ་ནག་གི་ཁོངས་གཏོགས", "Tibetan"),
-    "am": (
-        "የኢትዮጵያ ፌዴራላዊ ዲሞክራሲያዊ ሪፐብሊክ መንግሥት "
-        "የፌዴራሉ መንግስት ሁለት ምክር ቤቶች ሲኖሩት",
-        "Amharic",
-    ),
-    "ru": ("Российская Федерация является демократическим федеративным государством", "Russian"),
-    "dv": ("ދިވެހިރާއްޖެ", "Dhivehi"),
-    "jv": ("\uA990\uA99F\uA9AA\uA9A3\uA9A8", "Javanese"),
-    "mn": ("\u182E\u1823\u1829\u182D\u1823\u182F", "Mongolian"),
-}
+# Shared block definitions
+_LATIN_SUPPLEMENT = (0x00C0, 0x00FF)      # Latin-1 Supplement (letters only)
+_LATIN_EXT_A = (0x0100, 0x017F)           # Latin Extended-A
+_LATIN_EXT_B = (0x0180, 0x024F)           # Latin Extended-B
+_LATIN_EXT_ADDITIONAL = (0x1E00, 0x1EFF)  # Latin Extended Additional
+_CYRILLIC = (0x0400, 0x04FF)              # Cyrillic
+_CYRILLIC_SUPPLEMENT = (0x0500, 0x052F)   # Cyrillic Supplement
 
-TARGET_CHARS = 4000
+_LATIN_BLOCKS = [_LATIN_SUPPLEMENT, _LATIN_EXT_A, _LATIN_EXT_B]
+
+LANG_BLOCKS: dict[str, tuple[str, list[tuple[int, int]]]] = {
+    # --- European (Latin-based) ---
+    "bg": ("Bulgarian", [_CYRILLIC, _CYRILLIC_SUPPLEMENT]),
+    "ca": ("Catalan", _LATIN_BLOCKS),
+    "cs": ("Czech", _LATIN_BLOCKS),
+    "cy": ("Welsh", _LATIN_BLOCKS),
+    "da": ("Danish", _LATIN_BLOCKS),
+    "de": ("German", _LATIN_BLOCKS),
+    "el": ("Greek", [(0x0370, 0x03FF)]),  # Greek and Coptic
+    "es": ("Spanish", _LATIN_BLOCKS),
+    "et": ("Estonian", _LATIN_BLOCKS),
+    "fi": ("Finnish", _LATIN_BLOCKS),
+    "fr": ("French", _LATIN_BLOCKS),
+    "ga": ("Irish", _LATIN_BLOCKS),
+    "hr": ("Croatian", _LATIN_BLOCKS),
+    "hu": ("Hungarian", _LATIN_BLOCKS),
+    "is": ("Icelandic", _LATIN_BLOCKS),
+    "it": ("Italian", _LATIN_BLOCKS),
+    "lt": ("Lithuanian", _LATIN_BLOCKS),
+    "lv": ("Latvian", _LATIN_BLOCKS),
+    "mt": ("Maltese", _LATIN_BLOCKS),
+    "nl": ("Dutch", _LATIN_BLOCKS),
+    "no": ("Norwegian", _LATIN_BLOCKS),
+    "pl": ("Polish", _LATIN_BLOCKS),
+    "pt": ("Portuguese", _LATIN_BLOCKS),
+    "ro": ("Romanian", _LATIN_BLOCKS),
+    "sk": ("Slovak", _LATIN_BLOCKS),
+    "sl": ("Slovenian", _LATIN_BLOCKS),
+    "sq": ("Albanian", _LATIN_BLOCKS),
+    "sr": ("Serbian", [_CYRILLIC, _CYRILLIC_SUPPLEMENT]),
+    "sv": ("Swedish", _LATIN_BLOCKS),
+    "tr": ("Turkish", _LATIN_BLOCKS),
+    "uk": ("Ukrainian", [_CYRILLIC, _CYRILLIC_SUPPLEMENT]),
+    "vi": ("Vietnamese", _LATIN_BLOCKS + [_LATIN_EXT_ADDITIONAL]),
+    # --- East Asian ---
+    "ja": ("Japanese", [
+        (0x3040, 0x309F),   # Hiragana
+        (0x30A0, 0x30FF),   # Katakana
+        (0xFF65, 0xFF9F),   # Half-width Katakana
+    ]),
+    "ja-kunrei": ("Japanese Kunrei", [
+        (0x3040, 0x309F),   # Hiragana
+        (0x30A0, 0x30FF),   # Katakana
+    ]),
+    "ko": ("Korean", [(0xAC00, 0xD7A3)]),  # Hangul Syllables
+    "zh": ("Chinese", [(0x4E00, 0x9FFF)]),  # CJK Unified Ideographs
+    # --- Semitic ---
+    "ar": ("Arabic", [(0x0600, 0x06FF)]),
+    "fa": ("Persian", [(0x0600, 0x06FF), (0x0750, 0x077F), (0x08A0, 0x08FF)]),
+    "he": ("Hebrew", [(0x0590, 0x05FF)]),
+    # --- Indic (Brahmic) ---
+    "hi": ("Hindi", [(0x0900, 0x097F)]),         # Devanagari
+    "bn": ("Bengali", [(0x0980, 0x09FF)]),
+    "ta": ("Tamil", [(0x0B80, 0x0BFF)]),
+    "te": ("Telugu", [(0x0C00, 0x0C7F)]),
+    "gu": ("Gujarati", [(0x0A80, 0x0AFF)]),
+    "kn": ("Kannada", [(0x0C80, 0x0CFF)]),
+    "ml": ("Malayalam", [(0x0D00, 0x0D7F)]),
+    "mr": ("Marathi", [(0x0900, 0x097F)]),       # Devanagari
+    "ne": ("Nepali", [(0x0900, 0x097F)]),         # Devanagari
+    "or": ("Odia", [(0x0B00, 0x0B7F)]),
+    "pa": ("Punjabi", [(0x0A00, 0x0A7F)]),       # Gurmukhi
+    "sa": ("Sanskrit", [(0x0900, 0x097F)]),       # Devanagari
+    "as": ("Assamese", [(0x0980, 0x09FF)]),       # Bengali block
+    # --- Caucasian ---
+    "hy": ("Armenian", [(0x0530, 0x058F)]),
+    "ka": ("Georgian", [(0x10A0, 0x10FF)]),
+    # --- South/Southeast Asian ---
+    "si": ("Sinhala", [(0x0D80, 0x0DFF)]),
+    "th": ("Thai", [(0x0E00, 0x0E7F)]),
+    "lo": ("Lao", [(0x0E80, 0x0EFF)]),
+    "km": ("Khmer", [(0x1780, 0x17FF)]),
+    "my": ("Myanmar", [(0x1000, 0x109F)]),
+    # --- Tibetan ---
+    "bo": ("Tibetan", [(0x0F00, 0x0FFF)]),
+    # --- Ethiopic ---
+    "am": ("Amharic", [(0x1200, 0x137F), (0x1380, 0x139F)]),
+    # --- Russian ---
+    "ru": ("Russian", [_CYRILLIC, _CYRILLIC_SUPPLEMENT]),
+    # --- Other ---
+    "dv": ("Dhivehi", [(0x0780, 0x07BF)]),       # Thaana
+    "jv": ("Javanese", [(0xA980, 0xA9DF)]),
+    "mn": ("Mongolian", [(0x1800, 0x18AF)]),      # Mongolian
+}
 
 
 @dataclass
@@ -130,44 +158,43 @@ class LangReport:
     """Comparison report for one language."""
     lang: str
     description: str
-    total_non_ascii: int = 0
+    block_chars: int = 0              # assigned codepoints in the block(s)
+    total_non_ascii: int = 0          # chars where at least one lib maps
     translit_mapped: int = 0
     unidecode_mapped: int = 0
     anyascii_mapped: int = 0
     diffs_translit_vs_unidecode: list[CharDiff] = field(default_factory=list)
     diffs_translit_vs_anyascii: list[CharDiff] = field(default_factory=list)
-    translit_only: int = 0  # mapped by translit but not unidecode
-    unidecode_only: int = 0  # mapped by unidecode but not translit
+    translit_only: int = 0
+    unidecode_only: int = 0
     translit_only_chars: list[CharDiff] = field(default_factory=list)
     unidecode_only_chars: list[CharDiff] = field(default_factory=list)
 
 
-def is_mapped(output: str, original: str) -> bool:
-    """Check if a library actually mapped the character (vs returning it unchanged or '?')."""
-    if not output or output == original:
+def is_mapped(output: str | None, original: str) -> bool:
+    """Check if a library actually mapped the character."""
+    if output is None or not output or output == original:
         return False
     if all(c in ("[", "]", "?") for c in output):
         return False
     return True
 
 
-def expand_sample(text: str, target: int = TARGET_CHARS) -> str:
-    """Repeat sample text to reach ~target characters."""
-    if len(text) >= target:
-        return text[:target]
-    repeats = (target // len(text)) + 1
-    return (text * repeats)[:target]
-
-
-def unique_non_ascii_chars(text: str) -> list[str]:
-    """Extract unique non-ASCII characters, preserving first-seen order."""
-    seen: set[str] = set()
-    result: list[str] = []
-    for ch in text:
-        if ord(ch) > 127 and ch not in seen:
-            seen.add(ch)
-            result.append(ch)
-    return result
+def iter_block_chars(blocks: list[tuple[int, int]]) -> list[str]:
+    """Yield every assigned non-ASCII character in the given Unicode blocks."""
+    chars: list[str] = []
+    for start, end in blocks:
+        for cp in range(start, end + 1):
+            if cp < 128:
+                continue
+            ch = chr(cp)
+            cat = unicodedata.category(ch)
+            # Skip unassigned (Cn), private use (Co), surrogates (Cs),
+            # and format chars (Cf) — these aren't meaningful for transliteration
+            if cat.startswith("C"):
+                continue
+            chars.append(ch)
+    return chars
 
 
 def compare_char(ch: str, lang: str) -> CharDiff:
@@ -189,19 +216,22 @@ def compare_char(ch: str, lang: str) -> CharDiff:
     )
 
 
-def analyze_language(lang: str, sample: str, desc: str) -> LangReport:
-    """Run full comparison for one language."""
-    text = expand_sample(sample)
-    chars = unique_non_ascii_chars(text)
+def analyze_language(lang: str, desc: str, blocks: list[tuple[int, int]]) -> LangReport:
+    """Run full comparison for one language over its Unicode block(s)."""
+    chars = iter_block_chars(blocks)
 
-    report = LangReport(lang=lang, description=desc, total_non_ascii=len(chars))
+    report = LangReport(lang=lang, description=desc, block_chars=len(chars))
 
     for ch in chars:
         diff = compare_char(ch, lang)
 
         t_mapped = is_mapped(diff.translit_out, ch)
-        u_mapped = is_mapped(diff.unidecode_out, ch) if diff.unidecode_out is not None else False
-        a_mapped = is_mapped(diff.anyascii_out, ch) if diff.anyascii_out is not None else False
+        u_mapped = is_mapped(diff.unidecode_out, ch)
+        a_mapped = is_mapped(diff.anyascii_out, ch)
+
+        # Only count chars where at least one library maps
+        if t_mapped or u_mapped or a_mapped:
+            report.total_non_ascii += 1
 
         if t_mapped:
             report.translit_mapped += 1
@@ -228,17 +258,20 @@ def analyze_language(lang: str, sample: str, desc: str) -> LangReport:
 
 def print_summary(reports: list[LangReport]) -> None:
     """Print summary table to stdout."""
-    print(f"{'Lang':<12} {'Description':<16} {'Chars':>5} {'translit':>8} "
-          f"{'Unidec':>6} {'anyasc':>6} {'t-only':>6} {'u-only':>6} {'diffs':>5}")
-    print("-" * 90)
+    print(f"{'Lang':<12} {'Description':<16} {'Block':>5} {'Mapped':>6} "
+          f"{'translit':>8} {'Unidec':>6} {'anyasc':>6} "
+          f"{'t-only':>6} {'u-only':>6} {'diffs':>5}")
+    print("-" * 100)
 
     totals = defaultdict(int)
     for r in reports:
         diffs = len(r.diffs_translit_vs_unidecode)
-        print(f"{r.lang:<12} {r.description:<16} {r.total_non_ascii:>5} "
+        print(f"{r.lang:<12} {r.description:<16} {r.block_chars:>5} "
+              f"{r.total_non_ascii:>6} "
               f"{r.translit_mapped:>8} {r.unidecode_mapped:>6} {r.anyascii_mapped:>6} "
               f"{r.translit_only:>6} {r.unidecode_only:>6} {diffs:>5}")
-        totals["chars"] += r.total_non_ascii
+        totals["block"] += r.block_chars
+        totals["mapped"] += r.total_non_ascii
         totals["translit"] += r.translit_mapped
         totals["unidecode"] += r.unidecode_mapped
         totals["anyascii"] += r.anyascii_mapped
@@ -246,8 +279,9 @@ def print_summary(reports: list[LangReport]) -> None:
         totals["u_only"] += r.unidecode_only
         totals["diffs"] += diffs
 
-    print("-" * 90)
-    print(f"{'TOTAL':<12} {'':<16} {totals['chars']:>5} "
+    print("-" * 100)
+    print(f"{'TOTAL':<12} {'':<16} {totals['block']:>5} "
+          f"{totals['mapped']:>6} "
           f"{totals['translit']:>8} {totals['unidecode']:>6} {totals['anyascii']:>6} "
           f"{totals['t_only']:>6} {totals['u_only']:>6} {totals['diffs']:>5}")
 
@@ -257,43 +291,62 @@ def print_detail(reports: list[LangReport]) -> None:
     for r in reports:
         if not r.diffs_translit_vs_unidecode:
             continue
-        print(f"\n=== {r.lang} ({r.description}) — {len(r.diffs_translit_vs_unidecode)} differences ===")
+        print(f"\n=== {r.lang} ({r.description}) — "
+              f"{len(r.diffs_translit_vs_unidecode)} differences ===")
         for d in r.diffs_translit_vs_unidecode[:50]:
             print(f"  {d.char} U+{d.codepoint:04X} {d.name:<40} "
                   f"translit={d.translit_out!r:<12} unidecode={d.unidecode_out!r:<12}"
-                  + (f" anyascii={d.anyascii_out!r}" if d.anyascii_out is not None else ""))
+                  + (f" anyascii={d.anyascii_out!r}"
+                     if d.anyascii_out is not None else ""))
         if len(r.diffs_translit_vs_unidecode) > 50:
-            print(f"  ... and {len(r.diffs_translit_vs_unidecode) - 50} more")
+            print(f"  ... and "
+                  f"{len(r.diffs_translit_vs_unidecode) - 50} more")
 
 
 def print_markdown(reports: list[LangReport]) -> None:
     """Print full markdown report."""
     print("# Transliteration Comparison: translit vs Unidecode vs anyascii")
     print()
-    print("Character-level correctness comparison across all 65 supported languages.")
-    print("Each language tested with ~4,000 characters of real-world text.")
+    print("Comprehensive character-level comparison across all 65 supported "
+          "languages.")
+    print("Every assigned codepoint in each language's Unicode block(s) is "
+          "tested — no sampling.")
     print()
     print("## Methodology")
     print()
     print("For each language:")
-    print("1. Canonical sample text is expanded to ~4k characters")
-    print("2. Unique non-ASCII characters are extracted")
-    print("3. Each character is transliterated by all three libraries")
-    print("4. \"Mapped\" means the library produced meaningful ASCII output")
+    print("1. All assigned codepoints in the relevant Unicode block(s) are "
+          "enumerated")
+    print("2. Unassigned, private-use, surrogate, and format characters are "
+          "skipped")
+    print("3. Each character is transliterated by all three libraries with "
+          "the language's `lang` parameter")
+    print('4. "Mapped" means at least one library produced meaningful ASCII '
+          "output")
     print("   (not empty, not `[?]`, not the original character)")
+    print()
+    print("This approach is deterministic and comprehensive — results do not "
+          "depend on sample text selection.")
     print()
     print("## Summary")
     print()
-    print("| Lang | Description | Unique chars | translit | Unidecode | anyascii | translit-only | Unidecode-only | Output diffs |")
-    print("|------|-------------|-------------|----------|-----------|----------|---------------|----------------|-------------|")
+    print("| Lang | Description | Block chars | Mapped | translit | "
+          "Unidecode | anyascii | translit-only | Unidecode-only | "
+          "Output diffs |")
+    print("|------|-------------|------------|--------|----------|"
+          "-----------|----------|---------------|----------------|"
+          "-------------|")
 
     totals = defaultdict(int)
     for r in reports:
         diffs = len(r.diffs_translit_vs_unidecode)
-        print(f"| {r.lang} | {r.description} | {r.total_non_ascii} | "
-              f"{r.translit_mapped} | {r.unidecode_mapped} | {r.anyascii_mapped} | "
+        print(f"| {r.lang} | {r.description} | {r.block_chars} | "
+              f"{r.total_non_ascii} | "
+              f"{r.translit_mapped} | {r.unidecode_mapped} | "
+              f"{r.anyascii_mapped} | "
               f"{r.translit_only} | {r.unidecode_only} | {diffs} |")
-        totals["chars"] += r.total_non_ascii
+        totals["block"] += r.block_chars
+        totals["mapped"] += r.total_non_ascii
         totals["translit"] += r.translit_mapped
         totals["unidecode"] += r.unidecode_mapped
         totals["anyascii"] += r.anyascii_mapped
@@ -301,63 +354,94 @@ def print_markdown(reports: list[LangReport]) -> None:
         totals["u_only"] += r.unidecode_only
         totals["diffs"] += diffs
 
-    print(f"| **TOTAL** | | **{totals['chars']}** | "
-          f"**{totals['translit']}** | **{totals['unidecode']}** | **{totals['anyascii']}** | "
-          f"**{totals['t_only']}** | **{totals['u_only']}** | **{totals['diffs']}** |")
+    pct_t = 100 * totals["translit"] / max(totals["mapped"], 1)
+    pct_u = 100 * totals["unidecode"] / max(totals["mapped"], 1)
+    pct_a = 100 * totals["anyascii"] / max(totals["mapped"], 1)
+    print(f"| **TOTAL** | | **{totals['block']}** | "
+          f"**{totals['mapped']}** | "
+          f"**{totals['translit']}** | **{totals['unidecode']}** | "
+          f"**{totals['anyascii']}** | "
+          f"**{totals['t_only']}** | **{totals['u_only']}** | "
+          f"**{totals['diffs']}** |")
 
-    # Detail sections for languages with interesting diffs
+    # Detail sections
     print()
     print("## Notable Differences")
     print()
 
     for r in reports:
-        if not r.diffs_translit_vs_unidecode and r.translit_only == 0:
+        if (not r.diffs_translit_vs_unidecode
+                and r.translit_only == 0
+                and r.unidecode_only == 0):
             continue
         print(f"### {r.lang} — {r.description}")
         print()
+        print(f"Block: {r.block_chars} assigned codepoints, "
+              f"{r.total_non_ascii} mapped by at least one library.")
+        print()
         if r.translit_only > 0 or r.unidecode_only > 0:
-            print(f"Coverage: translit maps {r.translit_mapped}/{r.total_non_ascii} chars, "
-                  f"Unidecode maps {r.unidecode_mapped}/{r.total_non_ascii}. "
+            print(f"Coverage: translit maps "
+                  f"{r.translit_mapped}/{r.total_non_ascii}, "
+                  f"Unidecode maps "
+                  f"{r.unidecode_mapped}/{r.total_non_ascii}. "
                   f"**{r.translit_only}** mapped only by translit, "
                   f"**{r.unidecode_only}** mapped only by Unidecode.")
             print()
             if r.translit_only_chars:
-                print("**Mapped only by translit** (Unidecode returns empty/`[?]`):")
+                print("**Mapped only by translit** "
+                      "(Unidecode returns empty/`[?]`):")
                 print()
                 print("| Char | Codepoint | Name | translit |")
                 print("|------|-----------|------|----------|")
-                for d in r.translit_only_chars:
-                    print(f"| {d.char} | U+{d.codepoint:04X} | {d.name} | `{d.translit_out}` |")
+                for d in r.translit_only_chars[:30]:
+                    print(f"| {d.char} | U+{d.codepoint:04X} | "
+                          f"{d.name} | `{d.translit_out}` |")
+                if len(r.translit_only_chars) > 30:
+                    print(f"| | | *...{len(r.translit_only_chars) - 30} "
+                          f"more* | |")
                 print()
             if r.unidecode_only_chars:
-                print("**Mapped only by Unidecode** (translit returns empty):")
+                print("**Mapped only by Unidecode** "
+                      "(translit returns empty):")
                 print()
                 print("| Char | Codepoint | Name | Unidecode |")
                 print("|------|-----------|------|-----------|")
-                for d in r.unidecode_only_chars:
-                    print(f"| {d.char} | U+{d.codepoint:04X} | {d.name} | `{d.unidecode_out}` |")
+                for d in r.unidecode_only_chars[:30]:
+                    print(f"| {d.char} | U+{d.codepoint:04X} | "
+                          f"{d.name} | `{d.unidecode_out}` |")
+                if len(r.unidecode_only_chars) > 30:
+                    print(f"| | | *...{len(r.unidecode_only_chars) - 30} "
+                          f"more* | |")
                 print()
         if r.diffs_translit_vs_unidecode:
-            print("| Char | Codepoint | Name | translit | Unidecode | anyascii |")
-            print("|------|-----------|------|----------|-----------|----------|")
-            for d in r.diffs_translit_vs_unidecode[:30]:
-                a_col = f"`{d.anyascii_out}`" if d.anyascii_out else "—"
+            print("| Char | Codepoint | Name | translit | "
+                  "Unidecode | anyascii |")
+            print("|------|-----------|------|----------|"
+                  "-----------|----------|")
+            for d in r.diffs_translit_vs_unidecode[:50]:
+                a_col = (f"`{d.anyascii_out}`"
+                         if d.anyascii_out else "\u2014")
                 print(f"| {d.char} | U+{d.codepoint:04X} | {d.name} | "
-                      f"`{d.translit_out}` | `{d.unidecode_out}` | {a_col} |")
-            if len(r.diffs_translit_vs_unidecode) > 30:
-                remaining = len(r.diffs_translit_vs_unidecode) - 30
-                print(f"| | | *...{remaining} more differences* | | | |")
+                      f"`{d.translit_out}` | `{d.unidecode_out}` | "
+                      f"{a_col} |")
+            if len(r.diffs_translit_vs_unidecode) > 50:
+                remaining = len(r.diffs_translit_vs_unidecode) - 50
+                print(f"| | | *...{remaining} more differences* | "
+                      f"| | |")
             print()
 
     print("## Key Takeaways")
     print()
-    print(f"- **Total unique non-ASCII characters tested**: {totals['chars']}")
-    print(f"- **translit coverage**: {totals['translit']}/{totals['chars']} "
-          f"({100*totals['translit']/max(totals['chars'],1):.1f}%)")
-    print(f"- **Unidecode coverage**: {totals['unidecode']}/{totals['chars']} "
-          f"({100*totals['unidecode']/max(totals['chars'],1):.1f}%)")
-    print(f"- **anyascii coverage**: {totals['anyascii']}/{totals['chars']} "
-          f"({100*totals['anyascii']/max(totals['chars'],1):.1f}%)")
+    print(f"- **Total assigned codepoints scanned**: {totals['block']}")
+    print(f"- **Mapped by at least one library**: {totals['mapped']}")
+    print(f"- **translit coverage**: {totals['translit']}/{totals['mapped']}"
+          f" ({pct_t:.1f}%)")
+    print(f"- **Unidecode coverage**: "
+          f"{totals['unidecode']}/{totals['mapped']}"
+          f" ({pct_u:.1f}%)")
+    print(f"- **anyascii coverage**: "
+          f"{totals['anyascii']}/{totals['mapped']}"
+          f" ({pct_a:.1f}%)")
     print(f"- **Characters mapped only by translit**: {totals['t_only']}")
     print(f"- **Characters mapped only by Unidecode**: {totals['u_only']}")
     print(f"- **Different output (both mapped)**: {totals['diffs']}")
@@ -368,19 +452,25 @@ def print_markdown(reports: list[LangReport]) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Transliteration correctness comparison")
-    parser.add_argument("--detail", action="store_true", help="Show per-character diffs")
-    parser.add_argument("--markdown", action="store_true", help="Output markdown report")
+    parser = argparse.ArgumentParser(
+        description="Transliteration correctness comparison "
+                    "(full Unicode block scan)")
+    parser.add_argument("--detail", action="store_true",
+                        help="Show per-character diffs")
+    parser.add_argument("--markdown", action="store_true",
+                        help="Output markdown report")
     args = parser.parse_args()
 
     if not unidecode:
-        print("WARNING: Unidecode not installed (pip install Unidecode)", file=sys.stderr)
+        print("WARNING: Unidecode not installed (pip install Unidecode)",
+              file=sys.stderr)
     if not anyascii:
-        print("WARNING: anyascii not installed (pip install anyascii)", file=sys.stderr)
+        print("WARNING: anyascii not installed (pip install anyascii)",
+              file=sys.stderr)
 
     reports = []
-    for lang, (sample, desc) in LANG_SAMPLES.items():
-        report = analyze_language(lang, sample, desc)
+    for lang, (desc, blocks) in LANG_BLOCKS.items():
+        report = analyze_language(lang, desc, blocks)
         reports.append(report)
 
     if args.markdown:

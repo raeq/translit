@@ -592,6 +592,11 @@ mappings across these Unicode blocks:
 In addition, 20 language-specific override tables provide national-standard
 romanization when `lang=` is specified.
 
+For a full character-level comparison of translit's output against Unidecode and
+anyascii across all 65 languages — including analysis of systematic difference
+patterns, intentional empty mappings for combining marks, and the Ethiopic deep
+dive — see the [Transliteration Comparison](architecture/transliteration-comparison.md).
+
 For a complete per-language breakdown of all 65 profiles — including
 transliteration rule tables, reference texts, and test examples — see the
 [Language Reference](reference.md).

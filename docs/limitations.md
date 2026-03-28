@@ -22,6 +22,8 @@ chardetng targets encodings historically deployed as browser defaults per the [W
 
 ## Transliteration
 
+For a detailed character-level comparison of translit's transliteration against Unidecode and anyascii across all 65 supported languages, including analysis of systematic difference patterns and intentional design choices, see the [Transliteration Comparison](architecture/transliteration-comparison.md).
+
 ### Context-free mapping: a fundamental tradeoff
 
 All of translit's transliteration is strictly character-by-character with no context awareness. The survey by [Jaf et al. (2025)](https://www.researchgate.net/publication/392346405_Advances_in_machine_transliteration_methods_limitations_challenges_applications_and_future_directions) identifies the core problem: there is no one-to-one phoneme-to-grapheme correspondence between scripts. Sounds present in one language may not exist in another, and a single source grapheme may map to 0, 1, or multiple target characters.
