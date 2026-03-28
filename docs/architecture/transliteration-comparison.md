@@ -83,7 +83,25 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | dv | Dhivehi | 50 | 49 | 48 | 48 | 48 | 0 | 0 | 3 |
 | jv | Javanese | 91 | 90 | 75 | 0 | 90 | 75 | 0 | 0 |
 | mn | Mongolian | 157 | 153 | 149 | 148 | 151 | 5 | 4 | 53 |
-| **TOTAL** | | **49089** | **48825** | **48415** | **47408** | **48761** | **1136** | **129** | **27040** |
+| su | Sundanese | 64 | 63 | 48 | 0 | 62 | 48 | 0 | 0 |
+| nod | Tai Tham | 127 | 119 | 103 | 0 | 118 | 103 | 0 | 0 |
+| cjm | Cham | 83 | 83 | 78 | 0 | 83 | 78 | 0 | 0 |
+| btk | Batak | 56 | 54 | 50 | 0 | 52 | 50 | 0 | 0 |
+| bug | Buginese | 30 | 30 | 30 | 0 | 29 | 30 | 0 | 0 |
+| tl | Tagalog | 23 | 21 | 21 | 0 | 21 | 21 | 0 | 0 |
+| hnn | Hanunoo | 23 | 22 | 22 | 0 | 22 | 22 | 0 | 0 |
+| bku | Buhid | 20 | 20 | 20 | 0 | 20 | 20 | 0 | 0 |
+| tbw | Tagbanwa | 18 | 18 | 18 | 0 | 18 | 18 | 0 | 0 |
+| mni | Meetei Mayek | 79 | 76 | 73 | 0 | 75 | 73 | 0 | 0 |
+| ber | Tifinagh | 59 | 58 | 58 | 0 | 58 | 58 | 0 | 0 |
+| lis | Lisu | 48 | 48 | 48 | 0 | 47 | 48 | 0 | 0 |
+| sat | Ol Chiki | 48 | 45 | 43 | 0 | 45 | 43 | 0 | 0 |
+| bax | Bamum | 88 | 87 | 83 | 0 | 87 | 83 | 0 | 0 |
+| bal | Balinese | 124 | 114 | 93 | 0 | 114 | 93 | 0 | 0 |
+| nko | N'Ko | 62 | 54 | 50 | 0 | 53 | 50 | 0 | 0 |
+| vai | Vai | 300 | 299 | 286 | 0 | 299 | 286 | 0 | 0 |
+| cop | Coptic | 123 | 121 | 102 | 0 | 121 | 102 | 0 | 0 |
+| **TOTAL** | | **50464** | **50157** | **49641** | **47408** | **50085** | **2362** | **129** | **27040** |
 
 ## Notable Differences
 
@@ -3112,184 +3130,728 @@ Coverage: translit maps 149/153, Unidecode maps 148/153. **5** mapped only by tr
 | ᢣ | U+18A3 | MONGOLIAN LETTER MANCHU ALI GALI CYA | `cya` | `cy` | `c` |
 | | | *...3 more differences* | | | |
 
+### su — Sundanese
+
+Block: 64 assigned codepoints, 63 mapped by at least one library.
+
+Coverage: translit maps 48/63, Unidecode maps 0/63. **48** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᮃ | U+1B83 | SUNDANESE LETTER A | `a` |
+| ᮄ | U+1B84 | SUNDANESE LETTER I | `i` |
+| ᮅ | U+1B85 | SUNDANESE LETTER U | `u` |
+| ᮆ | U+1B86 | SUNDANESE LETTER AE | `ae` |
+| ᮇ | U+1B87 | SUNDANESE LETTER O | `o` |
+| ᮈ | U+1B88 | SUNDANESE LETTER E | `e` |
+| ᮉ | U+1B89 | SUNDANESE LETTER EU | `eu` |
+| ᮊ | U+1B8A | SUNDANESE LETTER KA | `ka` |
+| ᮋ | U+1B8B | SUNDANESE LETTER QA | `qa` |
+| ᮌ | U+1B8C | SUNDANESE LETTER GA | `ga` |
+| ᮍ | U+1B8D | SUNDANESE LETTER NGA | `nga` |
+| ᮎ | U+1B8E | SUNDANESE LETTER CA | `ca` |
+| ᮏ | U+1B8F | SUNDANESE LETTER JA | `ja` |
+| ᮐ | U+1B90 | SUNDANESE LETTER ZA | `za` |
+| ᮑ | U+1B91 | SUNDANESE LETTER NYA | `nya` |
+| ᮒ | U+1B92 | SUNDANESE LETTER TA | `ta` |
+| ᮓ | U+1B93 | SUNDANESE LETTER DA | `da` |
+| ᮔ | U+1B94 | SUNDANESE LETTER NA | `na` |
+| ᮕ | U+1B95 | SUNDANESE LETTER PA | `pa` |
+| ᮖ | U+1B96 | SUNDANESE LETTER FA | `fa` |
+| ᮗ | U+1B97 | SUNDANESE LETTER VA | `ba` |
+| ᮘ | U+1B98 | SUNDANESE LETTER BA | `ma` |
+| ᮙ | U+1B99 | SUNDANESE LETTER MA | `ya` |
+| ᮚ | U+1B9A | SUNDANESE LETTER YA | `ra` |
+| ᮛ | U+1B9B | SUNDANESE LETTER RA | `la` |
+| ᮜ | U+1B9C | SUNDANESE LETTER LA | `wa` |
+| ᮝ | U+1B9D | SUNDANESE LETTER WA | `sa` |
+| ᮞ | U+1B9E | SUNDANESE LETTER SA | `ha` |
+| ᮟ | U+1B9F | SUNDANESE LETTER XA | `sa` |
+| ᮠ | U+1BA0 | SUNDANESE LETTER HA | `xa` |
+| | | *...18 more* | |
+
+### nod — Tai Tham
+
+Block: 127 assigned codepoints, 119 mapped by at least one library.
+
+Coverage: translit maps 103/119, Unidecode maps 0/119. **103** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᨠ | U+1A20 | TAI THAM LETTER HIGH KA | `ka` |
+| ᨡ | U+1A21 | TAI THAM LETTER HIGH KHA | `kha` |
+| ᨢ | U+1A22 | TAI THAM LETTER HIGH KXA | `kha` |
+| ᨣ | U+1A23 | TAI THAM LETTER LOW KA | `ga` |
+| ᨤ | U+1A24 | TAI THAM LETTER LOW KXA | `gha` |
+| ᨥ | U+1A25 | TAI THAM LETTER LOW KHA | `nga` |
+| ᨦ | U+1A26 | TAI THAM LETTER NGA | `ca` |
+| ᨧ | U+1A27 | TAI THAM LETTER HIGH CA | `sa` |
+| ᨨ | U+1A28 | TAI THAM LETTER HIGH CHA | `cha` |
+| ᨩ | U+1A29 | TAI THAM LETTER LOW CA | `ja` |
+| ᨪ | U+1A2A | TAI THAM LETTER LOW SA | `ha` |
+| ᨫ | U+1A2B | TAI THAM LETTER LOW CHA | `nya` |
+| ᨬ | U+1A2C | TAI THAM LETTER NYA | `da` |
+| ᨭ | U+1A2D | TAI THAM LETTER RATA | `na` |
+| ᨮ | U+1A2E | TAI THAM LETTER HIGH RATHA | `da` |
+| ᨯ | U+1A2F | TAI THAM LETTER DA | `tha` |
+| ᨰ | U+1A30 | TAI THAM LETTER LOW RATHA | `tha` |
+| ᨱ | U+1A31 | TAI THAM LETTER RANA | `da` |
+| ᨲ | U+1A32 | TAI THAM LETTER HIGH TA | `dha` |
+| ᨳ | U+1A33 | TAI THAM LETTER HIGH THA | `na` |
+| ᨴ | U+1A34 | TAI THAM LETTER LOW TA | `ba` |
+| ᨵ | U+1A35 | TAI THAM LETTER LOW THA | `pa` |
+| ᨶ | U+1A36 | TAI THAM LETTER NA | `pha` |
+| ᨷ | U+1A37 | TAI THAM LETTER BA | `fa` |
+| ᨸ | U+1A38 | TAI THAM LETTER HIGH PA | `pha` |
+| ᨹ | U+1A39 | TAI THAM LETTER HIGH PHA | `ba` |
+| ᨺ | U+1A3A | TAI THAM LETTER HIGH FA | `bha` |
+| ᨻ | U+1A3B | TAI THAM LETTER LOW PA | `ma` |
+| ᨼ | U+1A3C | TAI THAM LETTER LOW FA | `ya` |
+| ᨽ | U+1A3D | TAI THAM LETTER LOW PHA | `ra` |
+| | | *...73 more* | |
+
+### cjm — Cham
+
+Block: 83 assigned codepoints, 83 mapped by at least one library.
+
+Coverage: translit maps 78/83, Unidecode maps 0/83. **78** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ꨀ | U+AA00 | CHAM LETTER A | `ka` |
+| ꨁ | U+AA01 | CHAM LETTER I | `kha` |
+| ꨂ | U+AA02 | CHAM LETTER U | `ga` |
+| ꨃ | U+AA03 | CHAM LETTER E | `gha` |
+| ꨄ | U+AA04 | CHAM LETTER AI | `ngha` |
+| ꨅ | U+AA05 | CHAM LETTER O | `nga` |
+| ꨆ | U+AA06 | CHAM LETTER KA | `cha` |
+| ꨇ | U+AA07 | CHAM LETTER KHA | `chha` |
+| ꨈ | U+AA08 | CHAM LETTER GA | `ja` |
+| ꨉ | U+AA09 | CHAM LETTER GHA | `jha` |
+| ꨊ | U+AA0A | CHAM LETTER NGUE | `nhja` |
+| ꨋ | U+AA0B | CHAM LETTER NGA | `nha` |
+| ꨌ | U+AA0C | CHAM LETTER CHA | `nhra` |
+| ꨍ | U+AA0D | CHAM LETTER CHHA | `a` |
+| ꨎ | U+AA0E | CHAM LETTER JA | `ta` |
+| ꨏ | U+AA0F | CHAM LETTER JHA | `tha` |
+| ꨐ | U+AA10 | CHAM LETTER NHUE | `da` |
+| ꨑ | U+AA11 | CHAM LETTER NHA | `dha` |
+| ꨒ | U+AA12 | CHAM LETTER NHJA | `nra` |
+| ꨓ | U+AA13 | CHAM LETTER TA | `na` |
+| ꨔ | U+AA14 | CHAM LETTER THA | `dda` |
+| ꨕ | U+AA15 | CHAM LETTER DA | `pa` |
+| ꨖ | U+AA16 | CHAM LETTER DHA | `ppa` |
+| ꨗ | U+AA17 | CHAM LETTER NUE | `pha` |
+| ꨘ | U+AA18 | CHAM LETTER NA | `ba` |
+| ꨙ | U+AA19 | CHAM LETTER DDA | `bha` |
+| ꨚ | U+AA1A | CHAM LETTER PA | `mba` |
+| ꨛ | U+AA1B | CHAM LETTER PPA | `ma` |
+| ꨜ | U+AA1C | CHAM LETTER PHA | `bba` |
+| ꨝ | U+AA1D | CHAM LETTER BA | `ya` |
+| | | *...48 more* | |
+
+### btk — Batak
+
+Block: 56 assigned codepoints, 54 mapped by at least one library.
+
+Coverage: translit maps 50/54, Unidecode maps 0/54. **50** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᯀ | U+1BC0 | BATAK LETTER A | `a` |
+| ᯁ | U+1BC1 | BATAK LETTER SIMALUNGUN A | `ha` |
+| ᯂ | U+1BC2 | BATAK LETTER HA | `ha` |
+| ᯃ | U+1BC3 | BATAK LETTER SIMALUNGUN HA | `ba` |
+| ᯄ | U+1BC4 | BATAK LETTER MANDAILING HA | `ba` |
+| ᯅ | U+1BC5 | BATAK LETTER BA | `pa` |
+| ᯆ | U+1BC6 | BATAK LETTER KARO BA | `pa` |
+| ᯇ | U+1BC7 | BATAK LETTER PA | `na` |
+| ᯈ | U+1BC8 | BATAK LETTER SIMALUNGUN PA | `na` |
+| ᯉ | U+1BC9 | BATAK LETTER NA | `na` |
+| ᯊ | U+1BCA | BATAK LETTER MANDAILING NA | `wa` |
+| ᯋ | U+1BCB | BATAK LETTER WA | `wa` |
+| ᯌ | U+1BCC | BATAK LETTER SIMALUNGUN WA | `ga` |
+| ᯍ | U+1BCD | BATAK LETTER PAKPAK WA | `ga` |
+| ᯎ | U+1BCE | BATAK LETTER GA | `ja` |
+| ᯏ | U+1BCF | BATAK LETTER SIMALUNGUN GA | `da` |
+| ᯐ | U+1BD0 | BATAK LETTER JA | `da` |
+| ᯑ | U+1BD1 | BATAK LETTER DA | `ra` |
+| ᯒ | U+1BD2 | BATAK LETTER RA | `ra` |
+| ᯓ | U+1BD3 | BATAK LETTER SIMALUNGUN RA | `ma` |
+| ᯔ | U+1BD4 | BATAK LETTER MA | `ma` |
+| ᯕ | U+1BD5 | BATAK LETTER SIMALUNGUN MA | `ta` |
+| ᯖ | U+1BD6 | BATAK LETTER SOUTHERN TA | `ta` |
+| ᯗ | U+1BD7 | BATAK LETTER NORTHERN TA | `sa` |
+| ᯘ | U+1BD8 | BATAK LETTER SA | `sa` |
+| ᯙ | U+1BD9 | BATAK LETTER SIMALUNGUN SA | `sa` |
+| ᯚ | U+1BDA | BATAK LETTER MANDAILING SA | `ya` |
+| ᯛ | U+1BDB | BATAK LETTER YA | `ya` |
+| ᯜ | U+1BDC | BATAK LETTER SIMALUNGUN YA | `nga` |
+| ᯝ | U+1BDD | BATAK LETTER NGA | `nga` |
+| | | *...20 more* | |
+
+### bug — Buginese
+
+Block: 30 assigned codepoints, 30 mapped by at least one library.
+
+Coverage: translit maps 30/30, Unidecode maps 0/30. **30** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᨀ | U+1A00 | BUGINESE LETTER KA | `ka` |
+| ᨁ | U+1A01 | BUGINESE LETTER GA | `ga` |
+| ᨂ | U+1A02 | BUGINESE LETTER NGA | `nga` |
+| ᨃ | U+1A03 | BUGINESE LETTER NGKA | `ngka` |
+| ᨄ | U+1A04 | BUGINESE LETTER PA | `pa` |
+| ᨅ | U+1A05 | BUGINESE LETTER BA | `ba` |
+| ᨆ | U+1A06 | BUGINESE LETTER MA | `ma` |
+| ᨇ | U+1A07 | BUGINESE LETTER MPA | `mpa` |
+| ᨈ | U+1A08 | BUGINESE LETTER TA | `ta` |
+| ᨉ | U+1A09 | BUGINESE LETTER DA | `da` |
+| ᨊ | U+1A0A | BUGINESE LETTER NA | `na` |
+| ᨋ | U+1A0B | BUGINESE LETTER NRA | `nra` |
+| ᨌ | U+1A0C | BUGINESE LETTER CA | `ca` |
+| ᨍ | U+1A0D | BUGINESE LETTER JA | `ja` |
+| ᨎ | U+1A0E | BUGINESE LETTER NYA | `nya` |
+| ᨏ | U+1A0F | BUGINESE LETTER NYCA | `nyca` |
+| ᨐ | U+1A10 | BUGINESE LETTER YA | `ya` |
+| ᨑ | U+1A11 | BUGINESE LETTER RA | `ra` |
+| ᨒ | U+1A12 | BUGINESE LETTER LA | `la` |
+| ᨓ | U+1A13 | BUGINESE LETTER VA | `wa` |
+| ᨔ | U+1A14 | BUGINESE LETTER SA | `sa` |
+| ᨕ | U+1A15 | BUGINESE LETTER A | `a` |
+| ᨖ | U+1A16 | BUGINESE LETTER HA | `ha` |
+| ᨗ | U+1A17 | BUGINESE VOWEL SIGN I | `i` |
+| ᨘ | U+1A18 | BUGINESE VOWEL SIGN U | `u` |
+| ᨙ | U+1A19 | BUGINESE VOWEL SIGN E | `e` |
+| ᨚ | U+1A1A | BUGINESE VOWEL SIGN O | `o` |
+| ᨛ | U+1A1B | BUGINESE VOWEL SIGN AE | `e` |
+| ᨞ | U+1A1E | BUGINESE PALLAWA | `.` |
+| ᨟ | U+1A1F | BUGINESE END OF SECTION | `.` |
+
+### tl — Tagalog
+
+Block: 23 assigned codepoints, 21 mapped by at least one library.
+
+Coverage: translit maps 21/21, Unidecode maps 0/21. **21** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᜀ | U+1700 | TAGALOG LETTER A | `a` |
+| ᜁ | U+1701 | TAGALOG LETTER I | `i` |
+| ᜂ | U+1702 | TAGALOG LETTER U | `u` |
+| ᜃ | U+1703 | TAGALOG LETTER KA | `ka` |
+| ᜄ | U+1704 | TAGALOG LETTER GA | `ga` |
+| ᜅ | U+1705 | TAGALOG LETTER NGA | `nga` |
+| ᜆ | U+1706 | TAGALOG LETTER TA | `ta` |
+| ᜇ | U+1707 | TAGALOG LETTER DA | `da` |
+| ᜈ | U+1708 | TAGALOG LETTER NA | `na` |
+| ᜉ | U+1709 | TAGALOG LETTER PA | `pa` |
+| ᜊ | U+170A | TAGALOG LETTER BA | `ba` |
+| ᜋ | U+170B | TAGALOG LETTER MA | `ma` |
+| ᜌ | U+170C | TAGALOG LETTER YA | `ya` |
+| ᜍ | U+170D | TAGALOG LETTER RA | `ra` |
+| ᜎ | U+170E | TAGALOG LETTER LA | `la` |
+| ᜏ | U+170F | TAGALOG LETTER WA | `wa` |
+| ᜐ | U+1710 | TAGALOG LETTER SA | `sa` |
+| ᜑ | U+1711 | TAGALOG LETTER HA | `ha` |
+| ᜒ | U+1712 | TAGALOG VOWEL SIGN I | `i` |
+| ᜓ | U+1713 | TAGALOG VOWEL SIGN U | `u` |
+| ᜟ | U+171F | TAGALOG LETTER ARCHAIC RA | `ra` |
+
+### hnn — Hanunoo
+
+Block: 23 assigned codepoints, 22 mapped by at least one library.
+
+Coverage: translit maps 22/22, Unidecode maps 0/22. **22** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᜠ | U+1720 | HANUNOO LETTER A | `a` |
+| ᜡ | U+1721 | HANUNOO LETTER I | `i` |
+| ᜢ | U+1722 | HANUNOO LETTER U | `u` |
+| ᜣ | U+1723 | HANUNOO LETTER KA | `ka` |
+| ᜤ | U+1724 | HANUNOO LETTER GA | `ga` |
+| ᜥ | U+1725 | HANUNOO LETTER NGA | `nga` |
+| ᜦ | U+1726 | HANUNOO LETTER TA | `ta` |
+| ᜧ | U+1727 | HANUNOO LETTER DA | `da` |
+| ᜨ | U+1728 | HANUNOO LETTER NA | `na` |
+| ᜩ | U+1729 | HANUNOO LETTER PA | `pa` |
+| ᜪ | U+172A | HANUNOO LETTER BA | `ba` |
+| ᜫ | U+172B | HANUNOO LETTER MA | `ma` |
+| ᜬ | U+172C | HANUNOO LETTER YA | `ya` |
+| ᜭ | U+172D | HANUNOO LETTER RA | `ra` |
+| ᜮ | U+172E | HANUNOO LETTER LA | `la` |
+| ᜯ | U+172F | HANUNOO LETTER WA | `wa` |
+| ᜰ | U+1730 | HANUNOO LETTER SA | `sa` |
+| ᜱ | U+1731 | HANUNOO LETTER HA | `ha` |
+| ᜲ | U+1732 | HANUNOO VOWEL SIGN I | `i` |
+| ᜳ | U+1733 | HANUNOO VOWEL SIGN U | `u` |
+| ᜵ | U+1735 | PHILIPPINE SINGLE PUNCTUATION | `.` |
+| ᜶ | U+1736 | PHILIPPINE DOUBLE PUNCTUATION | `.` |
+
+### bku — Buhid
+
+Block: 20 assigned codepoints, 20 mapped by at least one library.
+
+Coverage: translit maps 20/20, Unidecode maps 0/20. **20** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᝀ | U+1740 | BUHID LETTER A | `a` |
+| ᝁ | U+1741 | BUHID LETTER I | `i` |
+| ᝂ | U+1742 | BUHID LETTER U | `u` |
+| ᝃ | U+1743 | BUHID LETTER KA | `ka` |
+| ᝄ | U+1744 | BUHID LETTER GA | `ga` |
+| ᝅ | U+1745 | BUHID LETTER NGA | `nga` |
+| ᝆ | U+1746 | BUHID LETTER TA | `ta` |
+| ᝇ | U+1747 | BUHID LETTER DA | `da` |
+| ᝈ | U+1748 | BUHID LETTER NA | `na` |
+| ᝉ | U+1749 | BUHID LETTER PA | `pa` |
+| ᝊ | U+174A | BUHID LETTER BA | `ba` |
+| ᝋ | U+174B | BUHID LETTER MA | `ma` |
+| ᝌ | U+174C | BUHID LETTER YA | `ya` |
+| ᝍ | U+174D | BUHID LETTER RA | `ra` |
+| ᝎ | U+174E | BUHID LETTER LA | `la` |
+| ᝏ | U+174F | BUHID LETTER WA | `wa` |
+| ᝐ | U+1750 | BUHID LETTER SA | `sa` |
+| ᝑ | U+1751 | BUHID LETTER HA | `ha` |
+| ᝒ | U+1752 | BUHID VOWEL SIGN I | `i` |
+| ᝓ | U+1753 | BUHID VOWEL SIGN U | `u` |
+
+### tbw — Tagbanwa
+
+Block: 18 assigned codepoints, 18 mapped by at least one library.
+
+Coverage: translit maps 18/18, Unidecode maps 0/18. **18** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᝠ | U+1760 | TAGBANWA LETTER A | `a` |
+| ᝡ | U+1761 | TAGBANWA LETTER I | `i` |
+| ᝢ | U+1762 | TAGBANWA LETTER U | `u` |
+| ᝣ | U+1763 | TAGBANWA LETTER KA | `ka` |
+| ᝤ | U+1764 | TAGBANWA LETTER GA | `ga` |
+| ᝥ | U+1765 | TAGBANWA LETTER NGA | `nga` |
+| ᝦ | U+1766 | TAGBANWA LETTER TA | `ta` |
+| ᝧ | U+1767 | TAGBANWA LETTER DA | `da` |
+| ᝨ | U+1768 | TAGBANWA LETTER NA | `na` |
+| ᝩ | U+1769 | TAGBANWA LETTER PA | `pa` |
+| ᝪ | U+176A | TAGBANWA LETTER BA | `ba` |
+| ᝫ | U+176B | TAGBANWA LETTER MA | `ma` |
+| ᝬ | U+176C | TAGBANWA LETTER YA | `ya` |
+| ᝮ | U+176E | TAGBANWA LETTER LA | `la` |
+| ᝯ | U+176F | TAGBANWA LETTER WA | `wa` |
+| ᝰ | U+1770 | TAGBANWA LETTER SA | `sa` |
+| ᝲ | U+1772 | TAGBANWA VOWEL SIGN I | `i` |
+| ᝳ | U+1773 | TAGBANWA VOWEL SIGN U | `u` |
+
+### mni — Meetei Mayek
+
+Block: 79 assigned codepoints, 76 mapped by at least one library.
+
+Coverage: translit maps 73/76, Unidecode maps 0/76. **73** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ꯀ | U+ABC0 | MEETEI MAYEK LETTER KOK | `ka` |
+| ꯁ | U+ABC1 | MEETEI MAYEK LETTER SAM | `kha` |
+| ꯂ | U+ABC2 | MEETEI MAYEK LETTER LAI | `ga` |
+| ꯃ | U+ABC3 | MEETEI MAYEK LETTER MIT | `gha` |
+| ꯄ | U+ABC4 | MEETEI MAYEK LETTER PA | `nga` |
+| ꯅ | U+ABC5 | MEETEI MAYEK LETTER NA | `cha` |
+| ꯆ | U+ABC6 | MEETEI MAYEK LETTER CHIL | `chha` |
+| ꯇ | U+ABC7 | MEETEI MAYEK LETTER TIL | `ja` |
+| ꯈ | U+ABC8 | MEETEI MAYEK LETTER KHOU | `jha` |
+| ꯉ | U+ABC9 | MEETEI MAYEK LETTER NGOU | `nya` |
+| ꯊ | U+ABCA | MEETEI MAYEK LETTER THOU | `ta` |
+| ꯋ | U+ABCB | MEETEI MAYEK LETTER WAI | `tha` |
+| ꯌ | U+ABCC | MEETEI MAYEK LETTER YANG | `da` |
+| ꯍ | U+ABCD | MEETEI MAYEK LETTER HUK | `dha` |
+| ꯎ | U+ABCE | MEETEI MAYEK LETTER UN | `na` |
+| ꯏ | U+ABCF | MEETEI MAYEK LETTER I | `ta` |
+| ꯐ | U+ABD0 | MEETEI MAYEK LETTER PHAM | `tha` |
+| ꯑ | U+ABD1 | MEETEI MAYEK LETTER ATIYA | `da` |
+| ꯒ | U+ABD2 | MEETEI MAYEK LETTER GOK | `dha` |
+| ꯓ | U+ABD3 | MEETEI MAYEK LETTER JHAM | `na` |
+| ꯔ | U+ABD4 | MEETEI MAYEK LETTER RAI | `pa` |
+| ꯕ | U+ABD5 | MEETEI MAYEK LETTER BA | `pha` |
+| ꯖ | U+ABD6 | MEETEI MAYEK LETTER JIL | `ba` |
+| ꯗ | U+ABD7 | MEETEI MAYEK LETTER DIL | `bha` |
+| ꯘ | U+ABD8 | MEETEI MAYEK LETTER GHOU | `ma` |
+| ꯙ | U+ABD9 | MEETEI MAYEK LETTER DHOU | `ya` |
+| ꯚ | U+ABDA | MEETEI MAYEK LETTER BHAM | `ra` |
+| ꯛ | U+ABDB | MEETEI MAYEK LETTER KOK LONSUM | `la` |
+| ꯜ | U+ABDC | MEETEI MAYEK LETTER LAI LONSUM | `wa` |
+| ꯝ | U+ABDD | MEETEI MAYEK LETTER MIT LONSUM | `sha` |
+| | | *...43 more* | |
+
+### ber — Tifinagh
+
+Block: 59 assigned codepoints, 58 mapped by at least one library.
+
+Coverage: translit maps 58/58, Unidecode maps 0/58. **58** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ⴰ | U+2D30 | TIFINAGH LETTER YA | `a` |
+| ⴱ | U+2D31 | TIFINAGH LETTER YAB | `b` |
+| ⴲ | U+2D32 | TIFINAGH LETTER YABH | `bh` |
+| ⴳ | U+2D33 | TIFINAGH LETTER YAG | `g` |
+| ⴴ | U+2D34 | TIFINAGH LETTER YAGHH | `ghh` |
+| ⴵ | U+2D35 | TIFINAGH LETTER BERBER ACADEMY YAJ | `j` |
+| ⴶ | U+2D36 | TIFINAGH LETTER YAJ | `j` |
+| ⴷ | U+2D37 | TIFINAGH LETTER YAD | `d` |
+| ⴸ | U+2D38 | TIFINAGH LETTER YADH | `dh` |
+| ⴹ | U+2D39 | TIFINAGH LETTER YADD | `dd` |
+| ⴺ | U+2D3A | TIFINAGH LETTER YADDH | `ddh` |
+| ⴻ | U+2D3B | TIFINAGH LETTER YEY | `ey` |
+| ⴼ | U+2D3C | TIFINAGH LETTER YAF | `f` |
+| ⴽ | U+2D3D | TIFINAGH LETTER YAK | `k` |
+| ⴾ | U+2D3E | TIFINAGH LETTER TUAREG YAK | `k` |
+| ⴿ | U+2D3F | TIFINAGH LETTER YAKHH | `khh` |
+| ⵀ | U+2D40 | TIFINAGH LETTER YAH | `h` |
+| ⵁ | U+2D41 | TIFINAGH LETTER BERBER ACADEMY YAH | `h` |
+| ⵂ | U+2D42 | TIFINAGH LETTER TUAREG YAH | `h` |
+| ⵃ | U+2D43 | TIFINAGH LETTER YAHH | `hh` |
+| ⵄ | U+2D44 | TIFINAGH LETTER YAA | `a` |
+| ⵅ | U+2D45 | TIFINAGH LETTER YAKH | `kh` |
+| ⵆ | U+2D46 | TIFINAGH LETTER TUAREG YAKH | `kh` |
+| ⵇ | U+2D47 | TIFINAGH LETTER YAQ | `q` |
+| ⵈ | U+2D48 | TIFINAGH LETTER TUAREG YAQ | `q` |
+| ⵉ | U+2D49 | TIFINAGH LETTER YI | `i` |
+| ⵊ | U+2D4A | TIFINAGH LETTER YAZH | `zh` |
+| ⵋ | U+2D4B | TIFINAGH LETTER AHAGGAR YAZH | `zh` |
+| ⵌ | U+2D4C | TIFINAGH LETTER TUAREG YAZH | `zh` |
+| ⵍ | U+2D4D | TIFINAGH LETTER YAL | `l` |
+| | | *...28 more* | |
+
+### lis — Lisu
+
+Block: 48 assigned codepoints, 48 mapped by at least one library.
+
+Coverage: translit maps 48/48, Unidecode maps 0/48. **48** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ꓐ | U+A4D0 | LISU LETTER BA | `ba` |
+| ꓑ | U+A4D1 | LISU LETTER PA | `pa` |
+| ꓒ | U+A4D2 | LISU LETTER PHA | `pha` |
+| ꓓ | U+A4D3 | LISU LETTER DA | `da` |
+| ꓔ | U+A4D4 | LISU LETTER TA | `ta` |
+| ꓕ | U+A4D5 | LISU LETTER THA | `tha` |
+| ꓖ | U+A4D6 | LISU LETTER GA | `ga` |
+| ꓗ | U+A4D7 | LISU LETTER KA | `ka` |
+| ꓘ | U+A4D8 | LISU LETTER KHA | `kha` |
+| ꓙ | U+A4D9 | LISU LETTER JA | `ja` |
+| ꓚ | U+A4DA | LISU LETTER CA | `ca` |
+| ꓛ | U+A4DB | LISU LETTER CHA | `cha` |
+| ꓜ | U+A4DC | LISU LETTER DZA | `dza` |
+| ꓝ | U+A4DD | LISU LETTER TSA | `tsa` |
+| ꓞ | U+A4DE | LISU LETTER TSHA | `tsha` |
+| ꓟ | U+A4DF | LISU LETTER MA | `ma` |
+| ꓠ | U+A4E0 | LISU LETTER NA | `na` |
+| ꓡ | U+A4E1 | LISU LETTER LA | `la` |
+| ꓢ | U+A4E2 | LISU LETTER SA | `sa` |
+| ꓣ | U+A4E3 | LISU LETTER ZHA | `zha` |
+| ꓤ | U+A4E4 | LISU LETTER ZA | `za` |
+| ꓥ | U+A4E5 | LISU LETTER NGA | `nga` |
+| ꓦ | U+A4E6 | LISU LETTER HA | `ha` |
+| ꓧ | U+A4E7 | LISU LETTER XA | `xa` |
+| ꓨ | U+A4E8 | LISU LETTER HHA | `hha` |
+| ꓩ | U+A4E9 | LISU LETTER FA | `fa` |
+| ꓪ | U+A4EA | LISU LETTER WA | `wa` |
+| ꓫ | U+A4EB | LISU LETTER SHA | `sha` |
+| ꓬ | U+A4EC | LISU LETTER YA | `ya` |
+| ꓭ | U+A4ED | LISU LETTER GHA | `gha` |
+| | | *...18 more* | |
+
+### sat — Ol Chiki
+
+Block: 48 assigned codepoints, 45 mapped by at least one library.
+
+Coverage: translit maps 43/45, Unidecode maps 0/45. **43** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᱐ | U+1C50 | OL CHIKI DIGIT ZERO | `0` |
+| ᱑ | U+1C51 | OL CHIKI DIGIT ONE | `1` |
+| ᱒ | U+1C52 | OL CHIKI DIGIT TWO | `2` |
+| ᱓ | U+1C53 | OL CHIKI DIGIT THREE | `3` |
+| ᱔ | U+1C54 | OL CHIKI DIGIT FOUR | `4` |
+| ᱕ | U+1C55 | OL CHIKI DIGIT FIVE | `5` |
+| ᱖ | U+1C56 | OL CHIKI DIGIT SIX | `6` |
+| ᱗ | U+1C57 | OL CHIKI DIGIT SEVEN | `7` |
+| ᱘ | U+1C58 | OL CHIKI DIGIT EIGHT | `8` |
+| ᱙ | U+1C59 | OL CHIKI DIGIT NINE | `9` |
+| ᱚ | U+1C5A | OL CHIKI LETTER LA | `la` |
+| ᱛ | U+1C5B | OL CHIKI LETTER AT | `at` |
+| ᱜ | U+1C5C | OL CHIKI LETTER AG | `ag` |
+| ᱝ | U+1C5D | OL CHIKI LETTER ANG | `ang` |
+| ᱞ | U+1C5E | OL CHIKI LETTER AL | `al` |
+| ᱟ | U+1C5F | OL CHIKI LETTER LAA | `laa` |
+| ᱠ | U+1C60 | OL CHIKI LETTER AAK | `aak` |
+| ᱡ | U+1C61 | OL CHIKI LETTER AAJ | `aaj` |
+| ᱢ | U+1C62 | OL CHIKI LETTER AAM | `aam` |
+| ᱣ | U+1C63 | OL CHIKI LETTER AAW | `aaw` |
+| ᱤ | U+1C64 | OL CHIKI LETTER LI | `li` |
+| ᱥ | U+1C65 | OL CHIKI LETTER IS | `is` |
+| ᱦ | U+1C66 | OL CHIKI LETTER IH | `ih` |
+| ᱧ | U+1C67 | OL CHIKI LETTER INY | `iny` |
+| ᱨ | U+1C68 | OL CHIKI LETTER IR | `ir` |
+| ᱩ | U+1C69 | OL CHIKI LETTER LU | `lu` |
+| ᱪ | U+1C6A | OL CHIKI LETTER UC | `uc` |
+| ᱫ | U+1C6B | OL CHIKI LETTER UD | `ud` |
+| ᱬ | U+1C6C | OL CHIKI LETTER UNN | `unn` |
+| ᱭ | U+1C6D | OL CHIKI LETTER UY | `unny` |
+| | | *...13 more* | |
+
+### bax — Bamum
+
+Block: 88 assigned codepoints, 87 mapped by at least one library.
+
+Coverage: translit maps 83/87, Unidecode maps 0/87. **83** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ꚠ | U+A6A0 | BAMUM LETTER A | `a` |
+| ꚡ | U+A6A1 | BAMUM LETTER KA | `ka` |
+| ꚢ | U+A6A2 | BAMUM LETTER U | `u` |
+| ꚣ | U+A6A3 | BAMUM LETTER KU | `ku` |
+| ꚤ | U+A6A4 | BAMUM LETTER EE | `ee` |
+| ꚥ | U+A6A5 | BAMUM LETTER REE | `ree` |
+| ꚦ | U+A6A6 | BAMUM LETTER TAE | `tae` |
+| ꚧ | U+A6A7 | BAMUM LETTER O | `o` |
+| ꚨ | U+A6A8 | BAMUM LETTER NYI | `nyi` |
+| ꚩ | U+A6A9 | BAMUM LETTER I | `i` |
+| ꚪ | U+A6AA | BAMUM LETTER LA | `la` |
+| ꚫ | U+A6AB | BAMUM LETTER PA | `pa` |
+| ꚬ | U+A6AC | BAMUM LETTER RII | `rii` |
+| ꚭ | U+A6AD | BAMUM LETTER RIEE | `riee` |
+| ꚮ | U+A6AE | BAMUM LETTER LEEEE | `leeee` |
+| ꚯ | U+A6AF | BAMUM LETTER MEEEE | `meeee` |
+| ꚰ | U+A6B0 | BAMUM LETTER TAA | `taa` |
+| ꚱ | U+A6B1 | BAMUM LETTER NDAA | `ndaa` |
+| ꚲ | U+A6B2 | BAMUM LETTER NJAEM | `njaem` |
+| ꚳ | U+A6B3 | BAMUM LETTER M | `m` |
+| ꚴ | U+A6B4 | BAMUM LETTER SUU | `suu` |
+| ꚵ | U+A6B5 | BAMUM LETTER MU | `mu` |
+| ꚶ | U+A6B6 | BAMUM LETTER SHII | `shii` |
+| ꚷ | U+A6B7 | BAMUM LETTER SI | `si` |
+| ꚸ | U+A6B8 | BAMUM LETTER SHEUX | `sheux` |
+| ꚹ | U+A6B9 | BAMUM LETTER SEUX | `seux` |
+| ꚺ | U+A6BA | BAMUM LETTER KYEE | `kyee` |
+| ꚻ | U+A6BB | BAMUM LETTER KET | `ket` |
+| ꚼ | U+A6BC | BAMUM LETTER NUAE | `nuae` |
+| ꚽ | U+A6BD | BAMUM LETTER NU | `nu` |
+| | | *...53 more* | |
+
+### bal — Balinese
+
+Block: 124 assigned codepoints, 114 mapped by at least one library.
+
+Coverage: translit maps 93/114, Unidecode maps 0/114. **93** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ᬅ | U+1B05 | BALINESE LETTER AKARA | `a` |
+| ᬆ | U+1B06 | BALINESE LETTER AKARA TEDUNG | `aa` |
+| ᬇ | U+1B07 | BALINESE LETTER IKARA | `i` |
+| ᬈ | U+1B08 | BALINESE LETTER IKARA TEDUNG | `ii` |
+| ᬉ | U+1B09 | BALINESE LETTER UKARA | `u` |
+| ᬊ | U+1B0A | BALINESE LETTER UKARA TEDUNG | `uu` |
+| ᬋ | U+1B0B | BALINESE LETTER RA REPA | `r` |
+| ᬌ | U+1B0C | BALINESE LETTER RA REPA TEDUNG | `r` |
+| ᬍ | U+1B0D | BALINESE LETTER LA LENGA | `l` |
+| ᬎ | U+1B0E | BALINESE LETTER LA LENGA TEDUNG | `l` |
+| ᬏ | U+1B0F | BALINESE LETTER EKARA | `e` |
+| ᬐ | U+1B10 | BALINESE LETTER AIKARA | `ai` |
+| ᬑ | U+1B11 | BALINESE LETTER OKARA | `o` |
+| ᬒ | U+1B12 | BALINESE LETTER OKARA TEDUNG | `au` |
+| ᬓ | U+1B13 | BALINESE LETTER KA | `ka` |
+| ᬔ | U+1B14 | BALINESE LETTER KA MAHAPRANA | `kha` |
+| ᬕ | U+1B15 | BALINESE LETTER GA | `ga` |
+| ᬖ | U+1B16 | BALINESE LETTER GA GORA | `gha` |
+| ᬗ | U+1B17 | BALINESE LETTER NGA | `nga` |
+| ᬘ | U+1B18 | BALINESE LETTER CA | `cha` |
+| ᬙ | U+1B19 | BALINESE LETTER CA LACA | `chha` |
+| ᬚ | U+1B1A | BALINESE LETTER JA | `ja` |
+| ᬛ | U+1B1B | BALINESE LETTER JA JERA | `jha` |
+| ᬜ | U+1B1C | BALINESE LETTER NYA | `nya` |
+| ᬝ | U+1B1D | BALINESE LETTER TA LATIK | `tta` |
+| ᬞ | U+1B1E | BALINESE LETTER TA MURDA MAHAPRANA | `ttha` |
+| ᬟ | U+1B1F | BALINESE LETTER DA MURDA ALPAPRANA | `dda` |
+| ᬠ | U+1B20 | BALINESE LETTER DA MURDA MAHAPRANA | `ddha` |
+| ᬡ | U+1B21 | BALINESE LETTER NA RAMBAT | `nna` |
+| ᬢ | U+1B22 | BALINESE LETTER TA | `ta` |
+| | | *...63 more* | |
+
+### nko — N'Ko
+
+Block: 62 assigned codepoints, 54 mapped by at least one library.
+
+Coverage: translit maps 50/54, Unidecode maps 0/54. **50** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ߀ | U+07C0 | NKO DIGIT ZERO | `0` |
+| ߁ | U+07C1 | NKO DIGIT ONE | `1` |
+| ߂ | U+07C2 | NKO DIGIT TWO | `2` |
+| ߃ | U+07C3 | NKO DIGIT THREE | `3` |
+| ߄ | U+07C4 | NKO DIGIT FOUR | `4` |
+| ߅ | U+07C5 | NKO DIGIT FIVE | `5` |
+| ߆ | U+07C6 | NKO DIGIT SIX | `6` |
+| ߇ | U+07C7 | NKO DIGIT SEVEN | `7` |
+| ߈ | U+07C8 | NKO DIGIT EIGHT | `8` |
+| ߉ | U+07C9 | NKO DIGIT NINE | `9` |
+| ߊ | U+07CA | NKO LETTER A | `a` |
+| ߋ | U+07CB | NKO LETTER EE | `ee` |
+| ߌ | U+07CC | NKO LETTER I | `i` |
+| ߍ | U+07CD | NKO LETTER E | `e` |
+| ߎ | U+07CE | NKO LETTER U | `u` |
+| ߏ | U+07CF | NKO LETTER OO | `oo` |
+| ߐ | U+07D0 | NKO LETTER O | `o` |
+| ߑ | U+07D1 | NKO LETTER DAGBASINNA | `da` |
+| ߒ | U+07D2 | NKO LETTER N | `ba` |
+| ߓ | U+07D3 | NKO LETTER BA | `ka` |
+| ߔ | U+07D4 | NKO LETTER PA | `ja` |
+| ߕ | U+07D5 | NKO LETTER TA | `cha` |
+| ߖ | U+07D6 | NKO LETTER JA | `ta` |
+| ߗ | U+07D7 | NKO LETTER CHA | `nya` |
+| ߘ | U+07D8 | NKO LETTER DA | `na` |
+| ߙ | U+07D9 | NKO LETTER RA | `ra` |
+| ߚ | U+07DA | NKO LETTER RRA | `rra` |
+| ߛ | U+07DB | NKO LETTER SA | `sa` |
+| ߜ | U+07DC | NKO LETTER GBA | `gba` |
+| ߝ | U+07DD | NKO LETTER FA | `fa` |
+| | | *...20 more* | |
+
+### vai — Vai
+
+Block: 300 assigned codepoints, 299 mapped by at least one library.
+
+Coverage: translit maps 286/299, Unidecode maps 0/299. **286** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ꔀ | U+A500 | VAI SYLLABLE EE | `ee` |
+| ꔁ | U+A501 | VAI SYLLABLE EEN | `een` |
+| ꔂ | U+A502 | VAI SYLLABLE HEE | `hee` |
+| ꔃ | U+A503 | VAI SYLLABLE WEE | `wee` |
+| ꔄ | U+A504 | VAI SYLLABLE WEEN | `ween` |
+| ꔅ | U+A505 | VAI SYLLABLE PEE | `pee` |
+| ꔆ | U+A506 | VAI SYLLABLE BHEE | `bhee` |
+| ꔇ | U+A507 | VAI SYLLABLE BEE | `bee` |
+| ꔈ | U+A508 | VAI SYLLABLE MBEE | `mbee` |
+| ꔉ | U+A509 | VAI SYLLABLE KPEE | `kpee` |
+| ꔊ | U+A50A | VAI SYLLABLE MGBEE | `mgbee` |
+| ꔋ | U+A50B | VAI SYLLABLE GBEE | `gbee` |
+| ꔌ | U+A50C | VAI SYLLABLE FEE | `fee` |
+| ꔍ | U+A50D | VAI SYLLABLE VEE | `vee` |
+| ꔎ | U+A50E | VAI SYLLABLE TEE | `tee` |
+| ꔏ | U+A50F | VAI SYLLABLE THEE | `thee` |
+| ꔐ | U+A510 | VAI SYLLABLE DHEE | `dhee` |
+| ꔑ | U+A511 | VAI SYLLABLE DHHEE | `dhhee` |
+| ꔒ | U+A512 | VAI SYLLABLE LEE | `lee` |
+| ꔓ | U+A513 | VAI SYLLABLE REE | `ree` |
+| ꔔ | U+A514 | VAI SYLLABLE DEE | `dee` |
+| ꔕ | U+A515 | VAI SYLLABLE NDEE | `ndee` |
+| ꔖ | U+A516 | VAI SYLLABLE SEE | `see` |
+| ꔗ | U+A517 | VAI SYLLABLE SHEE | `shee` |
+| ꔘ | U+A518 | VAI SYLLABLE ZEE | `zee` |
+| ꔙ | U+A519 | VAI SYLLABLE ZHEE | `zhee` |
+| ꔚ | U+A51A | VAI SYLLABLE CEE | `cee` |
+| ꔛ | U+A51B | VAI SYLLABLE JEE | `jee` |
+| ꔜ | U+A51C | VAI SYLLABLE NJEE | `njee` |
+| ꔝ | U+A51D | VAI SYLLABLE YEE | `yee` |
+| | | *...256 more* | |
+
+### cop — Coptic
+
+Block: 123 assigned codepoints, 121 mapped by at least one library.
+
+Coverage: translit maps 102/121, Unidecode maps 0/121. **102** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| Ⲁ | U+2C80 | COPTIC CAPITAL LETTER ALFA | `a` |
+| ⲁ | U+2C81 | COPTIC SMALL LETTER ALFA | `a` |
+| Ⲃ | U+2C82 | COPTIC CAPITAL LETTER VIDA | `b` |
+| ⲃ | U+2C83 | COPTIC SMALL LETTER VIDA | `b` |
+| Ⲅ | U+2C84 | COPTIC CAPITAL LETTER GAMMA | `g` |
+| ⲅ | U+2C85 | COPTIC SMALL LETTER GAMMA | `g` |
+| Ⲇ | U+2C86 | COPTIC CAPITAL LETTER DALDA | `d` |
+| ⲇ | U+2C87 | COPTIC SMALL LETTER DALDA | `d` |
+| Ⲉ | U+2C88 | COPTIC CAPITAL LETTER EIE | `e` |
+| ⲉ | U+2C89 | COPTIC SMALL LETTER EIE | `e` |
+| Ⲋ | U+2C8A | COPTIC CAPITAL LETTER SOU | `so` |
+| ⲋ | U+2C8B | COPTIC SMALL LETTER SOU | `so` |
+| Ⲍ | U+2C8C | COPTIC CAPITAL LETTER ZATA | `z` |
+| ⲍ | U+2C8D | COPTIC SMALL LETTER ZATA | `z` |
+| Ⲏ | U+2C8E | COPTIC CAPITAL LETTER HATE | `e` |
+| ⲏ | U+2C8F | COPTIC SMALL LETTER HATE | `e` |
+| Ⲑ | U+2C90 | COPTIC CAPITAL LETTER THETHE | `th` |
+| ⲑ | U+2C91 | COPTIC SMALL LETTER THETHE | `th` |
+| Ⲓ | U+2C92 | COPTIC CAPITAL LETTER IAUDA | `i` |
+| ⲓ | U+2C93 | COPTIC SMALL LETTER IAUDA | `i` |
+| Ⲕ | U+2C94 | COPTIC CAPITAL LETTER KAPA | `k` |
+| ⲕ | U+2C95 | COPTIC SMALL LETTER KAPA | `k` |
+| Ⲗ | U+2C96 | COPTIC CAPITAL LETTER LAULA | `l` |
+| ⲗ | U+2C97 | COPTIC SMALL LETTER LAULA | `l` |
+| Ⲙ | U+2C98 | COPTIC CAPITAL LETTER MI | `m` |
+| ⲙ | U+2C99 | COPTIC SMALL LETTER MI | `m` |
+| Ⲛ | U+2C9A | COPTIC CAPITAL LETTER NI | `n` |
+| ⲛ | U+2C9B | COPTIC SMALL LETTER NI | `n` |
+| Ⲝ | U+2C9C | COPTIC CAPITAL LETTER KSI | `ks` |
+| ⲝ | U+2C9D | COPTIC SMALL LETTER KSI | `ks` |
+| | | *...72 more* | |
+
 ## Key Takeaways
 
-- **Total assigned codepoints scanned**: 49089
-- **Mapped by at least one library**: 48825
-- **translit coverage**: 48415/48825 (99.2%)
-- **Unidecode coverage**: 47408/48825 (97.1%)
-- **anyascii coverage**: 48761/48825 (99.9%)
-- **Characters mapped only by translit**: 1136
+- **Total assigned codepoints scanned**: 50464
+- **Mapped by at least one library**: 50157
+- **translit coverage**: 49641/50157 (99.0%)
+- **Unidecode coverage**: 47408/50157 (94.5%)
+- **anyascii coverage**: 50085/50157 (99.9%)
+- **Characters mapped only by translit**: 2362
 - **Characters mapped only by Unidecode**: 129
 - **Different output (both mapped)**: 27040
-
----
-
-*Generated by `benchmarks/diff_vs_unidecode.py`*
-## Analysis: Systematic Difference Patterns
-
-The character-level differences fall into several systematic categories.
-
-### 1. Inherent Vowel Handling (Abugida Scripts)
-
-**Affected**: Hindi, Bengali, Tamil, Telugu, Gujarati, Kannada, Malayalam, Marathi, Nepali, Odia, Punjabi, Sanskrit, Assamese, Sinhala, Tibetan, Myanmar
-
-In Brahmic abugida scripts, each consonant letter carries an inherent /a/ vowel. translit includes this inherent vowel in the transliteration table (`ka`, `ga`, `ta`) and strips it when a virama (halant) or dependent vowel follows. Unidecode outputs bare consonants (`k`, `g`, `t`), producing less readable romanizations.
-
-| Input | translit | Unidecode | Why translit is better |
-|-------|----------|-----------|----------------------|
-| क (ka) | `ka` | `k` | Inherent vowel is part of the pronunciation |
-| क् (k + virama) | `k` | `k` | Virama strips the inherent vowel correctly |
-| का (ka + aa) | `ka` | `kaa` | Dependent vowel replaces inherent, not doubles it |
-
-Unidecode's approach produces `kaa` for का (doubling the vowel) and bare `k` for क (dropping the vowel), which are both incorrect for natural reading.
-
-### 2. CJK Pinyin Casing and Spacing
-
-**Affected**: Chinese (~20,633 differences), Japanese
-
-Unidecode capitalizes every pinyin syllable and appends a trailing space (`Zhong `, `Hua `). translit uses lowercase (`zhong`, `hua`) and handles spacing contextually between ideographs. This single design difference accounts for the majority of the 20,633 CJK diffs.
-
-| Input | translit | Unidecode |
-|-------|----------|-----------|
-| 中华 | `zhong hua` | `Zhong Hua ` |
-
-translit's approach is correct for running text. Unidecode's per-character capitalization was designed for isolated lookups, not sentence transliteration.
-
-### 3. Korean Romanization
-
-**Affected**: Korean (~3,762 differences)
-
-translit and Unidecode both map all 11,172 Hangul syllables, but use different romanization systems. translit follows Revised Romanization (the South Korean government standard), while Unidecode uses an older or variant system.
-
-### 4. Language-Specific Rules
-
-**Affected**: Swedish, Danish, Estonian, Icelandic, Bulgarian, Ukrainian, Russian, Greek
-
-translit applies national romanization standards when a language is specified:
-
-| Char | translit (with lang) | Unidecode | Standard |
-|------|---------------------|-----------|----------|
-| ä (Swedish) | `ae` | `a` | Swedish convention |
-| ø (Danish) | `oe` | `o` | Danish convention |
-| ð (Icelandic) | `dh` | `d` | Icelandic convention |
-| й (Russian) | `y` | `i` | GOST 7.79 |
-| я (Russian) | `ya` | `ia` | GOST 7.79 |
-| η (Greek) | `i` | `e` | Modern Greek pronunciation |
-
-Unidecode has no language parameter — it always applies a single generic mapping.
-
-### 5. Cyrillic and Latin Extended Coverage
-
-**Affected**: Bulgarian, Serbian, Ukrainian, Russian, and all Latin-script languages
-
-translit now maps ~292/304 Cyrillic codepoints and ~396/400 Latin Extended codepoints, closely matching Unidecode's coverage. The remaining unmapped entries are combining marks or modifier characters with intentionally empty mappings. Extended Cyrillic characters (U+0460–U+052F) covering historical, phonetic, and minority-language additions are fully mapped.
-
-### 6. Ethiopic Syllable Handling
-
-**Affected**: Amharic (~218 differences)
-
-Ethiopic (Ge'ez) script encodes consonant+vowel as a single syllable character. translit and Unidecode disagree on whether to include the inherent vowel for 6th-order (bare consonant) forms:
-
-| Input | translit | Unidecode |
-|-------|----------|-----------|
-| ት (te) | `t` | `te` |
-| ራ (raa) | `ra` | `raa` |
-| መ (ma) | `me` | `ma` |
-
-translit strips the inherent schwa from consonant-final forms, which is more natural for reading.
-
-### 7. Khmer Consonant Errors in Unidecode
-
-**Affected**: Khmer (~59 differences)
-
-Unidecode has several Khmer mappings that appear incorrect:
-
-| Char | Unicode Name | translit | Unidecode |
-|------|-------------|----------|-----------|
-| ព (po) | KHMER LETTER PO | `pa` | `b` |
-| ប (ba) | KHMER LETTER BA | `ba` | `p` |
-| ទ (to) | KHMER LETTER TO | `ta` | `d` |
-
-Unidecode swaps voicing for some Khmer consonants (mapping po→b, ba→p), which is likely a data error.
-
-### 8. Javanese: Full Coverage Gap in Unidecode
-
-translit maps 75 Javanese codepoints; Unidecode maps none (returns `[?]` for the entire Javanese block U+A980–U+A9DF). This is a complete coverage gap in Unidecode.
-
-### 9. Intentional Empty Mappings (Combining Marks and Modifiers)
-
-Several characters across Indic, Khmer, and Myanmar blocks are present in translit's default table with intentionally empty mappings. These are combining marks (Unicode categories Mn/Mc) that modify adjacent consonants rather than representing independent sounds. Unidecode maps them to rough approximations; translit suppresses them as the less-wrong default.
-
-Notable examples:
-
-| Char | Codepoint | Name | Language(s) | translit | Unidecode | Rationale for empty |
-|------|-----------|------|-------------|----------|-----------|-------------------|
-| ় | U+09BC | Bengali Sign Nukta | bn, as | *(empty)* | `'` | Modifies preceding consonant; not independently pronounceable |
-| ଼ | U+0B3C | Odia Sign Nukta | or | *(empty)* | `'` | Same as Bengali nukta |
-| ੰ | U+0A70 | Gurmukhi Tippi | pa | *(empty)* | `N` | Nasalization marker — `N` is a functional approximation but can mislead |
-| ੱ | U+0A71 | Gurmukhi Addak | pa | *(empty)* | `H` | Gemination marker — not phonologically motivated |
-| ះ | U+17C7 | Khmer Sign Reahmuk | km | *(empty)* | `H` | Visarga-like final marker; not an independent `H` sound |
-| ံ | U+1036 | Myanmar Sign Anusvara | my | *(empty)* | `N` | Nasalization of preceding vowel; standalone `N` misrepresents the phonology |
-| ့ | U+1037 | Myanmar Sign Dot Below | my | *(empty)* | `'` | Creaky tone marker; no segmental consonant value |
-
-These are deliberate design choices, not bugs. Language-specific overrides could map them if a particular romanization standard requires it.
-
-## Deep Dive: Ethiopic (Amharic)
-
-### Syllabary Structure
-
-Ethiopic (Ge'ez) script is a syllabary: each character encodes a consonant+vowel pair. There are 7 vowel orders for each of 34+ consonant bases:
-
-| Order | Name | Vowel | Example (H series) |
-|-------|------|-------|--------------------|
-| 1st | Ge'ez | ä (schwa) | ሀ U+1200 → `he` |
-| 2nd | Ka'ib | u | ሁ U+1201 → `hu` |
-| 3rd | Salis | i | ሂ U+1202 → `hi` |
-| 4th | Rabi' | a | ሃ U+1203 → `ha` |
-| 5th | Hamis | é | ሄ U+1204 → `he` |
-| 6th | Sadis | (bare/ə) | ህ U+1205 → `h` |
-| 7th | Sabi' | o | ሆ U+1206 → `ho` |
-
-Transliteration is pure table lookup — no virama logic needed (unlike Brahmic abugidas).
-
-### 1st/5th Order Vowel Collision
-
-The 1st order (Ge'ez, /ä/) and 5th order (Hamis, /é/) both map to the same ASCII string. This affects every consonant series:
-
-| Series | 1st order | 5th order | Both map to |
-|--------|-----------|-----------|-------------|
-| H | ሀ U+1200 | ሄ U+1204 | `he` |
-| L | ለ U+1208 | ሌ U+120C | `le` |
-| M | መ U+1218 | ሜ U+121C | `me` |
-| Glottal | አ U+12A0 | ኤ U+12A4 | `e` |
-
-The glottal stop series is worst: U+12A0 (1st), U+12A4 (5th), and U+12A5 (6th) all map to `e` (triple collision).
-
-**Why this is accepted**: Standard ASCII romanization systems (BGN/PCGN, ALALC) do not distinguish 1st from 5th order in plain ASCII — the distinction requires diacritics (ä vs é). Since translit targets pure ASCII output, the collision is inherent to the domain and cannot be resolved without non-ASCII output.
-
-### 6th Order (Bare Consonant) Design
-
-translit strips the inherent schwa from 6th-order forms: ት → `t`, ም → `m`, ብ → `b`. Unidecode preserves it: ት → `te`, ም → `me`, ብ → `be`.
-
-translit's approach is more natural for reading, as 6th order represents a bare consonant (no following vowel) in Amharic phonology.
-
-### Amharic Language Override
-
-The `am` language override addresses Amharic-specific phonological mappings (23 entries):
-
-1. **ጸ/ፀ → s series** (16 entries): In modern Amharic, ጸ (tsade, U+1338–133F) and ፀ (U+1340–1347) are both pronounced as ejective /sʼ/, not /ts/. BGN/PCGN romanizes them as `s`. The default table retains `ts` for the generic Ge'ez mapping.
-
-2. **ዐ pharyngeal → apostrophe-marked** (7 entries): The pharyngeal series (U+12D0–12D6) is distinct from the glottal stop (አ) in Amharic. The override marks it with a leading apostrophe (`'e`, `'a`, etc.), distinguishing ኤ (glottal `e`) from ዔ (pharyngeal `'e`).
-
-## Methodology Notes
-
-- Every assigned codepoint in each language's Unicode block(s) is tested — no sampling or text expansion
-- translit is called with the `lang` parameter (language-aware mode), which is the recommended usage
-- Unidecode and anyascii have no language parameter
-- "Mapped" means at least one library produced meaningful ASCII (not empty, not `[?]`, not the original character unchanged)
-- Languages sharing script blocks (e.g., all Latin-based European languages share Latin Supplement/Extended-A/Extended-B) will show similar block sizes but may differ in output due to language-specific overrides
-- Regenerate this report: `python benchmarks/diff_vs_unidecode.py --markdown`
 
 ---
 
