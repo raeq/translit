@@ -1,16 +1,16 @@
-# Formal Verification & Exhaustive Testing
+# Exhaustive Testing & Compile-Time Assurance
 
-translit goes beyond conventional unit and property-based testing with three layers of machine-verifiable assurance: **compile-time proofs**, **exhaustive domain coverage**, and **formalized invariant specifications**.
+translit goes beyond conventional unit and property-based testing with three layers of machine-verifiable assurance: **compile-time assertions**, **exhaustive domain coverage**, and **stated invariant specifications**.
 
 ---
 
 ## Overview
 
-"Formally tested" for translit means:
+"Exhaustively tested" for translit means:
 
 1. **Compile-time guarantees** — Data integrity assertions that fail the build if violated
 2. **Exhaustive domain testing** — Every element in bounded Unicode domains is tested (not sampled)
-3. **Formalized invariants** — Seven properties stated as formal specifications and verified by exhaustive enumeration or property-based testing
+3. **Stated invariants** — Seven properties stated as specifications and verified by exhaustive enumeration or property-based testing
 
 This is stronger than property-based testing alone because exhaustive tests leave *zero untested inputs* within their domain.
 
@@ -81,7 +81,7 @@ Scripts covered: Devanagari, Bengali, Gurmukhi, Gujarati, Oriya, Tamil, Telugu, 
 
 ---
 
-## Formalized Invariants (I1–I7)
+## Stated Invariants (I1–I7)
 
 | ID | Invariant | Statement | Verification |
 |----|-----------|-----------|-------------|
@@ -97,7 +97,7 @@ Scripts covered: Devanagari, Bengali, Gurmukhi, Gujarati, Oriya, Tamil, Telugu, 
 
 ## Property-Based Testing Coverage
 
-In addition to formal/exhaustive tests, translit uses:
+In addition to exhaustive tests, translit uses:
 
 - **proptest** (Rust): Property tests in `tests/integration_transliterate.rs`
 - **Hypothesis** (Python): 79KB of property tests in `tests/test_hypothesis.py` covering transliteration, slugification, normalization, confusables, and more
@@ -112,7 +112,7 @@ Total test count: 2,256+ tests across Rust and Python.
 | Area | Why not verified | Mitigation |
 |------|-----------------|------------|
 | PHF hash correctness | Trusted from `phf_codegen` crate (widely used, well-tested) | Functional tests exercise every lookup path |
-| Linguistic accuracy | Transliteration correctness is empirical, not formally provable | Extensive test corpus from native speakers; regression tests |
+| Linguistic accuracy | Transliteration correctness is empirical, not provable by testing alone | Extensive test corpus from native speakers; regression tests |
 | Unicode version drift | New Unicode versions may add codepoints | CI tracks Unicode version; new chars fall through to ErrorMode |
 | Memory safety (UB) | Requires Miri (nightly only) | `unsafe_code = "forbid"` in Cargo.toml; no unsafe anywhere |
 
@@ -122,5 +122,5 @@ Total test count: 2,256+ tests across Rust and Python.
 
 When nightly Rust is available in CI:
 
-- **Kani** bounded model checking: Prove absence of panics, overflow, and out-of-bounds for `indic_char_role`, `romanize_hangul`, and decomposition arithmetic
+- **Kani** bounded model checking: Would add a form of formal verification — proving absence of panics, overflow, and out-of-bounds for `indic_char_role`, `romanize_hangul`, and decomposition arithmetic
 - **Miri** UB detection: Run the full test suite under Miri to detect undefined behavior, use-after-free, and data races

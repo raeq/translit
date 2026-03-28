@@ -4,21 +4,21 @@
 
 Most Unicode text libraries rely on *example-based testing*: a developer writes a handful of input/output pairs, runs them in CI, and calls it done. Example-based tests verify the *specific cases the developer thought of*. They say nothing about the rest.
 
-translit combines three techniques that are uncommon in this space: compile-time data integrity proofs, exhaustive domain coverage, and formally-stated invariant specifications. We are not aware of another transliteration or slugification library that publishes all three, though we haven't audited every library in every language.
+translit combines three techniques that are uncommon in this space: compile-time data integrity assertions, exhaustive domain coverage, and stated invariant specifications. We are not aware of another transliteration or slugification library that publishes all three, though we haven't audited every library in every language.
 
 ---
 
-## What "formally tested" means
+## What "exhaustively tested" means
 
-Formal testing is a spectrum between conventional tests and full formal verification (mathematical proofs of correctness). translit operates at the strongest level achievable without nightly-only tools:
+Testing rigor is a spectrum between conventional tests and full formal verification (mathematical proofs of correctness). translit operates at the strongest level achievable without nightly-only tools:
 
 | Level | What it proves | Who does this |
 |-------|---------------|---------------|
 | **Example-based tests** | Specific inputs produce expected outputs | Everyone |
 | **Property-based tests** | Random inputs satisfy stated properties (statistical confidence) | ~5% of open-source projects |
 | **Exhaustive domain tests** | *Every* element in a bounded domain satisfies stated properties (certainty) | translit |
-| **Compile-time proofs** | Data integrity invariants that fail the build if violated (zero runtime cost) | translit |
-| **Formalized invariant specs** | Properties stated as formal specifications with verification method documented | translit |
+| **Compile-time assertions** | Data integrity invariants that fail the build if violated (zero runtime cost) | translit |
+| **Stated invariant specs** | Properties stated as specifications with verification method documented | translit |
 | **Bounded model checking** | Machine-checked proofs of absence of panics, overflow, UB | Future (requires nightly Rust) |
 
 The gap between property-based testing and exhaustive testing is the difference between "we checked 1,000 random Hangul syllables" and "we checked all 11,172 Hangul syllables." The former gives statistical confidence. The latter gives certainty.
@@ -27,7 +27,7 @@ The gap between property-based testing and exhaustive testing is the difference 
 
 ## How the alternatives compare
 
-| Library | Language | Tests | Formal testing |
+| Library | Language | Tests | Exhaustive testing |
 |---------|----------|-------|----------------|
 | [Unidecode](https://pypi.org/project/Unidecode/) | Python | ~200 example tests | None |
 | [text-unidecode](https://pypi.org/project/text-unidecode/) | Python | ~50 example tests | None |
@@ -37,15 +37,15 @@ The gap between property-based testing and exhaustive testing is the difference 
 | [confusable_homoglyphs](https://pypi.org/project/confusable-homoglyphs/) | Python | ~20 example tests | None |
 | [pathvalidate](https://pypi.org/project/pathvalidate/) | Python | Example + parametrize | None |
 | [unidecode (Rust)](https://crates.io/crates/unidecode) | Rust | ~10 example tests | None |
-| **translit** | **Rust + Python** | **2,900+ tests** | **Compile-time proofs, exhaustive domain, formalized invariants** |
+| **translit** | **Rust + Python** | **2,900+ tests** | **Compile-time assertions, exhaustive domain, stated invariants** |
 
 These libraries are mature and widely used. The test counts above are approximate (based on public repos at time of writing) and may not reflect internal or downstream test suites. The point is not that they are poorly tested — example-based testing is the norm — but that translit's approach is different in kind.
 
 ---
 
-## The three layers of formal assurance
+## The three layers of assurance
 
-### Layer 1: Compile-time data integrity proofs (build.rs)
+### Layer 1: Compile-time data integrity assertions (build.rs)
 
 Every time `cargo build` runs, the build script reads all transliteration TSV data files and asserts:
 
@@ -82,11 +82,11 @@ These tests iterate over every element in a bounded Unicode domain. Unlike prope
 
 **Total exhaustive coverage: ~159,000+ individually verified codepoints.**
 
-### Layer 3: Formalized invariant specifications
+### Layer 3: Stated invariant specifications
 
-Seven properties are stated as formal specifications, each with a documented verification method:
+Seven properties are stated as specifications, each with a documented verification method:
 
-| ID | Invariant | Formal statement | Verification |
+| ID | Invariant | Statement | Verification |
 |----|-----------|-----------------|--------------|
 | I1 | ASCII Passthrough | ∀s: s.is_ascii() → f(s) = s | Exhaustive (all 128 ASCII) + Hypothesis 500 |
 | I2 | ASCII Output | ∀s: f(s, errors='ignore').is_ascii() | Exhaustive BMP (Rust) + Hypothesis 1,000 incl. SMP |
@@ -96,31 +96,31 @@ Seven properties are stated as formal specifications, each with a documented ver
 | I6 | Input Size Bounded | ∀s: \|s\| > 10 MiB → TranslitError | Boundary test at limit |
 | I7 | Output Length Bounded | ∀s: \|f(s)\| ≤ \|s\|\_bytes × 4 + \|s\|\_chars | Hypothesis 1,000 |
 
-Each invariant is a test class with a docstring stating the formal property. The verification method combines exhaustive enumeration (where the domain is bounded) with Hypothesis property-based testing (where it is not).
+Each invariant is a test class with a docstring stating the property. The verification method combines exhaustive enumeration (where the domain is bounded) with Hypothesis property-based testing (where it is not).
 
 See [formal-verification.md](../formal-verification.md) for the full specification document.
 
 ---
 
-## What formal testing does NOT cover
+## What exhaustive testing does NOT cover
 
-Formal testing is not formal verification. We are precise about the boundary:
+Exhaustive testing is not formal verification. We are precise about the boundary:
 
-| Area | Why not formally verified | Mitigation |
+| Area | Why not verified | Mitigation |
 |------|--------------------------|------------|
 | PHF hash correctness | Trusted from `phf_codegen` crate | Functional tests exercise every lookup path |
-| Linguistic accuracy | Transliteration correctness is empirical, not formally provable | Extensive corpus from native speakers; 65 language reference tests |
+| Linguistic accuracy | Transliteration correctness is empirical, not provable by testing alone | Extensive corpus from native speakers; 65 language reference tests |
 | Unicode version drift | New Unicode versions add codepoints | CI tracks Unicode version; unknown chars handled by ErrorMode |
 | Memory safety / UB | Requires Miri (nightly-only) | `unsafe_code = "forbid"` in Cargo.toml — zero unsafe anywhere |
 | Absence of panics | Requires Kani bounded model checking (nightly-only) | Property tests with 1,000+ random inputs; no panics in 2,900+ tests |
 
-**Future**: When nightly Rust is available in CI, we plan to add Kani bounded model checking (prove absence of panics and overflow in `romanize_hangul`, `indic_char_role`, and decomposition arithmetic) and Miri UB detection.
+**Future**: When nightly Rust is available in CI, we plan to add Kani bounded model checking — a form of formal verification that would prove absence of panics and overflow in `romanize_hangul`, `indic_char_role`, and decomposition arithmetic — and Miri UB detection.
 
 ---
 
 ## Conventional testing (still comprehensive)
 
-The formal testing layers sit on top of a conventional test suite that is itself unusually thorough:
+The exhaustive testing layers sit on top of a conventional test suite that is itself unusually thorough:
 
 ### Test suite overview
 
@@ -129,7 +129,7 @@ The formal testing layers sit on top of a conventional test suite that is itself
 | Python (pytest) | 2,268 | All public API functions |
 | Rust (#[test]) | 635 | Core algorithms, tables, edge cases |
 | Exhaustive domain (Rust) | 16 | Full BMP, Hangul, CJK, Indic |
-| Formal invariants (Python) | 12 | I1–I7 specifications |
+| Stated invariants (Python) | 12 | I1–I7 specifications |
 | Property-based (Hypothesis) | 500+ examples/property | Full Unicode input space |
 | Property-based (proptest) | Rust-side invariants | Normalization, roundtrips |
 | **Total** | **2,900+** | |

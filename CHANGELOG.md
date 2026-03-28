@@ -74,15 +74,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [0.2.0] — 2026-03-27
 
 ### Added
-- **Formal testing framework** — three layers of machine-verifiable assurance:
-  - **Compile-time proofs** (`build.rs`): all transliteration table values asserted
+- **Exhaustive testing framework** — three layers of machine-verifiable assurance:
+  - **Compile-time assertions** (`build.rs`): all transliteration table values asserted
     ASCII-only, entry count sanity checks (Hanzi ≥20k, BMP ≥5k, confusables ≥1k).
     Build fails if any assertion is violated.
   - **Exhaustive domain tests** (Rust): 16 tests covering all 11,172 Hangul syllables,
     full BMP (63,488 codepoints) for ASCII output and idempotence, all 20,992 CJK
     ideographs, all 51 compatibility jamo, and structural verification of 15 Indic
     script blocks. Zero sampling gaps.
-  - **Formalized invariant specifications** (Python): 7 formally-stated invariants
+  - **Stated invariant specifications** (Python): 7 stated invariants
     (I1–I7) verified via exhaustive enumeration and Hypothesis — ASCII passthrough,
     ASCII output, idempotence, no exceptions, determinism, input size bound, output
     length bound.
@@ -92,8 +92,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - **CLAUDE.md**: project-level development guide for automated agents — documents
   build commands, test tiers, and code conventions.
 - `list_scripts()` function for programmatic script discovery.
-- `docs/formal-verification.md`: specification document for formal testing methodology.
-- Comprehensive overhaul of `docs/architecture/testing-guarantees.md` with formal
+- `docs/formal-verification.md`: specification document for exhaustive testing methodology.
+- Comprehensive overhaul of `docs/architecture/testing-guarantees.md` with exhaustive
   testing differentiator analysis and alternative library comparison.
 
 ### Changed
