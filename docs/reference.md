@@ -454,6 +454,8 @@ Both `"no"` and `"nb"` (Bokmål) map to the same profile. `"nn"` (Nynorsk) also 
 | і | U+0456 | i | |
 | И | U+0418 | Y | Ukrainian Y (Russian: I) |
 | и | U+0438 | y | |
+| Ь | U+042C | ' | Soft sign |
+| ь | U+044C | ' | Soft sign (lowercase) |
 
 ### Vietnamese (`vi`)
 

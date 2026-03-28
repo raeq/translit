@@ -46,7 +46,7 @@ For each language:
 | sr | Serbian | 23 | 23 | 23 | 23 | 0 | 0 | 0 |
 | sv | Swedish | 3 | 3 | 3 | 3 | 0 | 0 | 2 |
 | tr | Turkish | 2 | 2 | 2 | 2 | 0 | 0 | 0 |
-| uk | Ukrainian | 24 | 23 | 24 | 24 | 0 | 1 | 5 |
+| uk | Ukrainian | 24 | 24 | 24 | 24 | 0 | 0 | 5 |
 | vi | Vietnamese | 8 | 8 | 8 | 8 | 0 | 0 | 0 |
 | ja | Japanese | 15 | 15 | 15 | 15 | 0 | 0 | 8 |
 | ja-kunrei | Japanese Kunrei | 5 | 5 | 5 | 5 | 0 | 0 | 3 |
@@ -67,7 +67,7 @@ For each language:
 | or | Odia | 20 | 18 | 19 | 19 | 0 | 1 | 13 |
 | pa | Punjabi | 14 | 12 | 14 | 14 | 0 | 2 | 10 |
 | sa | Sanskrit | 19 | 18 | 18 | 18 | 0 | 0 | 17 |
-| as | Assamese | 20 | 18 | 19 | 19 | 0 | 1 | 15 |
+| as | Assamese | 20 | 19 | 19 | 19 | 0 | 0 | 16 |
 | hy | Armenian | 7 | 7 | 7 | 7 | 0 | 0 | 0 |
 | ka | Georgian | 17 | 17 | 17 | 17 | 0 | 0 | 6 |
 | si | Sinhala | 19 | 17 | 17 | 17 | 0 | 0 | 15 |
@@ -81,7 +81,7 @@ For each language:
 | dv | Dhivehi | 10 | 9 | 9 | 8 | 0 | 0 | 0 |
 | jv | Javanese | 5 | 5 | 0 | 5 | 5 | 0 | 0 |
 | mn | Mongolian | 5 | 5 | 5 | 5 | 0 | 0 | 0 |
-| **TOTAL** | | **717** | **686** | **685** | **693** | **12** | **11** | **326** |
+| **TOTAL** | | **717** | **688** | **685** | **693** | **12** | **9** | **327** |
 
 ## Notable Differences
 
@@ -129,8 +129,6 @@ For each language:
 | ö | U+00F6 | LATIN SMALL LETTER O WITH DIAERESIS | `oe` | `o` | `o` |
 
 ### uk — Ukrainian
-
-Coverage: translit maps 23/24 chars, Unidecode maps 24/24. **0** mapped only by translit, **1** mapped only by Unidecode.
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -453,14 +451,13 @@ Coverage: translit maps 12/14 chars, Unidecode maps 14/14. **0** mapped only by 
 
 ### as — Assamese
 
-Coverage: translit maps 18/20 chars, Unidecode maps 19/20. **0** mapped only by translit, **1** mapped only by Unidecode.
-
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
 | স | U+09B8 | BENGALI LETTER SA | `sa` | `s` | `s` |
 | ম | U+09AE | BENGALI LETTER MA | `ma` | `m` | `m` |
 | ভ | U+09AD | BENGALI LETTER BHA | `bha` | `bh` | `bh` |
 | া | U+09BE | BENGALI VOWEL SIGN AA | `a` | `aa` | `a` |
+| ৰ | U+09F0 | BENGALI LETTER RA WITH MIDDLE DIAGONAL | `ra` | `r'` | `r` |
 | ত | U+09A4 | BENGALI LETTER TA | `ta` | `t` | `t` |
 | প | U+09AA | BENGALI LETTER PA | `pa` | `p` | `p` |
 | ূ | U+09C2 | BENGALI VOWEL SIGN UU | `u` | `uu` | `u` |
@@ -619,7 +616,7 @@ Coverage: translit maps 5/5 chars, Unidecode maps 0/5. **5** mapped only by tran
 ## Key Takeaways
 
 - **Total unique non-ASCII characters tested**: 717
-- **translit coverage**: 686/717 (95.7%)
+- **translit coverage**: 688/717 (96.0%)
 - **Unidecode coverage**: 685/717 (95.5%)
 - **anyascii coverage**: 693/717 (96.7%)
 - **Characters mapped only by translit**: 12
@@ -704,6 +701,20 @@ Unidecode swaps voicing for some Khmer consonants (mapping po→b, ba→p), whic
 ### 6. Javanese: Full Coverage Gap
 
 translit maps all 5 Javanese consonants tested; Unidecode maps none (returns `[?]` for the entire Javanese block). This is a complete coverage gap in Unidecode.
+
+### 7. Intentional Empty Mappings (Diacritical/Modifier Characters)
+
+Several characters are present in translit's default table with intentionally empty mappings. These are diacritical or modifier characters where no single ASCII character is a faithful representation. Unidecode maps them to rough approximations; translit suppresses them as the less-wrong default.
+
+| Char | Codepoint | Name | Language(s) | translit | Unidecode | Rationale for empty |
+|------|-----------|------|-------------|----------|-----------|-------------------|
+| א | U+05D0 | Hebrew Letter Alef | he | *(empty)* | `A` | Silent letter / glottal stop carrier — no consonant value in most positions |
+| ় | U+09BC | Bengali Sign Nukta | bn | *(empty)* | `'` | Modifies preceding consonant; not independently pronounceable |
+| ଼ | U+0B3C | Odia Sign Nukta | or | *(empty)* | `'` | Same as Bengali nukta |
+| ੰ | U+0A70 | Gurmukhi Tippi | pa | *(empty)* | `N` | Nasalization marker — `N` is a functional approximation but can mislead |
+| ੱ | U+0A71 | Gurmukhi Addak | pa | *(empty)* | `H` | Gemination marker — `H` is Unidecode's convention, not phonologically motivated |
+
+These are deliberate design choices, not bugs. Language-specific overrides could map them if a particular romanization standard requires it.
 
 ## Deep Dive: Ethiopic (Amharic)
 
