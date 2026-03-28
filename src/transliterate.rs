@@ -565,7 +565,7 @@ pub fn batak_char_role(cp: u32) -> IndicRole {
 pub fn buginese_char_role(cp: u32) -> IndicRole {
     match cp {
         0x1A00..=0x1A16 => IndicRole::Consonant,
-        0x1A17 | 0x1A18 | 0x1A19..=0x1A1B => IndicRole::DependentVowel,
+        0x1A17..=0x1A1B => IndicRole::DependentVowel,
         _ => IndicRole::None,
     }
 }
