@@ -138,5 +138,24 @@ LANG_TE: str
 LANG_DV: str
 LANG_JV: str
 LANG_MN: str
+# New scripts (v0.3.0+)
+LANG_BAN: str
+LANG_BAX: str
+LANG_BUG: str
+LANG_CHR: str
+LANG_CJM: str
+LANG_COP: str
+LANG_KHB: str
+LANG_LIS: str
+LANG_MNI: str
+LANG_NOD: str
+LANG_NQO: str
+LANG_SAT: str
+LANG_SU: str
+LANG_SYR: str
+LANG_TDD: str
+LANG_TL: str
+LANG_TZM: str
+LANG_VAI: str
 # Auto-detection
 LANG_AUTO: str
