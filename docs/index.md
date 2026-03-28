@@ -6,6 +6,12 @@ translit is a single, MIT-licensed Python package that replaces a constellation 
 
 ---
 
+## Demo
+
+**[Try translit in your browser](https://translit-web.pages.dev/)**
+
+---
+
 ## Why translit?
 
 | | Legacy libraries | translit |
