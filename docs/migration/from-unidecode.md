@@ -57,7 +57,7 @@ transliterate("♠", errors="replace",
 translit uses its own hand-curated transliteration tables. Most common mappings are identical to Unidecode, but some edge cases may differ. A [detailed character-level comparison](../architecture/transliteration-comparison.md) across all 65 supported languages shows:
 
 - **49,089 codepoints** across all Unicode blocks tested comprehensively (no sampling)
-- **45,481** mapped by translit vs **47,408** by Unidecode — Unidecode covers more of the extended Cyrillic and Latin blocks, while translit covers more CJK (291 characters only translit maps) and Javanese (75 characters Unidecode misses entirely)
+- **47,861** mapped by translit vs **47,408** by Unidecode — translit now has broader coverage overall, with 853 characters only translit maps (including CJK and Javanese) vs 400 only Unidecode maps
 - Most differences are systematic: CJK pinyin casing (~20K), Korean romanization (~3.7K), inherent vowel handling in Brahmic scripts, and language-specific national standards
 
 ```python

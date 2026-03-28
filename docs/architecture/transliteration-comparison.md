@@ -4175,11 +4175,11 @@ translit applies national romanization standards when a language is specified:
 
 Unidecode has no language parameter — it always applies a single generic mapping.
 
-### 5. Cyrillic Coverage Gap
+### 5. Cyrillic and Latin Extended Coverage
 
-**Affected**: Bulgarian, Serbian, Ukrainian, Russian
+**Affected**: Bulgarian, Serbian, Ukrainian, Russian, and all Latin-script languages
 
-translit maps ~96/301 Cyrillic codepoints (the commonly-used subset), while Unidecode maps ~234/301. This reflects a design choice: translit's default table focuses on the core Cyrillic alphabet used across major languages. Extended Cyrillic characters (historical, phonetic, or minority-language additions) are not yet mapped. Language-specific overrides cover the most important additions (e.g., Ukrainian ґ, ї, є, і).
+translit now maps ~292/304 Cyrillic codepoints and ~396/400 Latin Extended codepoints, closely matching Unidecode's coverage. The remaining unmapped entries are combining marks or modifier characters with intentionally empty mappings. Extended Cyrillic characters (U+0460–U+052F) covering historical, phonetic, and minority-language additions are fully mapped.
 
 ### 6. Ethiopic Syllable Handling
 

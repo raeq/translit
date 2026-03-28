@@ -6,18 +6,22 @@ error handling, and malformed/malicious input.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 
 
 def run_cli(*args: str, input_text: str | None = None, timeout: float = 10) -> subprocess.CompletedProcess[str]:
     """Run the translit CLI and return the result."""
+    env = {**os.environ, "PYTHONUTF8": "1"}
     return subprocess.run(
         [sys.executable, "-m", "translit", *args],
         input=input_text,
         capture_output=True,
         text=True,
         timeout=timeout,
+        encoding="utf-8",
+        env=env,
     )
 
 
@@ -212,7 +216,8 @@ class TestMalformedInput:
 
     def test_very_long_input(self):
         long_text = "café " * 10000
-        r = run_cli("t", long_text)
+        # Pass via stdin to avoid Windows ~8191-char command-line limit
+        r = run_cli("t", input_text=long_text)
         assert r.returncode == 0
 
     def test_only_whitespace(self):
