@@ -70,8 +70,8 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | pa | Punjabi | 80 | 76 | 70 | 72 | 76 | 2 | 4 | 48 |
 | sa | Sanskrit | 128 | 127 | 101 | 103 | 123 | 4 | 6 | 68 |
 | as | Assamese | 96 | 95 | 78 | 87 | 95 | 1 | 10 | 53 |
-| hy | Armenian | 91 | 90 | 78 | 85 | 90 | 0 | 7 | 19 |
-| ka | Georgian | 88 | 88 | 66 | 78 | 88 | 0 | 12 | 18 |
+| hy | Armenian | 91 | 90 | 86 | 85 | 90 | 3 | 2 | 21 |
+| ka | Georgian | 88 | 88 | 87 | 78 | 88 | 9 | 0 | 27 |
 | si | Sinhala | 91 | 90 | 86 | 79 | 90 | 10 | 3 | 52 |
 | th | Thai | 87 | 80 | 73 | 80 | 78 | 0 | 7 | 11 |
 | lo | Lao | 83 | 76 | 58 | 58 | 75 | 2 | 2 | 11 |
@@ -82,8 +82,8 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | ru | Russian | 304 | 301 | 294 | 234 | 301 | 65 | 5 | 76 |
 | dv | Dhivehi | 50 | 49 | 48 | 48 | 48 | 0 | 0 | 3 |
 | jv | Javanese | 91 | 90 | 75 | 0 | 90 | 75 | 0 | 0 |
-| mn | Mongolian | 157 | 153 | 146 | 148 | 151 | 5 | 7 | 50 |
-| **TOTAL** | | **49089** | **48823** | **48116** | **47408** | **48761** | **912** | **204** | **26986** |
+| mn | Mongolian | 157 | 153 | 149 | 148 | 151 | 5 | 4 | 53 |
+| **TOTAL** | | **49089** | **48823** | **48148** | **47408** | **48761** | **924** | **184** | **27000** |
 
 ## Notable Differences
 
@@ -3141,19 +3141,22 @@ Coverage: translit maps 78/95, Unidecode maps 87/95. **1** mapped only by transl
 
 Block: 91 assigned codepoints, 90 mapped by at least one library.
 
-Coverage: translit maps 78/90, Unidecode maps 85/90. **0** mapped only by translit, **7** mapped only by Unidecode.
+Coverage: translit maps 86/90, Unidecode maps 85/90. **3** mapped only by translit, **2** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ՠ | U+0560 | ARMENIAN SMALL LETTER TURNED AYB | `a` |
+| ֈ | U+0588 | ARMENIAN SMALL LETTER YI WITH STROKE | `yi` |
+| ֏ | U+058F | ARMENIAN DRAM SIGN | `AMD` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
 | Char | Codepoint | Name | Unidecode |
 |------|-----------|------|-----------|
-| ՙ | U+0559 | ARMENIAN MODIFIER LETTER LEFT HALF RING | `<` |
-| ՚ | U+055A | ARMENIAN APOSTROPHE | `'` |
 | ՛ | U+055B | ARMENIAN EMPHASIS MARK | `/` |
-| ՜ | U+055C | ARMENIAN EXCLAMATION MARK | `!` |
-| ՝ | U+055D | ARMENIAN COMMA | `,` |
 | ՟ | U+055F | ARMENIAN ABBREVIATION MARK | `.` |
-| ։ | U+0589 | ARMENIAN FULL STOP | `:` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -3166,6 +3169,7 @@ Coverage: translit maps 78/90, Unidecode maps 85/90. **0** mapped only by transl
 | Ւ | U+0552 | ARMENIAN CAPITAL LETTER YIWN | `V` | `W` | `W` |
 | Փ | U+0553 | ARMENIAN CAPITAL LETTER PIWR | `P` | `P`` | `P'` |
 | Ք | U+0554 | ARMENIAN CAPITAL LETTER KEH | `K` | `K`` | `K'` |
+| ՙ | U+0559 | ARMENIAN MODIFIER LETTER LEFT HALF RING | `'` | `<` | ``` |
 | ը | U+0568 | ARMENIAN SMALL LETTER ET | `y` | `e` | `y` |
 | թ | U+0569 | ARMENIAN SMALL LETTER TO | `t` | `t`` | `t'` |
 | ո | U+0578 | ARMENIAN SMALL LETTER VO | `vo` | `o` | `o` |
@@ -3176,29 +3180,27 @@ Coverage: translit maps 78/90, Unidecode maps 85/90. **0** mapped only by transl
 | փ | U+0583 | ARMENIAN SMALL LETTER PIWR | `p` | `p`` | `p'` |
 | ք | U+0584 | ARMENIAN SMALL LETTER KEH | `k` | `k`` | `k'` |
 | և | U+0587 | ARMENIAN SMALL LIGATURE ECH YIWN | `yev` | `ew` | `ev` |
+| ։ | U+0589 | ARMENIAN FULL STOP | `.` | `:` | `.` |
 
 ### ka — Georgian
 
 Block: 88 assigned codepoints, 88 mapped by at least one library.
 
-Coverage: translit maps 66/88, Unidecode maps 78/88. **0** mapped only by translit, **12** mapped only by Unidecode.
+Coverage: translit maps 87/88, Unidecode maps 78/88. **9** mapped only by translit, **0** mapped only by Unidecode.
 
-**Mapped only by Unidecode** (translit returns empty):
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
 
-| Char | Codepoint | Name | Unidecode |
-|------|-----------|------|-----------|
-| Ⴡ | U+10C1 | GEORGIAN CAPITAL LETTER HE | `E` |
-| Ⴢ | U+10C2 | GEORGIAN CAPITAL LETTER HIE | `Y` |
-| Ⴣ | U+10C3 | GEORGIAN CAPITAL LETTER WE | `W` |
-| Ⴤ | U+10C4 | GEORGIAN CAPITAL LETTER HAR | `Xh` |
-| Ⴥ | U+10C5 | GEORGIAN CAPITAL LETTER HOE | `OE` |
-| ჱ | U+10F1 | GEORGIAN LETTER HE | `e` |
-| ჲ | U+10F2 | GEORGIAN LETTER HIE | `y` |
-| ჳ | U+10F3 | GEORGIAN LETTER WE | `w` |
-| ჴ | U+10F4 | GEORGIAN LETTER HAR | `xh` |
-| ჵ | U+10F5 | GEORGIAN LETTER HOE | `oe` |
-| ჶ | U+10F6 | GEORGIAN LETTER FI | `f` |
-| ჻ | U+10FB | GEORGIAN PARAGRAPH SEPARATOR | ` // ` |
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| Ⴧ | U+10C7 | GEORGIAN CAPITAL LETTER YN | `Yn` |
+| Ⴭ | U+10CD | GEORGIAN CAPITAL LETTER AEN | `Ae` |
+| ჷ | U+10F7 | GEORGIAN LETTER YN | `yn` |
+| ჸ | U+10F8 | GEORGIAN LETTER ELIFI | `el` |
+| ჹ | U+10F9 | GEORGIAN LETTER TURNED GAN | `g` |
+| ჺ | U+10FA | GEORGIAN LETTER AIN | `'` |
+| ჼ | U+10FC | MODIFIER LETTER GEORGIAN NAR | `n` |
+| ჽ | U+10FD | GEORGIAN LETTER AEN | `ae` |
+| ჿ | U+10FF | GEORGIAN LETTER LABIAL SIGN | `w` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -3211,6 +3213,10 @@ Coverage: translit maps 66/88, Unidecode maps 78/88. **0** mapped only by transl
 | Ⴛ | U+10BB | GEORGIAN CAPITAL LETTER JIL | `Dz` | `Z'` | `Dz` |
 | Ⴜ | U+10BC | GEORGIAN CAPITAL LETTER CIL | `Ts` | `C` | `Ts'` |
 | Ⴞ | U+10BE | GEORGIAN CAPITAL LETTER XAN | `Kh` | `X` | `Kh` |
+| Ⴡ | U+10C1 | GEORGIAN CAPITAL LETTER HE | `He` | `E` | `E` |
+| Ⴢ | U+10C2 | GEORGIAN CAPITAL LETTER HIE | `Hi` | `Y` | `Y` |
+| Ⴤ | U+10C4 | GEORGIAN CAPITAL LETTER HAR | `Har` | `Xh` | `X` |
+| Ⴥ | U+10C5 | GEORGIAN CAPITAL LETTER HOE | `Ho` | `OE` | `O` |
 | თ | U+10D7 | GEORGIAN LETTER TAN | `t` | `t`` | `t` |
 | ფ | U+10E4 | GEORGIAN LETTER PHAR | `p` | `p`` | `p` |
 | ქ | U+10E5 | GEORGIAN LETTER KHAR | `k` | `k`` | `k` |
@@ -3220,6 +3226,11 @@ Coverage: translit maps 66/88, Unidecode maps 78/88. **0** mapped only by transl
 | ძ | U+10EB | GEORGIAN LETTER JIL | `dz` | `z'` | `dz` |
 | წ | U+10EC | GEORGIAN LETTER CIL | `ts` | `c` | `ts'` |
 | ხ | U+10EE | GEORGIAN LETTER XAN | `kh` | `x` | `kh` |
+| ჱ | U+10F1 | GEORGIAN LETTER HE | `he` | `e` | `e` |
+| ჲ | U+10F2 | GEORGIAN LETTER HIE | `hi` | `y` | `y` |
+| ჴ | U+10F4 | GEORGIAN LETTER HAR | `har` | `xh` | `x` |
+| ჵ | U+10F5 | GEORGIAN LETTER HOE | `ho` | `oe` | `o` |
+| ჻ | U+10FB | GEORGIAN PARAGRAPH SEPARATOR | `.` | ` // ` | `*` |
 
 ### si — Sinhala
 
@@ -3889,7 +3900,7 @@ Coverage: translit maps 75/90, Unidecode maps 0/90. **75** mapped only by transl
 
 Block: 157 assigned codepoints, 153 mapped by at least one library.
 
-Coverage: translit maps 146/153, Unidecode maps 148/153. **5** mapped only by translit, **7** mapped only by Unidecode.
+Coverage: translit maps 149/153, Unidecode maps 148/153. **5** mapped only by translit, **4** mapped only by Unidecode.
 
 **Mapped only by translit** (Unidecode returns empty/`[?]`):
 
@@ -3906,9 +3917,6 @@ Coverage: translit maps 146/153, Unidecode maps 148/153. **5** mapped only by tr
 | Char | Codepoint | Name | Unidecode |
 |------|-----------|------|-----------|
 | ᡃ | U+1843 | MONGOLIAN LETTER TODO LONG VOWEL SIGN | `-` |
-| ᢂ | U+1882 | MONGOLIAN LETTER ALI GALI DAMARU | `X` |
-| ᢃ | U+1883 | MONGOLIAN LETTER ALI GALI UBADAMA | `W` |
-| ᢄ | U+1884 | MONGOLIAN LETTER ALI GALI INVERTED UBADAMA | `M` |
 | ᢅ | U+1885 | MONGOLIAN LETTER ALI GALI BALUDA | ` 3 ` |
 | ᢆ | U+1886 | MONGOLIAN LETTER ALI GALI THREE BALUDA | ` 333 ` |
 | ᢩ | U+18A9 | MONGOLIAN LETTER ALI GALI DAGALGA | `'` |
@@ -3935,6 +3943,9 @@ Coverage: translit maps 146/153, Unidecode maps 148/153. **5** mapped only by tr
 | ᡠ | U+1860 | MONGOLIAN LETTER SIBE UE | `ue` | `U` | `u` |
 | ᡢ | U+1862 | MONGOLIAN LETTER SIBE ANG | `ang` | `ng` | `ng` |
 | ᢁ | U+1881 | MONGOLIAN LETTER ALI GALI VISARGA ONE | `h` | `H` | `h` |
+| ᢂ | U+1882 | MONGOLIAN LETTER ALI GALI DAMARU | `d` | `X` | `h` |
+| ᢃ | U+1883 | MONGOLIAN LETTER ALI GALI UBADAMA | `u` | `W` | `h` |
+| ᢄ | U+1884 | MONGOLIAN LETTER ALI GALI INVERTED UBADAMA | `u` | `M` | `h` |
 | ᢉ | U+1889 | MONGOLIAN LETTER ALI GALI KA | `ka` | `k` | `k` |
 | ᢊ | U+188A | MONGOLIAN LETTER ALI GALI NGA | `nga` | `ng` | `ng` |
 | ᢋ | U+188B | MONGOLIAN LETTER ALI GALI CA | `ca` | `c` | `ts` |
@@ -3962,20 +3973,18 @@ Coverage: translit maps 146/153, Unidecode maps 148/153. **5** mapped only by tr
 | ᢡ | U+18A1 | MONGOLIAN LETTER MANCHU ALI GALI DHA | `dha` | `dh` | `dh` |
 | ᢢ | U+18A2 | MONGOLIAN LETTER MANCHU ALI GALI SSA | `sha` | `ss` | `s` |
 | ᢣ | U+18A3 | MONGOLIAN LETTER MANCHU ALI GALI CYA | `cya` | `cy` | `c` |
-| ᢤ | U+18A4 | MONGOLIAN LETTER MANCHU ALI GALI ZHA | `zha` | `zh` | `zh` |
-| ᢥ | U+18A5 | MONGOLIAN LETTER MANCHU ALI GALI ZA | `za` | `z` | `z` |
-| ᢨ | U+18A8 | MONGOLIAN LETTER MANCHU ALI GALI BHA | `bha` | `bh` | `bh` |
+| | | *...3 more differences* | | | |
 
 ## Key Takeaways
 
 - **Total assigned codepoints scanned**: 49089
 - **Mapped by at least one library**: 48823
-- **translit coverage**: 48116/48823 (98.6%)
+- **translit coverage**: 48148/48823 (98.6%)
 - **Unidecode coverage**: 47408/48823 (97.1%)
 - **anyascii coverage**: 48761/48823 (99.9%)
-- **Characters mapped only by translit**: 912
-- **Characters mapped only by Unidecode**: 204
-- **Different output (both mapped)**: 26986
+- **Characters mapped only by translit**: 924
+- **Characters mapped only by Unidecode**: 184
+- **Different output (both mapped)**: 27000
 
 ---
 
