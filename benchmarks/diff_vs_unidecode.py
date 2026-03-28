@@ -138,6 +138,8 @@ class LangReport:
     diffs_translit_vs_anyascii: list[CharDiff] = field(default_factory=list)
     translit_only: int = 0  # mapped by translit but not unidecode
     unidecode_only: int = 0  # mapped by unidecode but not translit
+    translit_only_chars: list[CharDiff] = field(default_factory=list)
+    unidecode_only_chars: list[CharDiff] = field(default_factory=list)
 
 
 def is_mapped(output: str, original: str) -> bool:
@@ -210,8 +212,10 @@ def analyze_language(lang: str, sample: str, desc: str) -> LangReport:
 
         if t_mapped and not u_mapped:
             report.translit_only += 1
+            report.translit_only_chars.append(diff)
         if u_mapped and not t_mapped:
             report.unidecode_only += 1
+            report.unidecode_only_chars.append(diff)
 
         # Record diffs where both map but produce different output
         if t_mapped and u_mapped and diff.translit_out != diff.unidecode_out:
@@ -317,6 +321,22 @@ def print_markdown(reports: list[LangReport]) -> None:
                   f"**{r.translit_only}** mapped only by translit, "
                   f"**{r.unidecode_only}** mapped only by Unidecode.")
             print()
+            if r.translit_only_chars:
+                print("**Mapped only by translit** (Unidecode returns empty/`[?]`):")
+                print()
+                print("| Char | Codepoint | Name | translit |")
+                print("|------|-----------|------|----------|")
+                for d in r.translit_only_chars:
+                    print(f"| {d.char} | U+{d.codepoint:04X} | {d.name} | `{d.translit_out}` |")
+                print()
+            if r.unidecode_only_chars:
+                print("**Mapped only by Unidecode** (translit returns empty):")
+                print()
+                print("| Char | Codepoint | Name | Unidecode |")
+                print("|------|-----------|------|-----------|")
+                for d in r.unidecode_only_chars:
+                    print(f"| {d.char} | U+{d.codepoint:04X} | {d.name} | `{d.unidecode_out}` |")
+                print()
         if r.diffs_translit_vs_unidecode:
             print("| Char | Codepoint | Name | translit | Unidecode | anyascii |")
             print("|------|-----------|------|----------|-----------|----------|")

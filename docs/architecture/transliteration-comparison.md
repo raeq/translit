@@ -186,6 +186,12 @@ For each language:
 
 Coverage: translit maps 19/19 chars, Unidecode maps 18/19. **1** mapped only by translit, **0** mapped only by Unidecode.
 
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ا | U+0627 | ARABIC LETTER ALEF | `a` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
 | ة | U+0629 | ARABIC LETTER TEH MARBUTA | `h` | `@` | `h` |
@@ -195,6 +201,12 @@ Coverage: translit maps 19/19 chars, Unidecode maps 18/19. **1** mapped only by 
 
 Coverage: translit maps 15/15 chars, Unidecode maps 14/15. **1** mapped only by translit, **0** mapped only by Unidecode.
 
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ا | U+0627 | ARABIC LETTER ALEF | `a` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
 | و | U+0648 | ARABIC LETTER WAW | `v` | `w` | `w` |
@@ -203,6 +215,12 @@ Coverage: translit maps 15/15 chars, Unidecode maps 14/15. **1** mapped only by 
 ### he — Hebrew
 
 Coverage: translit maps 15/16 chars, Unidecode maps 16/16. **0** mapped only by translit, **1** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| א | U+05D0 | HEBREW LETTER ALEF | `A` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -236,6 +254,12 @@ Coverage: translit maps 15/16 chars, Unidecode maps 16/16. **0** mapped only by 
 ### bn — Bengali
 
 Coverage: translit maps 21/23 chars, Unidecode maps 22/23. **0** mapped only by translit, **1** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ় | U+09BC | BENGALI SIGN NUKTA | `'` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -394,6 +418,12 @@ Coverage: translit maps 21/23 chars, Unidecode maps 22/23. **0** mapped only by 
 
 Coverage: translit maps 18/20 chars, Unidecode maps 19/20. **0** mapped only by translit, **1** mapped only by Unidecode.
 
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ଼ | U+0B3C | ORIYA SIGN NUKTA | `'` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
 | ଡ | U+0B21 | ORIYA LETTER DDA | `da` | `dd` | `d` |
@@ -413,6 +443,13 @@ Coverage: translit maps 18/20 chars, Unidecode maps 19/20. **0** mapped only by 
 ### pa — Punjabi
 
 Coverage: translit maps 12/14 chars, Unidecode maps 14/14. **0** mapped only by translit, **2** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ੰ | U+0A70 | GURMUKHI TIPPI | `N` |
+| ੱ | U+0A71 | GURMUKHI ADDAK | `H` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -514,6 +551,12 @@ Coverage: translit maps 12/14 chars, Unidecode maps 14/14. **0** mapped only by 
 
 Coverage: translit maps 15/15 chars, Unidecode maps 14/15. **1** mapped only by translit, **0** mapped only by Unidecode.
 
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ັ | U+0EB1 | LAO VOWEL SIGN MAI KAN | `a` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
 | າ | U+0EB2 | LAO VOWEL SIGN AA | `a` | `aa` | `a` |
@@ -522,6 +565,12 @@ Coverage: translit maps 15/15 chars, Unidecode maps 14/15. **1** mapped only by 
 ### km — Khmer
 
 Coverage: translit maps 15/17 chars, Unidecode maps 16/17. **0** mapped only by translit, **1** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ះ | U+17C7 | KHMER SIGN REAHMUK | `H` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -542,6 +591,21 @@ Coverage: translit maps 15/17 chars, Unidecode maps 16/17. **0** mapped only by 
 
 Coverage: translit maps 15/18 chars, Unidecode maps 14/18. **3** mapped only by translit, **2** mapped only by Unidecode.
 
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ြ | U+103C | MYANMAR CONSONANT SIGN MEDIAL RA | `r` |
+| ှ | U+103E | MYANMAR CONSONANT SIGN MEDIAL HA | `h` |
+| ွ | U+103D | MYANMAR CONSONANT SIGN MEDIAL WA | `w` |
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ံ | U+1036 | MYANMAR SIGN ANUSVARA | `N` |
+| ့ | U+1037 | MYANMAR SIGN DOT BELOW | `'` |
+
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
 | မ | U+1019 | MYANMAR LETTER MA | `ma` | `m` | `m` |
@@ -556,6 +620,12 @@ Coverage: translit maps 15/18 chars, Unidecode maps 14/18. **3** mapped only by 
 ### bo — Tibetan
 
 Coverage: translit maps 16/17 chars, Unidecode maps 17/17. **0** mapped only by translit, **1** mapped only by Unidecode.
+
+**Mapped only by Unidecode** (translit returns empty):
+
+| Char | Codepoint | Name | Unidecode |
+|------|-----------|------|-----------|
+| ་ | U+0F0B | TIBETAN MARK INTERSYLLABIC TSHEG | `-` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -577,6 +647,12 @@ Coverage: translit maps 16/17 chars, Unidecode maps 17/17. **0** mapped only by 
 ### am — Amharic
 
 Coverage: translit maps 34/34 chars, Unidecode maps 33/34. **1** mapped only by translit, **0** mapped only by Unidecode.
+
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ኢ | U+12A2 | ETHIOPIC SYLLABLE GLOTTAL I | `i` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -613,6 +689,16 @@ Coverage: translit maps 34/34 chars, Unidecode maps 33/34. **1** mapped only by 
 
 Coverage: translit maps 5/5 chars, Unidecode maps 0/5. **5** mapped only by translit, **0** mapped only by Unidecode.
 
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
+
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| ꦐ | U+A990 | JAVANESE LETTER KA SASAK | `ka` |
+| ꦟ | U+A99F | JAVANESE LETTER NA MURDA | `ta` |
+| ꦪ | U+A9AA | JAVANESE LETTER YA | `ra` |
+| ꦣ | U+A9A3 | JAVANESE LETTER DA MAHAPRANA | `na` |
+| ꦨ | U+A9A8 | JAVANESE LETTER BA MURDA | `ma` |
+
 ## Key Takeaways
 
 - **Total unique non-ASCII characters tested**: 717
@@ -620,12 +706,16 @@ Coverage: translit maps 5/5 chars, Unidecode maps 0/5. **5** mapped only by tran
 - **Unidecode coverage**: 685/717 (95.5%)
 - **anyascii coverage**: 693/717 (96.7%)
 - **Characters mapped only by translit**: 12
-- **Characters mapped only by Unidecode**: 11
-- **Different output (both mapped)**: 326
+- **Characters mapped only by Unidecode**: 9
+- **Different output (both mapped)**: 327
+
+---
+
+*Generated by `benchmarks/diff_vs_unidecode.py`*
 
 ## Analysis: Systematic Difference Patterns
 
-The 326 character-level differences fall into five systematic categories.
+The 327 character-level differences fall into several systematic categories.
 
 ### 1. Inherent Vowel Handling (Abugida Scripts)
 
