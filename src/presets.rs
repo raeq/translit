@@ -126,12 +126,15 @@ pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyRes
     if emoji_style == "cldr" {
         buf = emoji::demojize_rust(&buf, false);
     }
-    // 3. Transliterate if lang is set (e.g. "de" for ü→ue, "ja" for kana)
+    // 3. Transliterate if lang is set (e.g. "de" for ü→ue, "ja" for kana).
+    //    Use Ignore mode: ML pipelines need clean ASCII-ish output, so
+    //    characters with no mapping (e.g. katakana ー) should be dropped
+    //    rather than preserved verbatim.
     if lang.is_some() {
         buf = transliterate::transliterate_impl(
             &buf,
             lang,
-            crate::ErrorMode::Preserve,
+            crate::ErrorMode::Ignore,
             "",
             false,
             false,

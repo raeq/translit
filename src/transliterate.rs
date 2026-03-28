@@ -196,9 +196,19 @@ pub fn transliterate_impl<'a>(
             last_was_indic_consonant = false;
         }
 
-        if let Some(s) = mapped.as_deref() {
+        // An empty-string mapping means "this character has no ASCII
+        // representation — drop it."  In preserve mode, honour the user's
+        // request to keep the original character instead of silently
+        // discarding it.
+        let is_mapped = match mapped.as_deref() {
+            Some(s) if !s.is_empty() => true,
+            Some(_) => error_mode != ErrorMode::Preserve, // empty → preserve keeps original
+            None => false,
+        };
+
+        if is_mapped {
+            let s = mapped.as_deref().unwrap();
             if is_cjk
-                && !s.is_empty()
                 && prev_class != ScriptClass::None
                 && needs_cjk_space(prev_class, char_class)
             {
