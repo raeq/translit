@@ -33,7 +33,7 @@ Data that doesn't map cleanly to a flat array uses `phf::Map`:
 | Case folding | `char` | 1,557 | Unicode CaseFolding.txt |
 | Emoji single | `char` | 1,727 | Single-codepoint emoji → name |
 | Emoji multi | `&str` | 2,553 | Multi-codepoint sequences → name |
-| Language tables | `char` | varies | 19 language-specific overrides |
+| Language tables | `char` | varies | 16 language-specific overrides |
 
 All PHF lookups are O(1) with zero runtime allocation.
 

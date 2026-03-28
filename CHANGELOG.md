@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-03-28
+
+### Added
+- **Unicode coverage expansion**: 2,553 new codepoints across 33 Unicode blocks,
+  bringing total `translit_default.tsv` entries from 6,633 to 9,186.
+
+  **Tier 1 — Forms and extensions (~1,741 codepoints):**
+  - Fullwidth ASCII (FF01–FF5E): 94 characters, mechanical offset mapping
+  - Halfwidth Hangul (FFA0–FFDC): 66 characters via compatibility jamo
+  - Enclosed/Circled Alphanumerics (2460–24FF): 160 characters (①→1, Ⓐ→A)
+  - Superscript/Subscript (2070–209F): 29 characters mapped to base forms
+  - Roman Numerals (2160–2188): 41 characters (Ⅰ→I, Ⅱ→II, ... Ⅻ→XII)
+  - Modifier Letters (02B0–02FF): 80 characters (ʰ→h, ʷ→w)
+  - IPA/Phonetic Extensions (0250–02AF): 96 characters (ɑ→a, ʃ→sh, ŋ→ng)
+  - Greek Extended (1F00–1FFF): 233 characters (polytonic → base Greek → Latin)
+  - Hangul Jamo (1100–11FF): 256 individual jamo components
+  - Kangxi Radicals (2F00–2FD5): 214 radical forms → pinyin via CJK decomposition
+  - CJK Compatibility Ideographs (F900–FAFF): 472 characters → pinyin via
+    canonical decomposition targets
+
+  **Tier 2 — Living scripts (~812 codepoints):**
+  - Gap-filling for 7 partially-covered scripts: Balinese, Canadian Syllabics,
+    Cherokee, Coptic, N'Ko, Syriac, Vai
+  - 10 new abugida scripts with virama/inherent-vowel handling: Sundanese,
+    Tai Tham, Cham, Batak, Buginese, Tagalog, Hanunoo, Buhid, Tagbanwa,
+    Meetei Mayek
+  - 4 new alphabetic/syllabic scripts: Tifinagh, Lisu, Ol Chiki, Bamum
+
+- Unicode range constants for 12 new scripts in `src/unicode_ranges.rs`:
+  `SUNDANESE`, `TAI_THAM`, `CHAM`, `BATAK`, `BUGINESE`, `TAGALOG`, `HANUNOO`,
+  `BUHID`, `TAGBANWA`, `MEETEI_MAYEK`, `MEETEI_MAYEK_EXT`.
+- 10 new `*_char_role()` functions in `src/transliterate.rs` for abugida
+  virama handling (Sundanese, Tai Tham, Cham, Batak, Buginese, Tagalog,
+  Hanunoo, Buhid, Tagbanwa, Meetei Mayek).
+- `scripts/generate_unicode_expansion.py`: reproducible generator script for
+  all Tier 1 and Tier 2 TSV entries (1,310 lines).
+- `cargo-clippy` pre-commit hook mirroring CI `-D warnings` to catch lints
+  before push.
+
+### Fixed
+- **Finnish transliteration**: removed incorrect alias `fi→sv`. Finnish ä/ö
+  are independent phonemes (→a/o via default table), not ae/oe variants as
+  in Swedish/German. `Hämäläinen` now correctly produces `Hamalainen`.
+- **Icelandic transliteration**: removed incorrect ð→dh and Ð→Dh overrides.
+  Default table already maps ð→d (ICAO/passport standard). Retained Æ→Ae
+  override (differs from default AE). Icelandic override count reduced from
+  6 to 2.
+- clippy `manual_range_patterns` lint in `buginese_char_role`: collapsed
+  `0x1A17 | 0x1A18 | 0x1A19..=0x1A1B` to `0x1A17..=0x1A1B`.
+
+### Changed
+- `is_indic()` and `indic_char_role()` expanded to cover all 11 new
+  Brahmic/abugida script ranges.
+- `lookup_lang()`: Finnish no longer dispatches to Swedish override table;
+  falls through to default.
+- Icelandic language TSV (`translit_lang_is.tsv`) reduced from 6 to 2 entries.
+
 ## [0.2.0] — 2026-03-27
 
 ### Added

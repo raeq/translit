@@ -67,3 +67,34 @@ When a character has no mapping in any table, one of three modes applies:
 - **Everything else** → flat BMP array (see [Data Tables](data-tables.md))
 
 This avoids probing the 65K-entry flat array for scripts that have dedicated tables with better mappings.
+
+## Abugida / virama handling
+
+Brahmic scripts use inherent-vowel systems where a consonant carries an implicit "a" unless suppressed by a virama (halant). The engine handles this via the `IndicRole` enum:
+
+- `Consonant` — carries inherent "a" in TSV (e.g. ka, ga, ta)
+- `DependentVowel` — mātrā that replaces the inherent vowel
+- `Virama` — suppresses the trailing "a" of the preceding consonant
+- `None` — independent vowels, digits, punctuation
+
+The `is_indic()` function identifies whether a codepoint belongs to a supported Brahmic range. Each script has a dedicated `*_char_role()` function (e.g. `tagalog_char_role`, `sundanese_char_role`) that classifies its codepoints into `IndicRole` variants. The `indic_char_role()` dispatcher routes to the correct function based on the codepoint range.
+
+**Supported Brahmic scripts** (25 total): Devanagari, Bengali, Gurmukhi, Gujarati, Oriya, Tamil, Telugu, Kannada, Malayalam, Sinhala, Thai, Lao, Tibetan, Myanmar, Khmer, Balinese, Sundanese, Tai Tham, Cham, Batak, Buginese, Tagalog, Hanunoo, Buhid, Tagbanwa, Meetei Mayek.
+
+## Unicode form mappings
+
+The flat BMP array includes mechanical mappings for Unicode presentation forms and compatibility characters that appear in real-world data:
+
+| Block | Range | Count | Mapping method |
+|---|---|---|---|
+| Fullwidth ASCII | FF01–FF5E | 94 | `codepoint - 0xFEE0` offset to ASCII equivalent |
+| Halfwidth Hangul | FFA0–FFDC | 66 | Via compatibility jamo romanization |
+| Enclosed/Circled | 2460–24FF | 160 | Extract value from Unicode name (①→1, Ⓐ→A) |
+| Superscript/Subscript | 2070–209F | 29 | Map to base digit or letter |
+| Roman Numerals | 2160–2188 | 41 | Multi-char values (Ⅱ→II, Ⅻ→XII) |
+| Modifier Letters | 02B0–02FF | 80 | Superscript letter variants (ʰ→h, ʷ→w) |
+| IPA Extensions | 0250–02AF | 96 | Closest ASCII approximation (ɑ→a, ʃ→sh, ŋ→ng) |
+| Greek Extended | 1F00–1FFF | 233 | Strip breathing/accent → base Greek → Latin |
+| Hangul Jamo | 1100–11FF | 256 | Matches CHOSEONG/JUNGSEONG/JONGSEONG arrays |
+| Kangxi Radicals | 2F00–2FD5 | 214 | Decompose to CJK Unified → pinyin |
+| CJK Compat Ideographs | F900–FAFF | 472 | Canonical decomposition target → pinyin |

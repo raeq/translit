@@ -12,6 +12,14 @@ fn validate_target_script(target_script: &str) -> PyResult<()> {
 
 /// Replace Unicode confusable homoglyphs with target-script equivalents.
 ///
+/// # NFKC interaction warning
+/// This function does **not** apply NFKC normalization. If NFKC is ever added
+/// as a pre-processing step, ~31 codepoints in the TR39 confusables table
+/// conflict with NFKC mappings (e.g. ſ U+017F: TR39→f but NFKC→s). In that
+/// case, `gen_confusables.py` must filter entries where the TR39 target
+/// differs from `unicodedata.normalize('NFKC', chr(cp))`.
+/// See: <https://paultendo.github.io/posts/unicode-confusables-nfkc-conflict/>
+///
 /// # Valid `target_script` values
 /// Currently only `"latin"` is supported. Any other value raises `TranslitError`.
 #[pyfunction]

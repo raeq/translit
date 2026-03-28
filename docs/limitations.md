@@ -50,7 +50,9 @@ The [IndoNLP 2025 shared task](https://arxiv.org/html/2501.05816) on reverse tra
 
 ### Low-resource script coverage
 
-The [South Asian languages survey (2025)](https://arxiv.org/html/2509.11570v1) confirms that corpus coverage and script fidelity remain binding constraints for transliteration of languages with limited digital presence. Scripts with no transliteration mapping in translit (characters produce `[?]`):
+The [South Asian languages survey (2025)](https://arxiv.org/html/2509.11570v1) confirms that corpus coverage and script fidelity remain binding constraints for transliteration of languages with limited digital presence.
+
+As of v0.3.0, translit added 2,553 codepoints: 11 new Unicode form/extension blocks (fullwidth, IPA, Greek Extended, Kangxi Radicals, CJK Compatibility Ideographs, etc.), gap-filled 7 partially-covered scripts, and added 14 new scripts — 10 abugida (Sundanese, Tai Tham, Cham, Batak, Buginese, Tagalog, Hanunoo, Buhid, Tagbanwa, Meetei Mayek) and 4 alphabetic/syllabic (Tifinagh, Lisu, Ol Chiki, Bamum). Scripts that still have no transliteration mapping (characters produce `[?]`):
 
 - Most CJK Extension blocks (B through I)
 
