@@ -50,8 +50,8 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | tr | Turkish | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | uk | Ukrainian | 304 | 301 | 292 | 234 | 301 | 65 | 7 | 80 |
 | vi | Vietnamese | 656 | 656 | 647 | 645 | 656 | 2 | 0 | 25 |
-| ja | Japanese | 248 | 248 | 234 | 240 | 246 | 2 | 8 | 12 |
-| ja-kunrei | Japanese Kunrei | 189 | 189 | 178 | 181 | 188 | 2 | 5 | 9 |
+| ja | Japanese | 248 | 248 | 237 | 240 | 246 | 4 | 7 | 12 |
+| ja-kunrei | Japanese Kunrei | 189 | 189 | 181 | 181 | 188 | 4 | 4 | 9 |
 | ko | Korean | 11172 | 11172 | 11172 | 11172 | 11172 | 0 | 0 | 3762 |
 | zh | Chinese | 20992 | 20954 | 20924 | 20642 | 20954 | 291 | 9 | 20633 |
 | ar | Arabic | 248 | 221 | 207 | 173 | 208 | 38 | 4 | 92 |
@@ -83,7 +83,7 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | dv | Dhivehi | 50 | 49 | 48 | 48 | 48 | 0 | 0 | 3 |
 | jv | Javanese | 91 | 90 | 75 | 0 | 90 | 75 | 0 | 0 |
 | mn | Mongolian | 157 | 153 | 149 | 148 | 151 | 5 | 4 | 53 |
-| **TOTAL** | | **49089** | **48825** | **48334** | **47408** | **48761** | **1072** | **146** | **27026** |
+| **TOTAL** | | **49089** | **48825** | **48340** | **47408** | **48761** | **1076** | **144** | **27026** |
 
 ## Notable Differences
 
@@ -1648,7 +1648,7 @@ Coverage: translit maps 647/656, Unidecode maps 645/656. **2** mapped only by tr
 
 Block: 248 assigned codepoints, 248 mapped by at least one library.
 
-Coverage: translit maps 234/248, Unidecode maps 240/248. **2** mapped only by translit, **8** mapped only by Unidecode.
+Coverage: translit maps 237/248, Unidecode maps 240/248. **4** mapped only by translit, **7** mapped only by Unidecode.
 
 **Mapped only by translit** (Unidecode returns empty/`[?]`):
 
@@ -1656,6 +1656,8 @@ Coverage: translit maps 234/248, Unidecode maps 240/248. **2** mapped only by tr
 |------|-----------|------|----------|
 | ゕ | U+3095 | HIRAGANA LETTER SMALL KA | `ka` |
 | ゖ | U+3096 | HIRAGANA LETTER SMALL KE | `ke` |
+| ゟ | U+309F | HIRAGANA DIGRAPH YORI | `yori` |
+| ヿ | U+30FF | KATAKANA DIGRAPH KOTO | `koto` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
@@ -1663,7 +1665,6 @@ Coverage: translit maps 234/248, Unidecode maps 240/248. **2** mapped only by tr
 |------|-----------|------|-----------|
 | ゝ | U+309D | HIRAGANA ITERATION MARK | `"` |
 | ゞ | U+309E | HIRAGANA VOICED ITERATION MARK | `"` |
-| ゠ | U+30A0 | KATAKANA-HIRAGANA DOUBLE HYPHEN | `=` |
 | ー | U+30FC | KATAKANA-HIRAGANA PROLONGED SOUND MARK | `-` |
 | ヽ | U+30FD | KATAKANA ITERATION MARK | `"` |
 | ヾ | U+30FE | KATAKANA VOICED ITERATION MARK | `"` |
@@ -1689,7 +1690,7 @@ Coverage: translit maps 234/248, Unidecode maps 240/248. **2** mapped only by tr
 
 Block: 189 assigned codepoints, 189 mapped by at least one library.
 
-Coverage: translit maps 178/189, Unidecode maps 181/189. **2** mapped only by translit, **5** mapped only by Unidecode.
+Coverage: translit maps 181/189, Unidecode maps 181/189. **4** mapped only by translit, **4** mapped only by Unidecode.
 
 **Mapped only by translit** (Unidecode returns empty/`[?]`):
 
@@ -1697,6 +1698,8 @@ Coverage: translit maps 178/189, Unidecode maps 181/189. **2** mapped only by tr
 |------|-----------|------|----------|
 | ゕ | U+3095 | HIRAGANA LETTER SMALL KA | `ka` |
 | ゖ | U+3096 | HIRAGANA LETTER SMALL KE | `ke` |
+| ゟ | U+309F | HIRAGANA DIGRAPH YORI | `yori` |
+| ヿ | U+30FF | KATAKANA DIGRAPH KOTO | `koto` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
@@ -1704,7 +1707,6 @@ Coverage: translit maps 178/189, Unidecode maps 181/189. **2** mapped only by tr
 |------|-----------|------|-----------|
 | ゝ | U+309D | HIRAGANA ITERATION MARK | `"` |
 | ゞ | U+309E | HIRAGANA VOICED ITERATION MARK | `"` |
-| ゠ | U+30A0 | KATAKANA-HIRAGANA DOUBLE HYPHEN | `=` |
 | ヽ | U+30FD | KATAKANA ITERATION MARK | `"` |
 | ヾ | U+30FE | KATAKANA VOICED ITERATION MARK | `"` |
 
@@ -4092,11 +4094,11 @@ Coverage: translit maps 149/153, Unidecode maps 148/153. **5** mapped only by tr
 
 - **Total assigned codepoints scanned**: 49089
 - **Mapped by at least one library**: 48825
-- **translit coverage**: 48334/48825 (99.0%)
+- **translit coverage**: 48340/48825 (99.0%)
 - **Unidecode coverage**: 47408/48825 (97.1%)
 - **anyascii coverage**: 48761/48825 (99.9%)
-- **Characters mapped only by translit**: 1072
-- **Characters mapped only by Unidecode**: 146
+- **Characters mapped only by translit**: 1076
+- **Characters mapped only by Unidecode**: 144
 - **Different output (both mapped)**: 27026
 
 ---
