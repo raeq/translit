@@ -678,8 +678,10 @@ mod tests {
 
             /// With ErrorMode::Preserve, non-empty printable input produces
             /// non-empty output (every char either maps or is kept verbatim).
+            /// Excludes combining marks (\p{M}) which legitimately map to empty
+            /// when not attached to a base character.
             #[test]
-            fn transliterate_preserve_nonempty(s in "[^\\s]{1,50}") {
+            fn transliterate_preserve_nonempty(s in "[^\\s\\p{M}]{1,50}") {
                 let result = transliterate_impl(&s, None, ErrorMode::Preserve, "", false, false, false);
                 prop_assert!(!result.is_empty());
             }

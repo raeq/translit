@@ -76,14 +76,14 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | th | Thai | 87 | 80 | 78 | 80 | 78 | 0 | 2 | 16 |
 | lo | Lao | 83 | 76 | 75 | 58 | 75 | 18 | 1 | 12 |
 | km | Khmer | 114 | 106 | 100 | 94 | 104 | 10 | 4 | 62 |
-| my | Myanmar | 160 | 141 | 78 | 77 | 139 | 18 | 17 | 42 |
-| bo | Tibetan | 211 | 201 | 138 | 147 | 195 | 8 | 17 | 113 |
+| my | Myanmar | 160 | 141 | 136 | 77 | 139 | 64 | 5 | 54 |
+| bo | Tibetan | 211 | 201 | 155 | 147 | 195 | 22 | 14 | 115 |
 | am | Amharic | 384 | 370 | 370 | 343 | 370 | 27 | 0 | 218 |
 | ru | Russian | 304 | 301 | 294 | 234 | 301 | 65 | 5 | 76 |
 | dv | Dhivehi | 50 | 49 | 48 | 48 | 48 | 0 | 0 | 3 |
 | jv | Javanese | 91 | 90 | 75 | 0 | 90 | 75 | 0 | 0 |
 | mn | Mongolian | 157 | 153 | 149 | 148 | 151 | 5 | 4 | 53 |
-| **TOTAL** | | **49089** | **48825** | **48340** | **47408** | **48761** | **1076** | **144** | **27026** |
+| **TOTAL** | | **49089** | **48825** | **48415** | **47408** | **48761** | **1136** | **129** | **27040** |
 
 ## Notable Differences
 
@@ -2575,12 +2575,14 @@ Coverage: translit maps 100/106, Unidecode maps 94/106. **10** mapped only by tr
 
 Block: 160 assigned codepoints, 141 mapped by at least one library.
 
-Coverage: translit maps 78/141, Unidecode maps 77/141. **18** mapped only by translit, **17** mapped only by Unidecode.
+Coverage: translit maps 136/141, Unidecode maps 77/141. **64** mapped only by translit, **5** mapped only by Unidecode.
 
 **Mapped only by translit** (Unidecode returns empty/`[?]`):
 
 | Char | Codepoint | Name | translit |
 |------|-----------|------|----------|
+| ဢ | U+1022 | MYANMAR LETTER SHAN A | `a` |
+| ဨ | U+1028 | MYANMAR LETTER MON E | `e` |
 | ါ | U+102B | MYANMAR VOWEL SIGN TALL AA | `a` |
 | ဳ | U+1033 | MYANMAR VOWEL SIGN MON II | `o` |
 | ဴ | U+1034 | MYANMAR VOWEL SIGN MON O | `o` |
@@ -2589,16 +2591,27 @@ Coverage: translit maps 78/141, Unidecode maps 77/141. **18** mapped only by tra
 | ြ | U+103C | MYANMAR CONSONANT SIGN MEDIAL RA | `r` |
 | ွ | U+103D | MYANMAR CONSONANT SIGN MEDIAL WA | `w` |
 | ှ | U+103E | MYANMAR CONSONANT SIGN MEDIAL HA | `h` |
-| ႐ | U+1090 | MYANMAR SHAN DIGIT ZERO | `0` |
-| ႑ | U+1091 | MYANMAR SHAN DIGIT ONE | `1` |
-| ႒ | U+1092 | MYANMAR SHAN DIGIT TWO | `2` |
-| ႓ | U+1093 | MYANMAR SHAN DIGIT THREE | `3` |
-| ႔ | U+1094 | MYANMAR SHAN DIGIT FOUR | `4` |
-| ႕ | U+1095 | MYANMAR SHAN DIGIT FIVE | `5` |
-| ႖ | U+1096 | MYANMAR SHAN DIGIT SIX | `6` |
-| ႗ | U+1097 | MYANMAR SHAN DIGIT SEVEN | `7` |
-| ႘ | U+1098 | MYANMAR SHAN DIGIT EIGHT | `8` |
-| ႙ | U+1099 | MYANMAR SHAN DIGIT NINE | `9` |
+| ဿ | U+103F | MYANMAR LETTER GREAT SA | `sa` |
+| ၚ | U+105A | MYANMAR LETTER MON NGA | `nga` |
+| ၛ | U+105B | MYANMAR LETTER MON JHA | `jha` |
+| ၜ | U+105C | MYANMAR LETTER MON BBA | `ba` |
+| ၝ | U+105D | MYANMAR LETTER MON BBE | `be` |
+| ၞ | U+105E | MYANMAR CONSONANT SIGN MON MEDIAL NA | `n` |
+| ၟ | U+105F | MYANMAR CONSONANT SIGN MON MEDIAL MA | `m` |
+| ၠ | U+1060 | MYANMAR CONSONANT SIGN MON MEDIAL LA | `l` |
+| ၡ | U+1061 | MYANMAR LETTER SGAW KAREN SHA | `sha` |
+| ၢ | U+1062 | MYANMAR VOWEL SIGN SGAW KAREN EU | `eu` |
+| ၥ | U+1065 | MYANMAR LETTER WESTERN PWO KAREN THA | `tha` |
+| ၦ | U+1066 | MYANMAR LETTER WESTERN PWO KAREN PWA | `pwa` |
+| ၧ | U+1067 | MYANMAR VOWEL SIGN WESTERN PWO KAREN EU | `eu` |
+| ၨ | U+1068 | MYANMAR VOWEL SIGN WESTERN PWO KAREN UE | `ue` |
+| ၮ | U+106E | MYANMAR LETTER EASTERN PWO KAREN NNA | `na` |
+| ၯ | U+106F | MYANMAR LETTER EASTERN PWO KAREN YWA | `ywa` |
+| ၰ | U+1070 | MYANMAR LETTER EASTERN PWO KAREN GHWA | `ghwa` |
+| ၱ | U+1071 | MYANMAR VOWEL SIGN GEBA KAREN I | `i` |
+| ၲ | U+1072 | MYANMAR VOWEL SIGN KAYAH OE | `oe` |
+| ၳ | U+1073 | MYANMAR VOWEL SIGN KAYAH U | `u` |
+| | | *...34 more* | |
 
 **Mapped only by Unidecode** (translit returns empty):
 
@@ -2607,20 +2620,8 @@ Coverage: translit maps 78/141, Unidecode maps 77/141. **18** mapped only by tra
 | ံ | U+1036 | MYANMAR SIGN ANUSVARA | `N` |
 | ့ | U+1037 | MYANMAR SIGN DOT BELOW | `'` |
 | း | U+1038 | MYANMAR SIGN VISARGA | `:` |
-| ၌ | U+104C | MYANMAR SYMBOL LOCATIVE | `n*` |
-| ၍ | U+104D | MYANMAR SYMBOL COMPLETED | `r*` |
 | ၎ | U+104E | MYANMAR SYMBOL AFOREMENTIONED | `l*` |
 | ၏ | U+104F | MYANMAR SYMBOL GENITIVE | `e*` |
-| ၐ | U+1050 | MYANMAR LETTER SHA | `sh` |
-| ၑ | U+1051 | MYANMAR LETTER SSA | `ss` |
-| ၒ | U+1052 | MYANMAR LETTER VOCALIC R | `R` |
-| ၓ | U+1053 | MYANMAR LETTER VOCALIC RR | `RR` |
-| ၔ | U+1054 | MYANMAR LETTER VOCALIC L | `L` |
-| ၕ | U+1055 | MYANMAR LETTER VOCALIC LL | `LL` |
-| ၖ | U+1056 | MYANMAR VOWEL SIGN VOCALIC R | `R` |
-| ၗ | U+1057 | MYANMAR VOWEL SIGN VOCALIC RR | `RR` |
-| ၘ | U+1058 | MYANMAR VOWEL SIGN VOCALIC L | `L` |
-| ၙ | U+1059 | MYANMAR VOWEL SIGN VOCALIC LL | `LL` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
@@ -2666,12 +2667,21 @@ Coverage: translit maps 78/141, Unidecode maps 77/141. **18** mapped only by tra
 | ဲ | U+1032 | MYANMAR VOWEL SIGN AI | `e` | `ai` | `ai` |
 | ၊ | U+104A | MYANMAR SIGN LITTLE SECTION | `,` | ` / ` | `,` |
 | ။ | U+104B | MYANMAR SIGN SECTION | `.` | ` // ` | `.` |
+| ၌ | U+104C | MYANMAR SYMBOL LOCATIVE | `,` | `n*` | `n*` |
+| ၍ | U+104D | MYANMAR SYMBOL COMPLETED | `.` | `r*` | `r*` |
+| ၐ | U+1050 | MYANMAR LETTER SHA | `sha` | `sh` | `s` |
+| ၑ | U+1051 | MYANMAR LETTER SSA | `ssa` | `ss` | `s` |
+| ၒ | U+1052 | MYANMAR LETTER VOCALIC R | `ri` | `R` | `r` |
+| ၓ | U+1053 | MYANMAR LETTER VOCALIC RR | `ri` | `RR` | `r` |
+| ၔ | U+1054 | MYANMAR LETTER VOCALIC L | `li` | `L` | `l` |
+| ၕ | U+1055 | MYANMAR LETTER VOCALIC LL | `li` | `LL` | `l` |
+| | | *...4 more differences* | | | |
 
 ### bo — Tibetan
 
 Block: 211 assigned codepoints, 201 mapped by at least one library.
 
-Coverage: translit maps 138/201, Unidecode maps 147/201. **8** mapped only by translit, **17** mapped only by Unidecode.
+Coverage: translit maps 155/201, Unidecode maps 147/201. **22** mapped only by translit, **14** mapped only by Unidecode.
 
 **Mapped only by translit** (Unidecode returns empty/`[?]`):
 
@@ -2685,6 +2695,20 @@ Coverage: translit maps 138/201, Unidecode maps 147/201. **8** mapped only by tr
 | ༆ | U+0F06 | TIBETAN MARK CARET YIG MGO PHUR SHAD MA | `.` |
 | ༇ | U+0F07 | TIBETAN MARK YIG MGO TSHEG SHAD MA | `.` |
 | ༊ | U+0F0A | TIBETAN MARK BKA- SHOG YIG MGO | `*` |
+| ༺ | U+0F3A | TIBETAN MARK GUG RTAGS GYON | `(` |
+| ༻ | U+0F3B | TIBETAN MARK GUG RTAGS GYAS | `)` |
+| ༼ | U+0F3C | TIBETAN MARK ANG KHANG GYON | `(` |
+| ༽ | U+0F3D | TIBETAN MARK ANG KHANG GYAS | `)` |
+| ཫ | U+0F6B | TIBETAN LETTER KKA | `kka` |
+| ཬ | U+0F6C | TIBETAN LETTER RRA | `rra` |
+| ྅ | U+0F85 | TIBETAN MARK PALUTA | `.` |
+| ࿐ | U+0FD0 | TIBETAN MARK BSKA- SHOG GI MGO RGYAN | `|` |
+| ࿑ | U+0FD1 | TIBETAN MARK MNYAM YIG GI MGO RGYAN | `|` |
+| ࿒ | U+0FD2 | TIBETAN MARK NYIS TSHEG | `:` |
+| ࿓ | U+0FD3 | TIBETAN MARK INITIAL BRDA RNYING YIG MGO MDUN MA | `|` |
+| ࿔ | U+0FD4 | TIBETAN MARK CLOSING BRDA RNYING YIG MGO SGAB MA | `|` |
+| ࿙ | U+0FD9 | TIBETAN MARK LEADING MCHAN RTAGS | `|` |
+| ࿚ | U+0FDA | TIBETAN MARK TRAILING MCHAN RTAGS | `|` |
 
 **Mapped only by Unidecode** (translit returns empty):
 
@@ -2696,11 +2720,8 @@ Coverage: translit maps 138/201, Unidecode maps 147/201. **8** mapped only by tr
 | ༶ | U+0F36 | TIBETAN MARK CARET -DZUD RTAGS BZHI MIG CAN | `^` |
 | ༷ | U+0F37 | TIBETAN MARK NGAS BZUNG SGOR RTAGS | `_` |
 | ༹ | U+0F39 | TIBETAN MARK TSA -PHRU | `~` |
-| ཪ | U+0F6A | TIBETAN LETTER FIXED-FORM RA | `r` |
 | ཾ | U+0F7E | TIBETAN SIGN RJES SU NGA RO | `M` |
 | ཿ | U+0F7F | TIBETAN SIGN RNAM BCAD | `H` |
-| ྀ | U+0F80 | TIBETAN VOWEL SIGN REVERSED I | `i` |
-| ཱྀ | U+0F81 | TIBETAN VOWEL SIGN REVERSED II | `ii` |
 | ྾ | U+0FBE | TIBETAN KU RU KHA | `X` |
 | ྿ | U+0FBF | TIBETAN KU RU KHA BZHI MIG CAN | ` :X: ` |
 | ࿀ | U+0FC0 | TIBETAN CANTILLATION SIGN HEAVY BEAT | ` /O/ ` |
@@ -2760,7 +2781,7 @@ Coverage: translit maps 138/201, Unidecode maps 147/201. **8** mapped only by tr
 | ཛ | U+0F5B | TIBETAN LETTER DZA | `dza` | `dz` | `dz` |
 | ཛྷ | U+0F5C | TIBETAN LETTER DZHA | `dza` | `dzh` | `dzh` |
 | ཝ | U+0F5D | TIBETAN LETTER WA | `wa` | `w` | `w` |
-| | | *...63 more differences* | | | |
+| | | *...65 more differences* | | | |
 
 ### am — Amharic
 
@@ -3095,12 +3116,12 @@ Coverage: translit maps 149/153, Unidecode maps 148/153. **5** mapped only by tr
 
 - **Total assigned codepoints scanned**: 49089
 - **Mapped by at least one library**: 48825
-- **translit coverage**: 48340/48825 (99.0%)
+- **translit coverage**: 48415/48825 (99.2%)
 - **Unidecode coverage**: 47408/48825 (97.1%)
 - **anyascii coverage**: 48761/48825 (99.9%)
-- **Characters mapped only by translit**: 1076
-- **Characters mapped only by Unidecode**: 144
-- **Different output (both mapped)**: 27026
+- **Characters mapped only by translit**: 1136
+- **Characters mapped only by Unidecode**: 129
+- **Different output (both mapped)**: 27040
 
 ---
 
