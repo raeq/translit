@@ -24,7 +24,7 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | cy | Welsh | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | da | Danish | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 29 |
 | de | German | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 30 |
-| el | Greek | 135 | 135 | 81 | 106 | 135 | 0 | 25 | 25 |
+| el | Greek | 135 | 135 | 135 | 106 | 135 | 29 | 0 | 34 |
 | es | Spanish | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | et | Estonian | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 30 |
 | fi | Finnish | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 28 |
@@ -83,7 +83,7 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | dv | Dhivehi | 50 | 49 | 48 | 48 | 48 | 0 | 0 | 3 |
 | jv | Javanese | 91 | 90 | 75 | 0 | 90 | 75 | 0 | 0 |
 | mn | Mongolian | 157 | 153 | 146 | 148 | 151 | 5 | 7 | 50 |
-| **TOTAL** | | **49089** | **48819** | **47973** | **47408** | **48761** | **853** | **288** | **26949** |
+| **TOTAL** | | **49089** | **48819** | **48027** | **47408** | **48761** | **882** | **263** | **26958** |
 
 ## Notable Differences
 
@@ -410,40 +410,45 @@ Coverage: translit maps 400/400, Unidecode maps 398/400. **2** mapped only by tr
 
 Block: 135 assigned codepoints, 135 mapped by at least one library.
 
-Coverage: translit maps 81/135, Unidecode maps 106/135. **0** mapped only by translit, **25** mapped only by Unidecode.
+Coverage: translit maps 135/135, Unidecode maps 106/135. **29** mapped only by translit, **0** mapped only by Unidecode.
 
-**Mapped only by Unidecode** (translit returns empty):
+**Mapped only by translit** (Unidecode returns empty/`[?]`):
 
-| Char | Codepoint | Name | Unidecode |
-|------|-----------|------|-----------|
-| ʹ | U+0374 | GREEK NUMERAL SIGN | `'` |
-| ͵ | U+0375 | GREEK LOWER NUMERAL SIGN | `,` |
-| · | U+0387 | GREEK ANO TELEIA | `;` |
-| Ϊ | U+03AA | GREEK CAPITAL LETTER IOTA WITH DIALYTIKA | `I` |
-| Ϋ | U+03AB | GREEK CAPITAL LETTER UPSILON WITH DIALYTIKA | `U` |
-| ϐ | U+03D0 | GREEK BETA SYMBOL | `b` |
-| ϑ | U+03D1 | GREEK THETA SYMBOL | `th` |
-| ϒ | U+03D2 | GREEK UPSILON WITH HOOK SYMBOL | `U` |
-| ϓ | U+03D3 | GREEK UPSILON WITH ACUTE AND HOOK SYMBOL | `U` |
-| ϔ | U+03D4 | GREEK UPSILON WITH DIAERESIS AND HOOK SYMBOL | `U` |
-| ϕ | U+03D5 | GREEK PHI SYMBOL | `ph` |
-| ϖ | U+03D6 | GREEK PI SYMBOL | `p` |
-| ϗ | U+03D7 | GREEK KAI SYMBOL | `&` |
-| Ϛ | U+03DA | GREEK LETTER STIGMA | `St` |
-| ϛ | U+03DB | GREEK SMALL LETTER STIGMA | `st` |
-| Ϝ | U+03DC | GREEK LETTER DIGAMMA | `W` |
-| ϝ | U+03DD | GREEK SMALL LETTER DIGAMMA | `w` |
-| Ϟ | U+03DE | GREEK LETTER KOPPA | `Q` |
-| ϟ | U+03DF | GREEK SMALL LETTER KOPPA | `q` |
-| Ϡ | U+03E0 | GREEK LETTER SAMPI | `Sp` |
-| ϡ | U+03E1 | GREEK SMALL LETTER SAMPI | `sp` |
-| ϰ | U+03F0 | GREEK KAPPA SYMBOL | `k` |
-| ϱ | U+03F1 | GREEK RHO SYMBOL | `r` |
-| ϲ | U+03F2 | GREEK LUNATE SIGMA SYMBOL | `c` |
-| ϳ | U+03F3 | GREEK LETTER YOT | `j` |
+| Char | Codepoint | Name | translit |
+|------|-----------|------|----------|
+| Ͱ | U+0370 | GREEK CAPITAL LETTER HETA | `H` |
+| ͱ | U+0371 | GREEK SMALL LETTER HETA | `h` |
+| Ͳ | U+0372 | GREEK CAPITAL LETTER ARCHAIC SAMPI | `Ss` |
+| ͳ | U+0373 | GREEK SMALL LETTER ARCHAIC SAMPI | `ss` |
+| Ͷ | U+0376 | GREEK CAPITAL LETTER PAMPHYLIAN DIGAMMA | `W` |
+| ͷ | U+0377 | GREEK SMALL LETTER PAMPHYLIAN DIGAMMA | `w` |
+| ͺ | U+037A | GREEK YPOGEGRAMMENI | `i` |
+| ͻ | U+037B | GREEK SMALL REVERSED LUNATE SIGMA SYMBOL | `s` |
+| ͼ | U+037C | GREEK SMALL DOTTED LUNATE SIGMA SYMBOL | `s` |
+| ͽ | U+037D | GREEK SMALL REVERSED DOTTED LUNATE SIGMA SYMBOL | `s` |
+| ; | U+037E | GREEK QUESTION MARK | `;` |
+| Ϳ | U+037F | GREEK CAPITAL LETTER YOT | `J` |
+| ΄ | U+0384 | GREEK TONOS | `'` |
+| ΅ | U+0385 | GREEK DIALYTIKA TONOS | `"` |
+| Ϗ | U+03CF | GREEK CAPITAL KAI SYMBOL | `K` |
+| Ϙ | U+03D8 | GREEK LETTER ARCHAIC KOPPA | `Q` |
+| ϙ | U+03D9 | GREEK SMALL LETTER ARCHAIC KOPPA | `q` |
+| ϴ | U+03F4 | GREEK CAPITAL THETA SYMBOL | `Th` |
+| ϵ | U+03F5 | GREEK LUNATE EPSILON SYMBOL | `e` |
+| ϶ | U+03F6 | GREEK REVERSED LUNATE EPSILON SYMBOL | `e` |
+| Ϸ | U+03F7 | GREEK CAPITAL LETTER SHO | `Sh` |
+| ϸ | U+03F8 | GREEK SMALL LETTER SHO | `sh` |
+| Ϲ | U+03F9 | GREEK CAPITAL LUNATE SIGMA SYMBOL | `S` |
+| Ϻ | U+03FA | GREEK CAPITAL LETTER SAN | `S` |
+| ϻ | U+03FB | GREEK SMALL LETTER SAN | `s` |
+| ϼ | U+03FC | GREEK RHO WITH STROKE SYMBOL | `r` |
+| Ͻ | U+03FD | GREEK CAPITAL REVERSED LUNATE SIGMA SYMBOL | `S` |
+| Ͼ | U+03FE | GREEK CAPITAL DOTTED LUNATE SIGMA SYMBOL | `S` |
+| Ͽ | U+03FF | GREEK CAPITAL REVERSED DOTTED LUNATE SIGMA SYMBOL | `S` |
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
+| · | U+0387 | GREEK ANO TELEIA | `.` | `;` | `;` |
 | Ή | U+0389 | GREEK CAPITAL LETTER ETA WITH TONOS | `I` | `E` | `I` |
 | Ύ | U+038E | GREEK CAPITAL LETTER UPSILON WITH TONOS | `Y` | `U` | `Y` |
 | ΐ | U+0390 | GREEK SMALL LETTER IOTA WITH DIALYTIKA AND TONOS | `i` | `I` | `i` |
@@ -452,6 +457,7 @@ Coverage: translit maps 81/135, Unidecode maps 106/135. **0** mapped only by tra
 | Υ | U+03A5 | GREEK CAPITAL LETTER UPSILON | `Y` | `U` | `Y` |
 | Φ | U+03A6 | GREEK CAPITAL LETTER PHI | `F` | `Ph` | `F` |
 | Χ | U+03A7 | GREEK CAPITAL LETTER CHI | `Ch` | `Kh` | `Ch` |
+| Ϋ | U+03AB | GREEK CAPITAL LETTER UPSILON WITH DIALYTIKA | `Y` | `U` | `Y` |
 | ή | U+03AE | GREEK SMALL LETTER ETA WITH TONOS | `i` | `e` | `i` |
 | ΰ | U+03B0 | GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND TONOS | `y` | `u` | `y` |
 | η | U+03B7 | GREEK SMALL LETTER ETA | `i` | `e` | `i` |
@@ -460,6 +466,12 @@ Coverage: translit maps 81/135, Unidecode maps 106/135. **0** mapped only by tra
 | χ | U+03C7 | GREEK SMALL LETTER CHI | `ch` | `kh` | `ch` |
 | ϋ | U+03CB | GREEK SMALL LETTER UPSILON WITH DIALYTIKA | `y` | `u` | `y` |
 | ύ | U+03CD | GREEK SMALL LETTER UPSILON WITH TONOS | `y` | `u` | `y` |
+| ϒ | U+03D2 | GREEK UPSILON WITH HOOK SYMBOL | `Y` | `U` | `Y` |
+| ϓ | U+03D3 | GREEK UPSILON WITH ACUTE AND HOOK SYMBOL | `Y` | `U` | `Y` |
+| ϔ | U+03D4 | GREEK UPSILON WITH DIAERESIS AND HOOK SYMBOL | `Y` | `U` | `Y` |
+| ϗ | U+03D7 | GREEK KAI SYMBOL | `k` | `&` | `&` |
+| Ϡ | U+03E0 | GREEK LETTER SAMPI | `Ss` | `Sp` | `S` |
+| ϡ | U+03E1 | GREEK SMALL LETTER SAMPI | `ss` | `sp` | `s` |
 | Ϣ | U+03E2 | COPTIC CAPITAL LETTER SHEI | `sh` | `Sh` | `Sh` |
 | Ϥ | U+03E4 | COPTIC CAPITAL LETTER FEI | `f` | `F` | `F` |
 | Ϧ | U+03E6 | COPTIC CAPITAL LETTER KHEI | `kh` | `Kh` | `X` |
@@ -469,6 +481,7 @@ Coverage: translit maps 81/135, Unidecode maps 106/135. **0** mapped only by tra
 | Ϭ | U+03EC | COPTIC CAPITAL LETTER SHIMA | `c` | `CH` | `C` |
 | ϭ | U+03ED | COPTIC SMALL LETTER SHIMA | `c` | `ch` | `c` |
 | Ϯ | U+03EE | COPTIC CAPITAL LETTER DEI | `ti` | `Ti` | `Ti` |
+| ϲ | U+03F2 | GREEK LUNATE SIGMA SYMBOL | `s` | `c` | `s` |
 
 ### es — Spanish
 
@@ -3995,12 +4008,12 @@ Coverage: translit maps 146/153, Unidecode maps 148/153. **5** mapped only by tr
 
 - **Total assigned codepoints scanned**: 49089
 - **Mapped by at least one library**: 48819
-- **translit coverage**: 47973/48819 (98.3%)
+- **translit coverage**: 48027/48819 (98.4%)
 - **Unidecode coverage**: 47408/48819 (97.1%)
 - **anyascii coverage**: 48761/48819 (99.9%)
-- **Characters mapped only by translit**: 853
-- **Characters mapped only by Unidecode**: 288
-- **Different output (both mapped)**: 26949
+- **Characters mapped only by translit**: 882
+- **Characters mapped only by Unidecode**: 263
+- **Different output (both mapped)**: 26958
 
 ---
 
