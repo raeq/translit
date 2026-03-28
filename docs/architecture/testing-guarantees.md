@@ -1,14 +1,10 @@
 # Testing and Guarantees
 
-## translit is formally tested. Its alternatives are not.
+## Testing methodology
 
-Most software — including the Unicode text libraries translit replaces — relies on *example-based testing*: a developer writes a handful of input/output pairs, runs them in CI, and calls it done. If the tests pass, the code is assumed correct. This is the industry standard, and it is remarkably weak.
+Most Unicode text libraries rely on *example-based testing*: a developer writes a handful of input/output pairs, runs them in CI, and calls it done. Example-based tests verify the *specific cases the developer thought of*. They say nothing about the rest.
 
-Example-based tests verify the *specific cases the developer thought of*. They say nothing about the cases nobody thought of. A library like Unidecode has ~200 tests covering a few dozen characters — out of 149,813 assigned Unicode codepoints. python-slugify tests a handful of Latin and Cyrillic strings. anyascii has basic round-trip checks. confusable_homoglyphs tests a few known confusable pairs. None of them test what happens with the other 99.99% of Unicode.
-
-**No other transliteration, slugification, or Unicode normalization library — in any language — publishes compile-time data integrity proofs, exhaustive domain coverage, or formally-stated invariant specifications.**
-
-translit does all three.
+translit combines three techniques that are uncommon in this space: compile-time data integrity proofs, exhaustive domain coverage, and formally-stated invariant specifications. We are not aware of another transliteration or slugification library that publishes all three, though we haven't audited every library in every language.
 
 ---
 
@@ -43,7 +39,7 @@ The gap between property-based testing and exhaustive testing is the difference 
 | [unidecode (Rust)](https://crates.io/crates/unidecode) | Rust | ~10 example tests | None |
 | **translit** | **Rust + Python** | **2,900+ tests** | **Compile-time proofs, exhaustive domain, formalized invariants** |
 
-This is not a criticism of those libraries — they were built before property-based and exhaustive testing became practical for Unicode text processing. But if you're choosing a Unicode library for production use, the testing methodology matters.
+These libraries are mature and widely used. The test counts above are approximate (based on public repos at time of writing) and may not reflect internal or downstream test suites. The point is not that they are poorly tested — example-based testing is the norm — but that translit's approach is different in kind.
 
 ---
 
@@ -68,7 +64,7 @@ Additionally, `hangul.rs` contains const assertions verifying that the Hangul de
 - Total syllable count = 19 × 21 × 28 = 11,172
 - Compatibility jamo range = 51 entries exactly
 
-**These are not tests that run in CI. They are proofs that execute at compile time. A release artifact cannot exist if any assertion fails.**
+These assertions execute at compile time, not in CI. A release artifact cannot exist if any assertion fails.
 
 ### Layer 2: Exhaustive domain tests
 
@@ -84,7 +80,7 @@ These tests iterate over every element in a bounded Unicode domain. Unlike prope
 | 15 Indic script blocks | ~2,000 codepoints | Every consonant/vowel/virama in the block is correctly classified |
 | Determinism | 10 × 100 runs | Same mixed-script input produces identical output 100 times |
 
-**Total exhaustive coverage: ~159,000+ individually verified codepoints.** For context, Unidecode's entire test suite covers fewer than 100 characters.
+**Total exhaustive coverage: ~159,000+ individually verified codepoints.**
 
 ### Layer 3: Formalized invariant specifications
 
