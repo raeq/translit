@@ -27,12 +27,12 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | el | Greek | 135 | 135 | 135 | 106 | 135 | 29 | 0 | 34 |
 | es | Spanish | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | et | Estonian | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 30 |
-| fi | Finnish | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 28 |
+| fi | Finnish | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | fr | French | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | ga | Irish | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | hr | Croatian | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | hu | Hungarian | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
-| is | Icelandic | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 27 |
+| is | Icelandic | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 25 |
 | it | Italian | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | lt | Lithuanian | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
 | lv | Latvian | 400 | 400 | 400 | 398 | 400 | 2 | 0 | 24 |
@@ -101,7 +101,7 @@ This approach is deterministic and comprehensive — results do not depend on sa
 | nko | N'Ko | 62 | 54 | 50 | 0 | 53 | 50 | 0 | 0 |
 | vai | Vai | 300 | 299 | 286 | 0 | 299 | 286 | 0 | 0 |
 | cop | Coptic | 123 | 121 | 102 | 0 | 121 | 102 | 0 | 0 |
-| **TOTAL** | | **50464** | **50157** | **49641** | **47408** | **50085** | **2362** | **129** | **27040** |
+| **TOTAL** | | **50464** | **50157** | **49641** | **47408** | **50085** | **2362** | **129** | **27034** |
 
 ## Notable Differences
 
@@ -183,22 +183,11 @@ Coverage: translit maps 400/400, Unidecode maps 398/400. **2** mapped only by tr
 | ö | U+00F6 | LATIN SMALL LETTER O WITH DIAERESIS | `oe` | `o` | `o` |
 | ü | U+00FC | LATIN SMALL LETTER U WITH DIAERESIS | `ue` | `u` | `u` |
 
-#### fi — Finnish
-
-| Char | Codepoint | Name | translit | Unidecode | anyascii |
-|------|-----------|------|----------|-----------|----------|
-| Ä | U+00C4 | LATIN CAPITAL LETTER A WITH DIAERESIS | `Ae` | `A` | `A` |
-| Ö | U+00D6 | LATIN CAPITAL LETTER O WITH DIAERESIS | `Oe` | `O` | `O` |
-| ä | U+00E4 | LATIN SMALL LETTER A WITH DIAERESIS | `ae` | `a` | `a` |
-| ö | U+00F6 | LATIN SMALL LETTER O WITH DIAERESIS | `oe` | `o` | `o` |
-
 #### is — Icelandic
 
 | Char | Codepoint | Name | translit | Unidecode | anyascii |
 |------|-----------|------|----------|-----------|----------|
 | Æ | U+00C6 | LATIN CAPITAL LETTER AE | `Ae` | `AE` | `Ae` |
-| Ð | U+00D0 | LATIN CAPITAL LETTER ETH | `Dh` | `D` | `D` |
-| ð | U+00F0 | LATIN SMALL LETTER ETH | `dh` | `d` | `d` |
 
 #### no — Norwegian
 
@@ -3851,7 +3840,7 @@ Coverage: translit maps 102/121, Unidecode maps 0/121. **102** mapped only by tr
 - **anyascii coverage**: 50085/50157 (99.9%)
 - **Characters mapped only by translit**: 2362
 - **Characters mapped only by Unidecode**: 129
-- **Different output (both mapped)**: 27040
+- **Different output (both mapped)**: 27034
 
 ---
 
