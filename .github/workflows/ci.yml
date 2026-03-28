@@ -100,3 +100,27 @@ jobs:
           maturin build --out dist
           pip install dist/*.whl
           python benchmarks/bench_quick.py
+
+  rust-ok:
+    name: Rust checks passed
+    if: always()
+    needs: [rust-check]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [[ "${{ needs.rust-check.result }}" != "success" ]]; then
+            echo "rust-check failed or was cancelled"
+            exit 1
+          fi
+
+  python-ok:
+    name: Python checks passed
+    if: always()
+    needs: [build-and-test]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [[ "${{ needs.build-and-test.result }}" != "success" ]]; then
+            echo "build-and-test failed or was cancelled"
+            exit 1
+          fi
