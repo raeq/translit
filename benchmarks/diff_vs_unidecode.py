@@ -139,6 +139,25 @@ LANG_BLOCKS: dict[str, tuple[str, list[tuple[int, int]]]] = {
     "dv": ("Dhivehi", [(0x0780, 0x07BF)]),       # Thaana
     "jv": ("Javanese", [(0xA980, 0xA9DF)]),
     "mn": ("Mongolian", [(0x1800, 0x18AF)]),      # Mongolian
+    # --- New scripts (Tier 2) ---
+    "su": ("Sundanese", [(0x1B80, 0x1BBF)]),
+    "nod": ("Tai Tham", [(0x1A20, 0x1AAF)]),
+    "cjm": ("Cham", [(0xAA00, 0xAA5F)]),
+    "btk": ("Batak", [(0x1BC0, 0x1BFF)]),
+    "bug": ("Buginese", [(0x1A00, 0x1A1F)]),
+    "tl": ("Tagalog", [(0x1700, 0x171F)]),
+    "hnn": ("Hanunoo", [(0x1720, 0x173F)]),
+    "bku": ("Buhid", [(0x1740, 0x175F)]),
+    "tbw": ("Tagbanwa", [(0x1760, 0x177F)]),
+    "mni": ("Meetei Mayek", [(0xABC0, 0xABFF), (0xAAE0, 0xAAFF)]),
+    "ber": ("Tifinagh", [(0x2D30, 0x2D7F)]),
+    "lis": ("Lisu", [(0xA4D0, 0xA4FF)]),
+    "sat": ("Ol Chiki", [(0x1C50, 0x1C7F)]),
+    "bax": ("Bamum", [(0xA6A0, 0xA6FF)]),
+    "bal": ("Balinese", [(0x1B00, 0x1B7F)]),
+    "nko": ("N'Ko", [(0x07C0, 0x07FF)]),
+    "vai": ("Vai", [(0xA500, 0xA63F)]),
+    "cop": ("Coptic", [(0x2C80, 0x2CFF)]),
 }
 
 

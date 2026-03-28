@@ -66,3 +66,50 @@ pub const BALINESE: std::ops::RangeInclusive<u32> = 0x1B00..=0x1B7F;
 
 /// Javanese block (U+A980–U+A9DF)
 pub const JAVANESE: std::ops::RangeInclusive<u32> = 0xA980..=0xA9DF;
+
+// ── Sundanese ─────────────────────────────────────────────────────────────
+
+/// Sundanese block (U+1B80–U+1BBF)
+pub const SUNDANESE: std::ops::RangeInclusive<u32> = 0x1B80..=0x1BBF;
+
+// ── Tai Tham ──────────────────────────────────────────────────────────────
+
+/// Tai Tham (Lanna) block (U+1A20–U+1AAF)
+pub const TAI_THAM: std::ops::RangeInclusive<u32> = 0x1A20..=0x1AAF;
+
+// ── Cham ──────────────────────────────────────────────────────────────────
+
+/// Cham block (U+AA00–U+AA5F)
+pub const CHAM: std::ops::RangeInclusive<u32> = 0xAA00..=0xAA5F;
+
+// ── Batak ─────────────────────────────────────────────────────────────────
+
+/// Batak block (U+1BC0–U+1BFF)
+pub const BATAK: std::ops::RangeInclusive<u32> = 0x1BC0..=0x1BFF;
+
+// ── Buginese ──────────────────────────────────────────────────────────────
+
+/// Buginese (Lontara) block (U+1A00–U+1A1F)
+pub const BUGINESE: std::ops::RangeInclusive<u32> = 0x1A00..=0x1A1F;
+
+// ── Philippine scripts ───────────────────────────────────────────────────
+
+/// Tagalog block (U+1700–U+171F)
+pub const TAGALOG: std::ops::RangeInclusive<u32> = 0x1700..=0x171F;
+
+/// Hanunoo block (U+1720–U+173F)
+pub const HANUNOO: std::ops::RangeInclusive<u32> = 0x1720..=0x173F;
+
+/// Buhid block (U+1740–U+175F)
+pub const BUHID: std::ops::RangeInclusive<u32> = 0x1740..=0x175F;
+
+/// Tagbanwa block (U+1760–U+177F)
+pub const TAGBANWA: std::ops::RangeInclusive<u32> = 0x1760..=0x177F;
+
+// ── Meetei Mayek ──────────────────────────────────────────────────────────
+
+/// Meetei Mayek block (U+ABC0–U+ABFF)
+pub const MEETEI_MAYEK: std::ops::RangeInclusive<u32> = 0xABC0..=0xABFF;
+
+/// Meetei Mayek Extensions block (U+AAE0–U+AAFF)
+pub const MEETEI_MAYEK_EXT: std::ops::RangeInclusive<u32> = 0xAAE0..=0xAAFF;

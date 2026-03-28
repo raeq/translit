@@ -326,7 +326,7 @@ fn is_hangul(ch: char) -> bool {
     ur::HANGUL_SYLLABLES.contains(&cp) || ur::HANGUL_COMPAT_JAMO.contains(&cp)
 }
 
-/// Check if a character is in any Brahmic abugida range (Indic, Tibetan, Myanmar, Khmer).
+/// Check if a character is in any Brahmic abugida range (Indic, Tibetan, Myanmar, Khmer, etc.).
 #[inline]
 fn is_indic(ch: char) -> bool {
     let cp = ch as u32;
@@ -336,6 +336,17 @@ fn is_indic(ch: char) -> bool {
         || ur::KHMER.contains(&cp)
         || ur::BALINESE.contains(&cp)
         || ur::JAVANESE.contains(&cp)
+        || ur::SUNDANESE.contains(&cp)
+        || ur::TAI_THAM.contains(&cp)
+        || ur::CHAM.contains(&cp)
+        || ur::BATAK.contains(&cp)
+        || ur::BUGINESE.contains(&cp)
+        || ur::TAGALOG.contains(&cp)
+        || ur::HANUNOO.contains(&cp)
+        || ur::BUHID.contains(&cp)
+        || ur::TAGBANWA.contains(&cp)
+        || ur::MEETEI_MAYEK.contains(&cp)
+        || ur::MEETEI_MAYEK_EXT.contains(&cp)
 }
 
 /// Role of an Indic character for virama/mātrā context handling.
@@ -376,6 +387,36 @@ pub fn indic_char_role(cp: u32) -> IndicRole {
     }
     if (0xA980..=0xA9DF).contains(&cp) {
         return javanese_char_role(cp);
+    }
+    if ur::SUNDANESE.contains(&cp) {
+        return sundanese_char_role(cp);
+    }
+    if ur::TAI_THAM.contains(&cp) {
+        return tai_tham_char_role(cp);
+    }
+    if ur::CHAM.contains(&cp) {
+        return cham_char_role(cp);
+    }
+    if ur::BATAK.contains(&cp) {
+        return batak_char_role(cp);
+    }
+    if ur::BUGINESE.contains(&cp) {
+        return buginese_char_role(cp);
+    }
+    if ur::TAGALOG.contains(&cp) {
+        return tagalog_char_role(cp);
+    }
+    if ur::HANUNOO.contains(&cp) {
+        return hanunoo_char_role(cp);
+    }
+    if ur::BUHID.contains(&cp) {
+        return buhid_char_role(cp);
+    }
+    if ur::TAGBANWA.contains(&cp) {
+        return tagbanwa_char_role(cp);
+    }
+    if ur::MEETEI_MAYEK.contains(&cp) || ur::MEETEI_MAYEK_EXT.contains(&cp) {
+        return meetei_mayek_char_role(cp);
     }
     if !(0x0900..=0x0D7F).contains(&cp) {
         return IndicRole::None;
@@ -466,6 +507,125 @@ pub fn javanese_char_role(cp: u32) -> IndicRole {
         0xA990..=0xA9B2 => IndicRole::Consonant,
         0xA9B4..=0xA9BC => IndicRole::DependentVowel,
         0xA9C0 => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Sundanese codepoint's role. Sundanese consonants carry
+/// inherent 'a', with dependent vowels and virama (U+1BAB).
+#[inline]
+pub fn sundanese_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1B8A..=0x1BA0 => IndicRole::Consonant,
+        0x1BA1..=0x1BA9 => IndicRole::DependentVowel,
+        0x1BAB => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Tai Tham (Lanna) codepoint's role. Consonants carry
+/// inherent 'a', with sakot (U+1A60) as virama.
+#[inline]
+pub fn tai_tham_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1A20..=0x1A54 => IndicRole::Consonant,
+        0x1A55..=0x1A5E | 0x1A61..=0x1A72 => IndicRole::DependentVowel,
+        0x1A60 => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Cham codepoint's role. Consonants carry inherent 'a',
+/// with virama at U+AA4D.
+#[inline]
+pub fn cham_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0xAA00..=0xAA28 => IndicRole::Consonant,
+        0xAA29..=0xAA36 => IndicRole::DependentVowel,
+        0xAA4D => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Batak codepoint's role. Consonants carry inherent 'a',
+/// with pangolat virama at U+1BF2–U+1BF3.
+#[inline]
+pub fn batak_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1BC0..=0x1BE3 => IndicRole::Consonant,
+        0x1BE7..=0x1BEE => IndicRole::DependentVowel,
+        0x1BF2 | 0x1BF3 => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Buginese (Lontara) codepoint's role. Consonants carry
+/// inherent 'a', with vowel killers at U+1A17–U+1A18.
+#[inline]
+pub fn buginese_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1A00..=0x1A16 => IndicRole::Consonant,
+        0x1A17 | 0x1A18 | 0x1A19..=0x1A1B => IndicRole::DependentVowel,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Tagalog codepoint's role. Consonants carry inherent 'a',
+/// with virama at U+1714.
+#[inline]
+pub fn tagalog_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1703..=0x1711 | 0x171F => IndicRole::Consonant,
+        0x1712 | 0x1713 => IndicRole::DependentVowel,
+        0x1714 => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Hanunoo codepoint's role. Consonants carry inherent 'a',
+/// with virama at U+1734.
+#[inline]
+pub fn hanunoo_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1723..=0x1731 => IndicRole::Consonant,
+        0x1732 | 0x1733 => IndicRole::DependentVowel,
+        0x1734 => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Buhid codepoint's role. Consonants carry inherent 'a',
+/// with virama at U+1753.
+#[inline]
+pub fn buhid_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1743..=0x1751 => IndicRole::Consonant,
+        0x1752 => IndicRole::DependentVowel,
+        0x1753 => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Tagbanwa codepoint's role. Consonants carry inherent 'a',
+/// with virama at U+1773.
+#[inline]
+pub fn tagbanwa_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0x1763..=0x1770 => IndicRole::Consonant,
+        0x1772 => IndicRole::DependentVowel,
+        0x1773 => IndicRole::Virama,
+        _ => IndicRole::None,
+    }
+}
+
+/// Classify a Meetei Mayek codepoint's role. Consonants carry inherent 'a',
+/// with apun iyek (virama) at U+ABED.
+#[inline]
+pub fn meetei_mayek_char_role(cp: u32) -> IndicRole {
+    match cp {
+        0xABC0..=0xABE2 => IndicRole::Consonant,
+        0xABE3..=0xABEA => IndicRole::DependentVowel,
+        0xABED => IndicRole::Virama,
         _ => IndicRole::None,
     }
 }
