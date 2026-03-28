@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys as _sys
+import types as _stdlib_types
 import warnings as _warnings
 from collections.abc import Iterable
 from typing import Any
@@ -2127,11 +2129,7 @@ __all__ = [
 # Make the module itself callable: import translit; translit("Москва")
 # ---------------------------------------------------------------------------
 
-import sys as _sys
-import types as _types
-
-
-class _CallableModule(_types.ModuleType):
+class _CallableModule(_stdlib_types.ModuleType):
     """Make ``import translit; translit(...)`` a shorthand for ``transliterate()``."""
 
     def __call__(self, text: str, **kwargs: Any) -> str:
