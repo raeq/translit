@@ -123,6 +123,25 @@ LANG_SAMPLES: dict[str, str] = {
     "uk": "Київ",
     "vi": "tiếng Việt",
     "zh": "北京市",
+    # --- New scripts (v0.3.0+) ---
+    "ban": "\u1B05\u1B13\u1B17",          # Balinese: aka
+    "bax": "\uA6A0\uA6A1\uA6A2",          # Bamum syllables
+    "bug": "\u1A00\u1A01\u1A02",           # Buginese/Lontara: ka ga nga
+    "chr": "\u13A0\u13A1\u13A2",           # Cherokee: a e i
+    "cjm": "\uAA00\uAA01\uAA02",          # Cham consonants
+    "cop": "\u2C80\u2C81\u2C82\u2C83",     # Coptic: Alfa alfa Vida vida
+    "khb": "\u1980\u1981\u1982",           # New Tai Lue consonants
+    "lis": "\uA4D0\uA4D1\uA4D2",          # Lisu letters
+    "mni": "\uABC0\uABC1\uABC2",          # Meetei Mayek: kok sai lai
+    "nod": "\u1A20\u1A21\u1A22",           # Tai Tham consonants
+    "nqo": "\u07C1\u07C2\u07C3",           # N'Ko digits
+    "sat": "\u1C50\u1C51\u1C52",           # Ol Chiki digits
+    "su": "\u1B80\u1B83\u1B84",            # Sundanese
+    "syr": "\u0710\u0712\u0713",           # Syriac: alaph beth gamal
+    "tdd": "\u1950\u1951\u1952",           # Tai Le consonants
+    "tl": "\u1700\u1701\u1702",            # Tagalog: a i u
+    "tzm": "\u2D30\u2D31\u2D33",           # Tifinagh: ya yab yag
+    "vai": "\uA500\uA501\uA502",           # Vai syllables
 }
 
 
