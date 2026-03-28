@@ -1225,6 +1225,25 @@ _ALL_LANG_ASCII_SAMPLES: dict[str, tuple[str, str]] = {
     "jv": ("\uA990\uA99F\uA9AA\uA9A3\uA9A8", "Javanese consonants"),
     # --- Mongolian ---
     "mn": ("\u182E\u1823\u1829\u182D\u1823\u182F", "Mongolian mongol"),
+    # --- New scripts (v0.3.0+) ---
+    "ban": ("\u1B05\u1B13\u1B17\u1B15\u1B18", "Balinese consonants"),
+    "bax": ("\uA6A0\uA6A1\uA6A2\uA6A3", "Bamum syllables"),
+    "bug": ("\u1A00\u1A01\u1A02\u1A03\u1A04", "Buginese Lontara"),
+    "chr": ("\u13A0\u13A1\u13A2\u13A3\u13A4", "Cherokee syllabary"),
+    "cjm": ("\uAA00\uAA01\uAA02\uAA03", "Cham consonants"),
+    "cop": ("\u2C80\u2C81\u2C82\u2C83\u2C84\u2C85", "Coptic letters"),
+    "khb": ("\u1980\u1981\u1982\u1983", "New Tai Lue consonants"),
+    "lis": ("\uA4D0\uA4D1\uA4D2\uA4D3", "Lisu Fraser letters"),
+    "mni": ("\uABC0\uABC1\uABC2\uABC3", "Meetei Mayek letters"),
+    "nod": ("\u1A20\u1A21\u1A22\u1A23", "Tai Tham Lanna consonants"),
+    "nqo": ("\u07C1\u07C2\u07C3\u07C4", "NKo digits"),
+    "sat": ("\u1C5A\u1C5B\u1C5C\u1C5D", "Ol Chiki letters"),
+    "su": ("\u1B83\u1B84\u1B85\u1B86", "Sundanese consonants"),
+    "syr": ("\u0710\u0712\u0713\u0715", "Syriac letters"),
+    "tdd": ("\u1950\u1951\u1952\u1953", "Tai Le consonants"),
+    "tl": ("\u1700\u1701\u1702\u1703", "Tagalog Baybayin"),
+    "tzm": ("\u2D30\u2D31\u2D33\u2D37", "Tifinagh Berber letters"),
+    "vai": ("\uA500\uA501\uA502\uA503", "Vai syllables"),
 }
 
 
