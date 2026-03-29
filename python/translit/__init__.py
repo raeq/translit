@@ -151,6 +151,7 @@ from translit._translit import (
     _strip_accents,
     _strip_accents_batch,
     _strip_bidi,
+    _strip_obfuscation,
     _strip_zalgo,
     _TextPipeline,
     # Core transforms (Rust implementations)
@@ -1156,6 +1157,40 @@ def sanitize_user_input(text: str) -> str:
     return _sanitize_user_input(text)
 
 
+def strip_obfuscation(
+    text: str,
+    *,
+    lang: str | None = None,
+) -> str:
+    """Maximum-strength text deobfuscation.
+
+    The most aggressive normalization preset. Strips ALL combining marks,
+    expands emoji to text, transliterates all scripts to ASCII, neutralizes
+    confusable homoglyphs, removes accents, and folds case. The result is
+    clean lowercase ASCII.
+
+    Pipeline: ``NFKC → strip_zalgo(max_marks=0) → strip_bidi → strip_zero_width
+    → demojize → transliterate → confusables → strip_accents → fold_case
+    → collapse_whitespace``
+
+    Args:
+        text: Input text (user-generated, adversarial, multilingual).
+        lang: Optional language code for transliteration (e.g. ``"de"``).
+
+    Returns:
+        Clean lowercase ASCII string.
+
+    Examples:
+        >>> strip_obfuscation("Москва ❤️ город!")
+        'moskva red heart gorod!'
+        >>> strip_obfuscation("p\\u0430ypal")  # Cyrillic а
+        'paypal'
+        >>> strip_obfuscation("H\\u0338a\\u0338t\\u0338e\\u0338 speech")
+        'hate speech'
+    """
+    return _strip_obfuscation(text, lang=lang)
+
+
 def is_zalgo(text: str, *, threshold: int = 3) -> bool:
     """Detect whether text contains zalgo-style combining mark abuse.
 
@@ -1829,6 +1864,18 @@ PRESETS: dict[str, list[tuple[str, str | None]]] = {
         ("strip_bidi", None),
         ("collapse_whitespace", None),
     ],
+    "strip_obfuscation": [
+        ("normalize", "NFKC"),
+        ("strip_zalgo", "max_marks=0"),
+        ("strip_bidi", None),
+        ("strip_zero_width", None),
+        ("demojize", "cldr"),
+        ("transliterate", None),
+        ("confusables", "latin"),
+        ("strip_accents", None),
+        ("fold_case", None),
+        ("collapse_whitespace", None),
+    ],
 }
 """Named preset pipelines and their ordered steps.
 
@@ -2109,6 +2156,7 @@ __all__ = [
     "sort_key",
     "strip_bidi",
     "sanitize_user_input",
+    "strip_obfuscation",
     # Zalgo detection and stripping
     "is_zalgo",
     "strip_zalgo",

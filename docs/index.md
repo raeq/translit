@@ -94,7 +94,7 @@ This is context-free, character-by-character transliteration, the same approach 
 ## Precompiled pipelines
 
 ```python
-from translit import security_clean, ml_normalize, catalog_key, sanitize_user_input
+from translit import security_clean, ml_normalize, catalog_key, sanitize_user_input, strip_obfuscation
 
 # Security: NFKC → confusables → strip bidi → collapse whitespace
 security_clean("ℝ𝕖𝕒𝕝 𝕥𝕖𝕩𝕥")  # → "Real text"
@@ -108,6 +108,9 @@ catalog_key("ΩMEGA  café")        # → "omega cafe"
 
 # Web input: NFKC → strip zalgo → confusables → strip bidi → collapse whitespace
 sanitize_user_input("p\u0430ypal")  # → "paypal" (homoglyph neutralized)
+
+# Maximum deobfuscation: everything → clean lowercase ASCII
+strip_obfuscation("p\u0430yp\u0430l 🔥🔥")  # → "paypal fire fire"
 ```
 
 ## Text builder

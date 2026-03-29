@@ -12,24 +12,30 @@ pytest
 
 ## Test Architecture
 
-Tests are split into two tiers:
+Tests are split into three tiers:
 
-### Tier 1: Everyday (runs by default)
-- **Rust unit + integration**: 635 tests — `cargo test --no-default-features`
-- **Python pytest**: 2,256 tests — `pytest`
+### Tier 1: CI (fast, deterministic)
+- **Rust unit + integration**: ~630 tests — `cargo test --no-default-features`
+- **Python pytest**: ~2,200 deterministic tests — `pytest -m "not formal and not hypothesis"`
 - **Build.rs compile-time assertions**: always-on, zero runtime cost
 
-### Tier 2: Formal / pre-release (gated, opt-in)
-- **Rust exhaustive domain tests**: 16 tests marked `#[ignore]`
+### Tier 2: Hypothesis / property-based (developer worktree only)
+- **Python Hypothesis tests**: ~440 tests marked `@pytest.mark.hypothesis`
+  - Property-based/fuzz testing across the full Unicode input space
+  - Run with: `pytest -m hypothesis` (or just `pytest` which includes them by default)
+  - Excluded from CI because they are slow (~42s), non-deterministic, and costly
+
+### Tier 3: Formal / pre-release (gated, opt-in)
+- **Rust exhaustive domain tests**: 16 tests marked `#[ignore = "..."]`
   - Covers all 11,172 Hangul syllables, full BMP (63,488 chars), all CJK ideographs, 15 Indic script blocks
   - Run with: `cargo test --no-default-features --test exhaustive_transliterate -- --ignored`
 - **Python formal invariant tests**: 12 tests marked `@pytest.mark.formal`
   - Verifies 7 formalized invariants (I1–I7) via exhaustive enumeration + Hypothesis
   - Run with: `pytest -m formal`
 
-**Rule: Do NOT remove `#[ignore]` or `@pytest.mark.formal` from these tests.**
-They are excluded from default runs intentionally. If you add new exhaustive or
-formal tests, gate them the same way.
+**Rule: Do NOT remove `#[ignore]`, `@pytest.mark.formal`, or `@pytest.mark.hypothesis`
+from these tests.** They are excluded from CI intentionally. If you add new
+property-based tests, mark them with `pytestmark = pytest.mark.hypothesis`.
 
 ### Pre-release verification (all tiers)
 

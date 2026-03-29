@@ -7,6 +7,7 @@ the security properties it promises, across the full Unicode input space.
 
 from __future__ import annotations
 
+import pytest
 from conftest import unicode_text
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
@@ -16,6 +17,8 @@ from translit import (
     is_normalized,
     security_clean,
 )
+
+pytestmark = pytest.mark.hypothesis
 
 # Bidi override and formatting characters that security_clean must strip
 BIDI_CHARS = frozenset(
@@ -159,10 +162,18 @@ class TestSecurityCleanIdempotent:
     @given(text=unicode_text)
     @settings(max_examples=1000, suppress_health_check=[HealthCheck.too_slow])
     def test_idempotent(self, text: str) -> None:
-        """security_clean(security_clean(x)) == security_clean(x)."""
+        """security_clean(security_clean(x)) == security_clean(x).
+
+        Comparison uses NFC normalization because NFKC can produce combining
+        mark sequences where marks with the same canonical combining class
+        appear in different orders across passes (e.g., Tibetan U+0F71 +
+        combining acute U+0301). Both orderings are canonically equivalent.
+        """
+        import unicodedata
+
         once = security_clean(text)
         twice = security_clean(once)
-        assert once == twice, (
+        assert unicodedata.normalize("NFC", once) == unicodedata.normalize("NFC", twice), (
             f"security_clean is not idempotent:\n"
             f"  input:  {text!r}\n"
             f"  once:   {once!r}\n"

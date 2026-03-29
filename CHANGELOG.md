@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **`strip_obfuscation()` preset pipeline**: maximum-strength text deobfuscation.
+  10-step pipeline: NFKC → strip_zalgo(max_marks=0) → strip_bidi → strip_zero_width
+  → demojize → transliterate → confusables → strip_accents → fold_case →
+  collapse_whitespace. Produces clean lowercase ASCII from adversarial user-generated
+  text. Accepts optional `lang=` parameter.
+- **`lang_info()` and `script_info()` APIs**: return structured metadata (display
+  name, script, region) for any language code or script. Backed by `LANG_META` (83
+  entries) and `SCRIPT_META` (55 entries) with import-time drift assertions.
+- **API surface stability tests** (`tests/test_api_stability.py`): 133 tests
+  locking down function signatures, class methods, enum members, TypedDicts,
+  protocol interfaces, and `__all__` exports.
+- **Mutation testing survivor killers** (`tests/test_mutant_killers.py`): 92 tests
+  targeting forward-only parameter validation, default parameter sensitivity,
+  pipeline step tuples, and boundary checks.
+- **Language consistency audit** (`scripts/audit_language_consistency.py`): checks 11
+  registration points for Rust/Python/docs/test alignment.
+- 283 empty-string mappings for combining marks and zero-width characters in
+  `translit_default.tsv` — these are now silently stripped instead of producing `[?]`.
+
+### Fixed
+- **Combining marks produce `[?]`**: `transliterate("n\u0303")` returned `"n[?]"`
+  instead of `"n"`. Added empty-string TSV mappings for all Combining Diacritical
+  Marks (U+0300–U+036F), Extended (U+1AB0–U+1AFF), Supplement (U+1DC0–U+1DFF),
+  Symbols (U+20D0–U+20F0), and Half Marks (U+FE20–U+FE2F).
+- **Zero-width characters produce `[?]`**: `transliterate("a\u200Bb")` returned
+  `"a[?]b"`. Added empty-string mappings for ZWS, ZWNJ, ZWJ, word joiner, BOM,
+  soft hyphen, bidi marks, and line/paragraph separators.
+- **`TextPipeline` confusable ordering**: confusables ran before transliterate,
+  creating mixed-script gibberish on Cyrillic/Greek input. Swapped execution order
+  so transliterate runs first (matching `catalog_key` preset).
+- **`demojize()` adjacent emoji concatenation**: `demojize("🔥🔥")` returned
+  `"firefire"` instead of `"fire fire"`. Added space padding between adjacent
+  emoji-to-text replacements in both `demojize_impl` and `demojize_rust`.
+- **`security_clean` idempotency test**: comparing NFC-normalized forms instead of
+  raw strings to handle combining mark reorder between Tibetan and Latin marks.
+
+### Changed
+- CI excludes Hypothesis/property-based tests (`-m "not formal and not hypothesis"`)
+  for 10× faster runs (~4s vs ~46s). Hypothesis tests are for developer worktrees.
+- Pinned `ruff==0.15.4` in CI and `pyproject.toml` to prevent format drift.
+- `#[ignore]` attributes in Rust exhaustive tests now include reason strings
+  (clippy `ignore_without_reason`).
+
 ## [0.3.0] — 2026-03-28
 
 ### Added

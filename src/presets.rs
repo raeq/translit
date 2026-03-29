@@ -321,6 +321,55 @@ pub fn _strip_bidi(text: &str) -> String {
     strip_bidi(text)
 }
 
+/// Maximum-strength text deobfuscation pipeline.
+///
+/// Pipeline: NFKC → strip_zalgo(max_marks=0) → strip_bidi → strip_zero_width
+///          → demojize → transliterate → confusables → strip_accents
+///          → fold_case → collapse_whitespace
+///
+/// This is the most aggressive normalization preset. It strips ALL combining
+/// marks (not just excessive ones), expands emoji to text, transliterates all
+/// scripts to ASCII, neutralizes confusable homoglyphs, removes accents, and
+/// folds case. The result is clean lowercase ASCII suitable for NLP on
+/// adversarial user-generated text.
+///
+/// Use cases: content moderation, hate speech detection, multilingual sentiment
+/// analysis, social media NLP preprocessing, code-mixed text analysis.
+#[pyfunction]
+#[pyo3(signature = (text, *, lang=None))]
+pub fn _strip_obfuscation(text: &str, lang: Option<&str>) -> PyResult<String> {
+    check_preset_input(text, "strip_obfuscation")?;
+    // 1. NFKC normalization (collapses fullwidth, ligatures, superscripts)
+    let buf: String = text.nfkc().collect();
+    // 2. Strip ALL combining marks (max_marks=0) — removes zalgo AND accents early
+    let buf = zalgo::_strip_zalgo(&buf, 0);
+    // 3. Strip bidi overrides, isolates, marks, and soft hyphens
+    let buf = strip_bidi(&buf);
+    // 4. Strip zero-width chars (ZWS, ZWNJ, ZWJ, WJ, BOM)
+    let buf = whitespace::strip_zero_width_chars(&buf);
+    // 5. Demojize — expand emoji to text names with spacing
+    let buf = emoji::demojize_rust(&buf, false);
+    // 6. Transliterate — all scripts to ASCII
+    let buf = transliterate::transliterate_impl(
+        &buf,
+        lang,
+        crate::ErrorMode::Ignore,
+        "",
+        false,
+        false,
+        false,
+    )
+    .into_owned();
+    // 7. Confusables → Latin (AFTER transliterate — see Bug #2)
+    let buf = confusables::_normalize_confusables(&buf, "latin")?;
+    // 8. Strip accents (NFD decompose + strip combining marks)
+    let buf = transliterate::_strip_accents(&buf);
+    // 9. Fold case
+    let buf = case_fold::fold_case_impl(&buf);
+    // 10. Collapse whitespace (final cleanup)
+    Ok(whitespace::_collapse_whitespace(&buf, true, true))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

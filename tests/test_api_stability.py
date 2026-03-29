@@ -57,6 +57,7 @@ EXPECTED_ALL = {
     "sort_key",
     "strip_bidi",
     "sanitize_user_input",
+    "strip_obfuscation",
     # Zalgo
     "is_zalgo",
     "strip_zalgo",
@@ -331,6 +332,7 @@ CORE_FUNCTION_PARAMS = {
     "sort_key": ["text", "lang"],
     "strip_bidi": ["text"],
     "sanitize_user_input": ["text"],
+    "strip_obfuscation": ["text", "lang"],
     # Zalgo
     "is_zalgo": ["text", "threshold"],
     "strip_zalgo": ["text", "max_marks"],

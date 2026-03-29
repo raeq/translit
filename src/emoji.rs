@@ -194,6 +194,7 @@ fn demojize_impl(
     let chars: Vec<char> = text.chars().collect();
     let mut result = String::with_capacity(text.len());
     let mut i = 0;
+    let mut last_was_emoji = false;
 
     while i < chars.len() {
         let ch = chars[i];
@@ -209,29 +210,29 @@ fn demojize_impl(
             if let Some((name, consumed)) =
                 try_python_provider(py, prov, &chars, i, tables::max_emoji_seq_len())
             {
-                result.push_str(&name);
+                pad_emoji_replacement(&mut result, &name);
                 i += consumed;
-                // Consume any trailing orphaned ZWJ/VS after matched emoji
                 while i < chars.len() && is_emoji_modifier(chars[i]) {
                     i += 1;
                 }
+                last_was_emoji = true;
                 continue;
             }
         }
 
         // Try built-in emoji tables
         if let Some((name, consumed)) = match_emoji_at(&chars, i) {
-            result.push_str(strip_modifier_suffix(name, strip_modifiers));
+            let replacement = strip_modifier_suffix(name, strip_modifiers);
+            pad_emoji_replacement(&mut result, replacement);
             i += consumed;
-            // Consume any trailing orphaned ZWJ/VS after matched emoji
             while i < chars.len() && is_emoji_modifier(chars[i]) {
                 i += 1;
             }
+            last_was_emoji = true;
             continue;
         }
 
         // Check if this is an emoji-like codepoint that we don't have data for
-        // (i.e., in emoji ranges but not in our table)
         if is_emoji_codepoint(ch) {
             match error_mode {
                 ErrorMode::Replace => result.push_str(replace_with),
@@ -239,18 +240,24 @@ fn demojize_impl(
                 ErrorMode::Preserve => result.push(ch),
             }
             i += 1;
-            // Consume any following variation selectors or modifiers
             while i < chars.len() && is_emoji_modifier(chars[i]) {
                 if let ErrorMode::Preserve = error_mode {
                     result.push(chars[i]);
                 }
                 i += 1;
             }
+            last_was_emoji = false;
             continue;
         }
 
-        // Not an emoji — pass through unchanged
+        // Not an emoji — pass through unchanged.
+        // Add space after emoji replacement if the text runs into
+        // alphanumeric content (not punctuation or whitespace).
+        if last_was_emoji && ch.is_alphanumeric() {
+            result.push(' ');
+        }
         result.push(ch);
+        last_was_emoji = false;
         i += 1;
     }
 
@@ -362,6 +369,19 @@ fn strip_modifier_suffix(name: &str, strip_modifiers: bool) -> &str {
     name
 }
 
+/// Insert emoji replacement text with leading space padding.
+///
+/// Adds a leading space if the result doesn't already end with whitespace.
+/// The caller must set `last_was_emoji = true` so that the next non-emoji
+/// character also gets a leading space.
+#[inline]
+fn pad_emoji_replacement(result: &mut String, text: &str) {
+    if !result.is_empty() && !result.ends_with(' ') {
+        result.push(' ');
+    }
+    result.push_str(text);
+}
+
 /// Pure Rust demojize for use by TextPipeline (no Python provider support).
 pub fn demojize_rust(text: &str, strip_modifiers: bool) -> String {
     // Fast path: pure-ASCII text cannot contain emoji.
@@ -372,6 +392,7 @@ pub fn demojize_rust(text: &str, strip_modifiers: bool) -> String {
     let chars: Vec<char> = text.chars().collect();
     let mut result = String::with_capacity(text.len());
     let mut i = 0;
+    let mut last_was_emoji = false;
 
     while i < chars.len() {
         let ch = chars[i];
@@ -382,11 +403,13 @@ pub fn demojize_rust(text: &str, strip_modifiers: bool) -> String {
         }
 
         if let Some((name, consumed)) = match_emoji_at(&chars, i) {
-            result.push_str(strip_modifier_suffix(name, strip_modifiers));
+            let replacement = strip_modifier_suffix(name, strip_modifiers);
+            pad_emoji_replacement(&mut result, replacement);
             i += consumed;
             while i < chars.len() && is_emoji_modifier(chars[i]) {
                 i += 1;
             }
+            last_was_emoji = true;
             continue;
         }
 
@@ -396,10 +419,15 @@ pub fn demojize_rust(text: &str, strip_modifiers: bool) -> String {
             while i < chars.len() && is_emoji_modifier(chars[i]) {
                 i += 1;
             }
+            last_was_emoji = false;
             continue;
         }
 
+        if last_was_emoji && ch.is_alphanumeric() {
+            result.push(' ');
+        }
         result.push(ch);
+        last_was_emoji = false;
         i += 1;
     }
 
@@ -465,7 +493,7 @@ mod tests {
     #[test]
     fn test_demojize_rust_multiple() {
         let result = demojize_rust("😀😂", false);
-        assert_eq!(result, "grinning faceface with tears of joy");
+        assert_eq!(result, "grinning face face with tears of joy");
     }
 
     #[test]

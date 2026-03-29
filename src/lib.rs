@@ -128,6 +128,7 @@ fn _translit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(presets::_sort_key, m)?)?;
     m.add_function(wrap_pyfunction!(presets::_strip_bidi, m)?)?;
     m.add_function(wrap_pyfunction!(presets::_sanitize_user_input, m)?)?;
+    m.add_function(wrap_pyfunction!(presets::_strip_obfuscation, m)?)?;
 
     // Zalgo detection and stripping
     m.add_function(wrap_pyfunction!(zalgo::_is_zalgo, m)?)?;
