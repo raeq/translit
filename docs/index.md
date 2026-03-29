@@ -259,6 +259,7 @@ Core concepts and usage for each feature area.
 - **[Grapheme Clusters](user-guide/graphemes.md)** — User-perceived character counting, splitting, and truncation
 - **[Text Pipeline](user-guide/pipeline.md)** — Composable, pre-compiled multi-step processing
 - **[Language Support](user-guide/language-support.md)** — Built-in profiles, auto-detection, custom profiles
+- **[Abjad Scripts](user-guide/abjad-transliteration.md)** — Context-aware Arabic, Persian, and Hebrew with dictionary-based vowel restoration
 - **[Language Detection](user-guide/language-detection.md)** — How `lang="auto"` works: script identification, character-level discrimination, fail-safe fallbacks
 
 ---

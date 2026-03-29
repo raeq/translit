@@ -63,6 +63,7 @@ nav:
       - Text Cleaning: user-guide/text-cleaning.md
       - Text Pipeline: user-guide/pipeline.md
       - Language Support: user-guide/language-support.md
+      - Abjad Scripts (Arabic, Persian, Hebrew): user-guide/abjad-transliteration.md
   - API Reference:
       - Overview: api/index.md
       - Core Transforms: api/transforms.md
