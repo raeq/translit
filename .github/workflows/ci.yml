@@ -3,12 +3,6 @@ name: CI
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "**.py"
-      - "**.rs"
-      - "**.toml"
-      - "**.tsv"
-      - ".github/workflows/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,9 +17,31 @@ env:
 
 jobs:
 
-  # ── Lint and format (Linux only) ────────────────────────────────
+  # ── Detect whether code changed ─────────────────────────────────
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '**.py'
+              - '**.rs'
+              - '**.toml'
+              - '**.tsv'
+              - '.github/workflows/**'
+
+
+  # ── Lint and format (Linux only, code changes only) ─────────────
   lint:
     name: Lint & format
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -58,10 +74,11 @@ jobs:
         run: mypy python/translit --ignore-missing-imports
 
 
-  # ── Test (Linux only for PRs) ───────────────────────────────────
+  # ── Test (Linux only, code changes only) ────────────────────────
   test:
     name: Test (ubuntu-latest, Python 3.12)
-    needs: lint
+    needs: [changes, lint]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -101,31 +118,48 @@ jobs:
           path: coverage.xml
 
 
-  # ── Status gates (for branch protection rules) ──────────────────
-  # These exist solely to satisfy branch protection required checks.
-  # Both check the same conditions — kept as two jobs for backward
-  # compatibility with existing branch protection configuration.
-  # TODO: consolidate to single "CI passed" after updating branch protection.
+  # ── Status gates (always run, for branch protection) ────────────
+  # These MUST run on every PR so branch protection checks report.
+  # On doc-only PRs, lint/test are skipped — gates pass automatically.
+  # On code PRs, gates pass only if lint+test succeed.
   rust-ok:
     name: Rust checks passed
     if: always()
-    needs: [lint, test]
+    needs: [changes, lint, test]
     runs-on: ubuntu-latest
     steps:
       - run: |
-          if [[ "${{ needs.lint.result }}" != "success" || "${{ needs.test.result }}" != "success" ]]; then
-            echo "lint or test failed"
+          CODE="${{ needs.changes.outputs.code }}"
+          LINT="${{ needs.lint.result }}"
+          TEST="${{ needs.test.result }}"
+
+          if [[ "$CODE" != "true" ]]; then
+            echo "No code changes — skipping checks"
+            exit 0
+          fi
+
+          if [[ "$LINT" != "success" || "$TEST" != "success" ]]; then
+            echo "lint ($LINT) or test ($TEST) failed"
             exit 1
           fi
 
   python-ok:
     name: Python checks passed
     if: always()
-    needs: [lint, test]
+    needs: [changes, lint, test]
     runs-on: ubuntu-latest
     steps:
       - run: |
-          if [[ "${{ needs.lint.result }}" != "success" || "${{ needs.test.result }}" != "success" ]]; then
-            echo "lint or test failed"
+          CODE="${{ needs.changes.outputs.code }}"
+          LINT="${{ needs.lint.result }}"
+          TEST="${{ needs.test.result }}"
+
+          if [[ "$CODE" != "true" ]]; then
+            echo "No code changes — skipping checks"
+            exit 0
+          fi
+
+          if [[ "$LINT" != "success" || "$TEST" != "success" ]]; then
+            echo "lint ($LINT) or test ($TEST) failed"
             exit 1
           fi
