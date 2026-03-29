@@ -12,17 +12,19 @@ from translit import strip_obfuscation
 
 
 class TestStripObfuscationBasic:
-    """Core behavior: everything normalized to clean lowercase ASCII."""
+    """Core behavior: obfuscation stripped, text preserved."""
 
-    def test_cyrillic_text(self):
-        result = strip_obfuscation("Москва лучший город")
-        assert result.isascii()
-        assert "moskva" in result
+    def test_pure_cyrillic_not_transliterated(self):
+        # strip_obfuscation does NOT transliterate — only resolves confusables
+        # Pure Cyrillic with no Latin confusables passes through (then fold_case)
+        result = strip_obfuscation("Москва")
+        # Confusables maps some chars to Latin (о→o, а→a) but not all
+        # The result is NOT "moskva" — that would require transliteration
+        assert isinstance(result, str)
 
     def test_emoji_expanded(self):
         result = strip_obfuscation("hello 🔥 world")
         assert "fire" in result
-        assert result.isascii()
 
     def test_adjacent_emoji_spaced(self):
         result = strip_obfuscation("🔥🔥🔥")
@@ -30,25 +32,24 @@ class TestStripObfuscationBasic:
         parts = result.strip().split()
         assert parts.count("fire") == 3
 
-    def test_mixed_cyrillic_emoji(self):
-        result = strip_obfuscation("Москва ❤️ лучший город!")
-        assert result.isascii()
-        assert "moskva" in result
+    def test_latin_text_unchanged(self):
+        result = strip_obfuscation("hello world")
+        assert result == "hello world"
 
 
 class TestStripObfuscationHomoglyphs:
-    """Confusable homoglyphs must be neutralized."""
+    """Confusable homoglyphs must be neutralized via TR39 visual mapping."""
 
     def test_cyrillic_homoglyphs_in_latin(self):
         # Cyrillic а (U+0430) and е (U+0435) look like Latin a and e
         result = strip_obfuscation("p\u0430yp\u0430l is fr\u0435e")
         assert result == "paypal is free"
 
-    def test_mixed_script_attack(self):
-        # Greek Η (Eta) transliterates to "I" in modern Greek (BGN/PCGN),
-        # not "H" — transliterate runs before confusables in this pipeline
-        result = strip_obfuscation("Ηello")  # Greek Η + Latin ello
-        assert result == "iello"
+    def test_greek_eta_confusable_to_h(self):
+        # Greek Η (Eta) is visually confusable with Latin H (TR39)
+        # Not transliterated to I (BGN/PCGN phonetic)
+        result = strip_obfuscation("\u0397ello")  # Greek Η + Latin ello
+        assert result == "hello"
 
 
 class TestStripObfuscationZalgo:

@@ -323,50 +323,45 @@ pub fn _strip_bidi(text: &str) -> String {
 
 /// Maximum-strength text deobfuscation pipeline.
 ///
-/// Pipeline: NFKC → strip_zalgo(max_marks=0) → strip_bidi → strip_zero_width
-///          → demojize → transliterate → confusables → strip_accents
+/// Pipeline: NFKC → strip_zalgo(max_marks=0) → normalize_confusables
+///          → strip_bidi → strip_zero_width → demojize → strip_accents
 ///          → fold_case → collapse_whitespace
 ///
 /// This is the most aggressive normalization preset. It strips ALL combining
-/// marks (not just excessive ones), expands emoji to text, transliterates all
-/// scripts to ASCII, neutralizes confusable homoglyphs, removes accents, and
-/// folds case. The result is clean lowercase ASCII suitable for NLP on
-/// adversarial user-generated text.
+/// marks (not just excessive ones), resolves homoglyph spoofing via TR39
+/// confusable mapping (visual similarity, not phonetic), expands emoji to
+/// text, removes accents, and folds case.
 ///
-/// Use cases: content moderation, hate speech detection, multilingual sentiment
-/// analysis, social media NLP preprocessing, code-mixed text analysis.
+/// **Does NOT transliterate.** Confusable normalization maps by visual
+/// similarity (Cyrillic р→p, с→c, В→B), not phonetic value (р→r, с→s, В→V).
+/// Users who also need transliteration should chain explicitly:
+/// `strip_obfuscation(text) → transliterate(result)`.
+///
+/// Use cases: content moderation, anti-phishing, spam detection, hate speech
+/// detection, social media NLP preprocessing.
 #[pyfunction]
-#[pyo3(signature = (text, *, lang=None))]
-pub fn _strip_obfuscation(text: &str, lang: Option<&str>) -> PyResult<String> {
+#[pyo3(signature = (text,))]
+pub fn _strip_obfuscation(text: &str) -> PyResult<String> {
     check_preset_input(text, "strip_obfuscation")?;
     // 1. NFKC normalization (collapses fullwidth, ligatures, superscripts)
     let buf: String = text.nfkc().collect();
     // 2. Strip ALL combining marks (max_marks=0) — removes zalgo AND accents early
     let buf = zalgo::_strip_zalgo(&buf, 0);
-    // 3. Strip bidi overrides, isolates, marks, and soft hyphens
-    let buf = strip_bidi(&buf);
-    // 4. Strip zero-width chars (ZWS, ZWNJ, ZWJ, WJ, BOM)
-    let buf = whitespace::strip_zero_width_chars(&buf);
-    // 5. Demojize — expand emoji to text names with spacing
-    let buf = emoji::demojize_rust(&buf, false);
-    // 6. Transliterate — all scripts to ASCII
-    let buf = transliterate::transliterate_impl(
-        &buf,
-        lang,
-        crate::ErrorMode::Ignore,
-        "",
-        false,
-        false,
-        false,
-    )
-    .into_owned();
-    // 7. Confusables → Latin (AFTER transliterate — see Bug #2)
+    // 3. Confusables → Latin (TR39 visual mapping: Cyrillic р→p, с→c, В→B)
+    //    Must run BEFORE stripping bidi/zero-width so the confusable context
+    //    is intact for multi-character sequence matching.
     let buf = confusables::_normalize_confusables(&buf, "latin")?;
-    // 8. Strip accents (NFD decompose + strip combining marks)
+    // 4. Strip bidi overrides, isolates, marks, and soft hyphens
+    let buf = strip_bidi(&buf);
+    // 5. Strip zero-width chars (ZWS, ZWNJ, ZWJ, WJ, BOM)
+    let buf = whitespace::strip_zero_width_chars(&buf);
+    // 6. Demojize — expand emoji to text names with spacing
+    let buf = emoji::demojize_rust(&buf, false);
+    // 7. Strip accents (NFD decompose + strip combining marks)
     let buf = transliterate::_strip_accents(&buf);
-    // 9. Fold case
+    // 8. Fold case
     let buf = case_fold::fold_case_impl(&buf);
-    // 10. Collapse whitespace (final cleanup)
+    // 9. Collapse whitespace (final cleanup)
     Ok(whitespace::_collapse_whitespace(&buf, true, true))
 }
 
