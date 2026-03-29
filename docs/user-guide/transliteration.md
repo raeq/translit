@@ -1,6 +1,6 @@
 # Transliteration
 
-Transliteration converts Unicode text to ASCII by replacing each character with its closest ASCII equivalent. translit uses hand-curated lookup tables with support for 83 language-specific override profiles.
+Transliteration converts Unicode text to ASCII by replacing each character with its closest ASCII equivalent. translit supports two modes: **context-free** (default) for all 83 languages, and **context-aware** for abjad scripts (Arabic, Persian, Hebrew) where standard writing omits vowels.
 
 ## Basic usage
 
@@ -182,3 +182,62 @@ unidecode("café")  # => "cafe"
 ```
 
 See [Migrating from Unidecode](../migration/from-unidecode.md) for details.
+
+## Context-free vs context-aware
+
+translit operates in two transliteration modes depending on the `context` parameter.
+
+### Context-free (default)
+
+Every character is mapped independently to its ASCII equivalent using a lookup table. No dictionary, no context, no ambiguity resolution. This is the standard approach used by all transliteration libraries (Unidecode, anyascii, text-unidecode).
+
+```python
+transliterate("Москва")       # → "Moskva"     (Cyrillic — works well)
+transliterate("كتب العربية")   # → "ktb al'rbyh" (Arabic — consonant skeleton)
+transliterate("שלום", lang="he")  # → "shlvm"   (Hebrew — consonant skeleton)
+```
+
+Context-free transliteration works well for scripts that write vowels explicitly (Latin, Cyrillic, Greek, Devanagari, Thai, etc.). It produces poor results for **abjad scripts** (Arabic, Persian, Hebrew) where vowels are omitted in standard writing.
+
+### Context-aware (`context=True`)
+
+For abjad scripts, pass `context=True` to enable dictionary-based vowel restoration. The system looks up each word in a diacritized dictionary, recovers the missing vowels, and then transliterates the fully-pointed form:
+
+```python
+transliterate("كتب العربية", context=True)              # → "kataba al'arabiyahi"
+transliterate("کتاب فارسی", lang="fa", context=True)     # → "ketab farsy"
+transliterate("שלום", lang="he", context=True)           # → "shalvom"
+```
+
+Context-aware mode uses a three-tier fallback:
+
+1. **Bigram**: uses the previous word to disambiguate (e.g., article + noun)
+2. **Unigram**: selects the most frequent reading from the dictionary
+3. **Context-free**: falls back to character-by-character if the word is unknown
+
+The output is never worse than context-free — unknown words simply fall through to the default behavior.
+
+### Supported languages
+
+| Language | `context=True` support | Dictionary source | Coverage |
+|---|---|---|---|
+| Arabic | Full | Tashkeela corpus (65.7M words) | 99%+ of newspaper vocabulary |
+| Persian (Farsi) | Good | Curated vocabulary (266 words) | Common words; Arabic loanwords via Arabic dict |
+| Hebrew | Full | Project Ben Yehuda (11.4M words) | Literary Hebrew |
+| All other languages | No effect | — | `context=True` is a no-op for non-abjad scripts |
+
+### Installation
+
+Context dictionaries are shipped separately to keep the core package small:
+
+```bash
+pip install translit-rs[arabic]   # Arabic + Persian context dictionary
+pip install translit-rs[hebrew]   # Hebrew context dictionary
+pip install translit-rs[context]  # All context dictionaries
+```
+
+If `context=True` is used without the dictionary installed, `TranslitError` is raised with installation instructions.
+
+### Detailed guide
+
+For a comprehensive discussion of how context-aware transliteration works for each language — including the standards used, how translit differs from other systems, and specific limitations — see **[Abjad Script Transliteration](abjad-transliteration.md)**.
