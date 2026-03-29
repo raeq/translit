@@ -309,6 +309,7 @@ pub fn transliterate_context(
 // ---------------------------------------------------------------------------
 
 static ARABIC_DICT: OnceLock<Option<ContextDict>> = OnceLock::new();
+static PERSIAN_DICT: OnceLock<Option<ContextDict>> = OnceLock::new();
 static HEBREW_DICT: OnceLock<Option<ContextDict>> = OnceLock::new();
 
 /// Try to load the Arabic context dictionary from the package data directory.
@@ -333,6 +334,33 @@ pub fn get_arabic_dict() -> Option<&'static ContextDict> {
                         Ok(dict) => return Some(dict),
                         Err(e) => {
                             eprintln!("Warning: failed to load Arabic dict: {e}");
+                            return None;
+                        }
+                    }
+                }
+            }
+            None
+        })
+        .as_ref()
+}
+
+/// Try to load the Persian context dictionary.
+pub fn get_persian_dict() -> Option<&'static ContextDict> {
+    PERSIAN_DICT
+        .get_or_init(|| {
+            let paths = [
+                std::path::PathBuf::from("data/persian_dict.bin"),
+                std::path::PathBuf::from(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/data/persian_dict.bin"
+                )),
+            ];
+            for path in &paths {
+                if let Ok(data) = std::fs::read(path) {
+                    match ContextDict::from_bytes(&data) {
+                        Ok(dict) => return Some(dict),
+                        Err(e) => {
+                            eprintln!("Warning: failed to load Persian dict: {e}");
                             return None;
                         }
                     }

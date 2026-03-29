@@ -50,10 +50,15 @@ HEBREW_MAX_BIGRAMS=200000
 HEBREW_DICT="$DICT_DIR/hebrew_dict.bin"
 HEBREW_STATS="$DICT_DIR/hebrew_dict_stats.json"
 
+# Persian: curated vocabulary (no corpus needed — built from inline data)
+PERSIAN_DICT="$DICT_DIR/persian_dict.bin"
+PERSIAN_STATS="$DICT_DIR/persian_dict_stats.json"
+
 # Expected output checksums (updated by running with --update-checksums)
 # These ensure the build is deterministic: same corpus + same params = same output
 ARABIC_DICT_SHA256="84b68b453404d9a663ef222bf280273009c0f8006fd7c8342d4bf07b4b8dfa83"
 HEBREW_DICT_SHA256="57347d264fe2c6afb8c89572a58c1203479e80ba4b52706da3d54fd832e94e49"
+PERSIAN_DICT_SHA256="aa5137a8063dd35feb236a739a0b141348d467f3a344026e579b7e1a829e9f2c"
 
 # ============================================================================
 # Helpers
@@ -194,6 +199,20 @@ build_hebrew() {
     log "Hebrew dictionary: $size bytes, SHA256=$sha"
 }
 
+build_persian() {
+    log "Building Persian context dictionary (curated vocabulary)..."
+
+    python3 "$ROOT/scripts/build_persian_dict.py" \
+        -o "$PERSIAN_DICT" \
+        --json-stats "$PERSIAN_STATS"
+
+    local size
+    size=$(wc -c < "$PERSIAN_DICT" | tr -d ' ')
+    local sha
+    sha=$(sha256_file "$PERSIAN_DICT")
+    log "Persian dictionary: $size bytes, SHA256=$sha"
+}
+
 # ============================================================================
 # Main
 # ============================================================================
@@ -213,23 +232,29 @@ case "$cmd" in
         verify_dict "$HEBREW_DICT" "$HEBREW_DICT_SHA256" "Hebrew"
         ;;
 
+    persian)
+        build_persian
+        verify_dict "$PERSIAN_DICT" "$PERSIAN_DICT_SHA256" "Persian"
+        ;;
+
     verify)
         log "Verifying existing dictionaries..."
         verify_dict "$ARABIC_DICT" "$ARABIC_DICT_SHA256" "Arabic"
+        verify_dict "$PERSIAN_DICT" "$PERSIAN_DICT_SHA256" "Persian"
         verify_dict "$HEBREW_DICT" "$HEBREW_DICT_SHA256" "Hebrew"
         log "All checksums verified."
         ;;
 
     --update-checksums)
         log "Computing checksums for existing dictionaries..."
-        if [[ -f "$ARABIC_DICT" ]]; then
-            sha=$(sha256_file "$ARABIC_DICT")
-            log "Arabic:  ARABIC_DICT_SHA256=\"$sha\""
-        fi
-        if [[ -f "$HEBREW_DICT" ]]; then
-            sha=$(sha256_file "$HEBREW_DICT")
-            log "Hebrew:  HEBREW_DICT_SHA256=\"$sha\""
-        fi
+        for name_path in "Arabic:$ARABIC_DICT" "Persian:$PERSIAN_DICT" "Hebrew:$HEBREW_DICT"; do
+            name="${name_path%%:*}"
+            path="${name_path#*:}"
+            if [[ -f "$path" ]]; then
+                sha=$(sha256_file "$path")
+                log "$name: SHA256=\"$sha\""
+            fi
+        done
         log "Update the values in scripts/bootstrap_dicts.sh"
         ;;
 
@@ -238,6 +263,9 @@ case "$cmd" in
         build_arabic
         verify_dict "$ARABIC_DICT" "$ARABIC_DICT_SHA256" "Arabic"
 
+        build_persian
+        verify_dict "$PERSIAN_DICT" "$PERSIAN_DICT_SHA256" "Persian"
+
         download_ben_yehuda
         build_hebrew
         verify_dict "$HEBREW_DICT" "$HEBREW_DICT_SHA256" "Hebrew"
@@ -245,11 +273,11 @@ case "$cmd" in
         log ""
         log "All dictionaries built and verified."
         log "Files:"
-        ls -lh "$ARABIC_DICT" "$HEBREW_DICT" 2>/dev/null || true
+        ls -lh "$ARABIC_DICT" "$PERSIAN_DICT" "$HEBREW_DICT" 2>/dev/null || true
         ;;
 
     *)
-        echo "Usage: $0 [arabic|hebrew|verify|--update-checksums|all]" >&2
+        echo "Usage: $0 [arabic|persian|hebrew|verify|--update-checksums|all]" >&2
         exit 1
         ;;
 esac

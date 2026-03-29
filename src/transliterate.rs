@@ -96,10 +96,14 @@ pub fn _transliterate_context(
     }
     let error_mode = ErrorMode::from_str(errors)?;
 
-    // Try to get the appropriate context dictionary
+    // Try to get the appropriate context dictionary.
+    // Persian: try Persian dict first, fall back to Arabic (shared loanwords).
     let dict = match lang {
         Some("he") => crate::context::get_hebrew_dict(),
-        _ => crate::context::get_arabic_dict(), // Arabic, Persian, and default
+        Some("fa") => {
+            crate::context::get_persian_dict().or_else(|| crate::context::get_arabic_dict())
+        }
+        _ => crate::context::get_arabic_dict(),
     };
 
     match dict {
