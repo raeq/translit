@@ -49,7 +49,7 @@ def cmd_slugify(args: argparse.Namespace) -> None:
         kwargs["separator"] = args.separator
     if args.max_length is not None:
         kwargs["max_length"] = args.max_length
-    result = slugify(text, **kwargs)  # type: ignore[arg-type]
+    result = slugify(text, **kwargs)  # type: ignore[call-overload]
     print(result)
 
 

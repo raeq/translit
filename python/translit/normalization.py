@@ -14,9 +14,7 @@ from translit import (
     fold_case,
     is_normalized,
     normalize,
-    normalize_batch,
     strip_accents,
-    strip_accents_batch,
 )
 
 __all__ = [
@@ -24,7 +22,5 @@ __all__ = [
     "fold_case",
     "is_normalized",
     "normalize",
-    "normalize_batch",
     "strip_accents",
-    "strip_accents_batch",
 ]

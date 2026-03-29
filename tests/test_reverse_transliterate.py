@@ -128,7 +128,6 @@ class TestForwardOnlyParamError:
 
 class TestBatchWithTarget:
     def test_batch_reverse(self):
-        from translit import transliterate_batch
 
-        result = transliterate_batch(["Moskva", "Kyiv"], target="ru")
+        result = transliterate(["Moskva", "Kyiv"], target="ru")
         assert result[0] == "Москва"

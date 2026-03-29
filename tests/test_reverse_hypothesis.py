@@ -187,8 +187,7 @@ class TestReverseBatch:
     )
     @settings(max_examples=100)
     def test_batch_matches_singles(self, texts: list[str], lang: str) -> None:
-        from translit import transliterate_batch
 
-        batch_results = transliterate_batch(texts, target=lang)
+        batch_results = transliterate(texts, target=lang)
         single_results = [transliterate(t, target=lang) for t in texts]
         assert batch_results == single_results

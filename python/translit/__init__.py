@@ -6,7 +6,7 @@ import sys as _sys
 import types as _stdlib_types
 import warnings as _warnings
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, overload
 
 from translit._enums import (
     LANG_AM,
@@ -127,7 +127,7 @@ from translit._translit import (
     # Language profiles
     _list_langs,
     _ml_normalize,
-    _normalize,  # noqa: F401  (used by normalize_batch and internal pipelines)
+    _normalize,  # noqa: F401  (used by normalize() and internal pipelines)
     _normalize_batch,
     _normalize_confusables,
     _register_lang,
@@ -183,8 +183,36 @@ def _validate_batch(texts: object, func_name: str) -> None:
 # --- Core transforms ---
 
 
+@overload
 def transliterate(
     text: str,
+    *,
+    lang: str | None = ...,
+    target: str | None = ...,
+    errors: ErrorMode = ...,
+    replace_with: str = ...,
+    strict_iso9: bool = ...,
+    gost7034: bool = ...,
+    tones: bool = ...,
+) -> str: ...
+
+
+@overload
+def transliterate(
+    text: list[str],
+    *,
+    lang: str | None = ...,
+    target: str | None = ...,
+    errors: ErrorMode = ...,
+    replace_with: str = ...,
+    strict_iso9: bool = ...,
+    gost7034: bool = ...,
+    tones: bool = ...,
+) -> list[str]: ...
+
+
+def transliterate(
+    text: str | list[str],
     *,
     lang: str | None = None,
     target: str | None = None,
@@ -193,11 +221,14 @@ def transliterate(
     strict_iso9: bool = False,
     gost7034: bool = False,
     tones: bool = False,
-) -> str:
+) -> str | list[str]:
     """Unicode → ASCII transliteration.
 
+    Accepts a single string or a list of strings. When a list is passed,
+    all strings are processed in a single Rust call for better throughput.
+
     Args:
-        text: Input Unicode string.
+        text: Input Unicode string, or list of strings for batch processing.
         lang: Language code for language-specific mappings.
               e.g. "de" (ü→ue), "ja" (kanji→romaji), "zh" (hanzi→pinyin).
               Use "auto" to detect the dominant non-Latin script and select
@@ -228,7 +259,8 @@ def transliterate(
                toneless pinyin.
 
     Returns:
-        ASCII transliteration of the input (or UTF-8 when tones=True).
+        ASCII transliteration of the input. Returns ``str`` when given ``str``,
+        ``list[str]`` when given ``list[str]``.
 
     Raises:
         TranslitError: If an internal Rust error occurs (e.g. invalid
@@ -240,42 +272,61 @@ def transliterate(
     Examples:
         >>> transliterate("café résumé")
         'cafe resume'
+        >>> transliterate(["café", "naïve"])
+        ['cafe', 'naive']
         >>> transliterate("München", lang="de")
         'Muenchen'
-        >>> transliterate("Москва", lang="ru")
-        'Moskva'
-        >>> transliterate("★", errors="ignore")
-        ''
-        >>> transliterate("★", errors="preserve")
-        '★'
-        >>> transliterate("хлеб", gost7034=True)
-        'xleb'
-        >>> transliterate("Москва", lang="auto")
-        'Moskva'
-        >>> transliterate("北京", tones=True)
-        'běi jīng'
         >>> transliterate("Moskva", target="ru")
         'Москва'
     """
+    # ── Batch path ──
+    if isinstance(text, list):
+        _validate_batch(text, "transliterate")
+        if target is not None:
+            if lang is not None:
+                raise ValueError("'lang' and 'target' are mutually exclusive")
+            forward_only: dict[str, object] = {}
+            if errors != "replace":
+                forward_only["errors"] = errors
+            if replace_with != "[?]":
+                forward_only["replace_with"] = replace_with
+            if strict_iso9:
+                forward_only["strict_iso9"] = strict_iso9
+            if gost7034:
+                forward_only["gost7034"] = gost7034
+            if forward_only:
+                names = ", ".join(sorted(forward_only))
+                raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
+            return [_reverse_transliterate(t, lang=target) for t in text]
+        return _transliterate_batch(
+            text,
+            lang=lang,
+            errors=errors,
+            replace_with=replace_with,
+            strict_iso9=strict_iso9,
+            gost7034=gost7034,
+        )
+
+    # ── Single-string path ──
     if not isinstance(text, str):
-        raise TypeError(f"transliterate() expects str, got {type(text).__name__}")
+        raise TypeError(f"transliterate() expects str or list[str], got {type(text).__name__}")
 
     if target is not None:
         if lang is not None:
             raise ValueError("'lang' and 'target' are mutually exclusive")
-        forward_only: dict[str, object] = {}
+        forward_only_s: dict[str, object] = {}
         if errors != "replace":
-            forward_only["errors"] = errors
+            forward_only_s["errors"] = errors
         if replace_with != "[?]":
-            forward_only["replace_with"] = replace_with
+            forward_only_s["replace_with"] = replace_with
         if strict_iso9:
-            forward_only["strict_iso9"] = strict_iso9
+            forward_only_s["strict_iso9"] = strict_iso9
         if gost7034:
-            forward_only["gost7034"] = gost7034
+            forward_only_s["gost7034"] = gost7034
         if tones:
-            forward_only["tones"] = tones
-        if forward_only:
-            names = ", ".join(sorted(forward_only))
+            forward_only_s["tones"] = tones
+        if forward_only_s:
+            names = ", ".join(sorted(forward_only_s))
             raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
         return _reverse_transliterate(text, lang=target)
 
@@ -293,8 +344,48 @@ def transliterate(
     )
 
 
+@overload
 def slugify(
     text: str,
+    *,
+    separator: str = ...,
+    lowercase: bool = ...,
+    max_length: int = ...,
+    word_boundary: bool = ...,
+    save_order: bool = ...,
+    stopwords: Iterable[str] = ...,
+    regex_pattern: str | None = ...,
+    replacements: Iterable[tuple[str, str]] = ...,
+    allow_unicode: bool = ...,
+    lang: str | None = ...,
+    entities: bool = ...,
+    decimal: bool = ...,
+    hexadecimal: bool = ...,
+) -> str: ...
+
+
+@overload
+def slugify(
+    text: list[str],
+    *,
+    separator: str = ...,
+    lowercase: bool = ...,
+    max_length: int = ...,
+    word_boundary: bool = ...,
+    save_order: bool = ...,
+    stopwords: Iterable[str] = ...,
+    regex_pattern: str | None = ...,
+    replacements: Iterable[tuple[str, str]] = ...,
+    allow_unicode: bool = ...,
+    lang: str | None = ...,
+    entities: bool = ...,
+    decimal: bool = ...,
+    hexadecimal: bool = ...,
+) -> list[str]: ...
+
+
+def slugify(
+    text: str | list[str],
     *,
     separator: str = "-",
     lowercase: bool = True,
@@ -309,7 +400,7 @@ def slugify(
     entities: bool = True,
     decimal: bool = True,
     hexadecimal: bool = True,
-) -> str:
+) -> str | list[str]:
     """Generate a URL-safe slug from Unicode text.
 
     Full pipeline: decode entities → transliterate → lowercase →
@@ -357,8 +448,30 @@ def slugify(
         >>> slugify("Very Long Title Here", max_length=10, word_boundary=True)
         'very-long'
     """
+    _sw = stopwords if isinstance(stopwords, (tuple, list)) else list(stopwords)
+    _rp = replacements if isinstance(replacements, (tuple, list)) else list(replacements)
+
+    if isinstance(text, list):
+        _validate_batch(text, "slugify")
+        return _slugify_batch(
+            text,
+            separator=separator,
+            lowercase=lowercase,
+            max_length=max_length,
+            word_boundary=word_boundary,
+            save_order=save_order,
+            stopwords=_sw,
+            regex_pattern=regex_pattern,
+            replacements=_rp,
+            allow_unicode=allow_unicode,
+            lang=lang,
+            entities=entities,
+            decimal=decimal,
+            hexadecimal=hexadecimal,
+        )
+
     if not isinstance(text, str):
-        raise TypeError(f"slugify() expects str, got {type(text).__name__}")
+        raise TypeError(f"slugify() expects str or list[str], got {type(text).__name__}")
     if max_length < 0:
         raise ValueError(f"max_length must be non-negative, got {max_length}")
     return _slugify(
@@ -368,11 +481,9 @@ def slugify(
         max_length=max_length,
         word_boundary=word_boundary,
         save_order=save_order,
-        stopwords=stopwords if isinstance(stopwords, (tuple, list)) else tuple(stopwords),
+        stopwords=_sw,
         regex_pattern=regex_pattern,
-        replacements=replacements
-        if isinstance(replacements, (tuple, list))
-        else tuple(replacements),
+        replacements=_rp,
         allow_unicode=allow_unicode,
         lang=lang,
         entities=entities,
@@ -381,43 +492,42 @@ def slugify(
     )
 
 
+@overload
+def normalize(text: str, *, form: NormalizationForm = ...) -> str: ...
+
+
+@overload
+def normalize(text: list[str], *, form: NormalizationForm = ...) -> list[str]: ...
+
+
 def normalize(
-    text: str,
+    text: str | list[str],
     *,
     form: NormalizationForm = "NFC",
-) -> str:
+) -> str | list[str]:
     """Unicode normalization.
 
+    Accepts a single string or a list of strings.
+
     Args:
-        text: Input string.
+        text: Input string, or list of strings for batch processing.
         form: Normalization form — "NFC", "NFD", "NFKC", or "NFKD".
 
     Returns:
-        Normalized string.
+        Normalized string(s). Returns ``str`` when given ``str``,
+        ``list[str]`` when given ``list[str]``.
 
     Examples:
-        >>> normalize("café")  # NFC is default; already NFC → unchanged
-        'café'
-        >>> normalize("e\u0301", form="NFC")  # NFD e + combining acute → NFC é
+        >>> normalize("e\u0301", form="NFC")
         'é'
-        >>> normalize("ﬁ", form="NFKC")  # NFKC decomposes ligature
-        'fi'
-
-    Note:
-        Both standalone and batch calls use the Rust ``_normalize``
-        implementation to ensure consistent Unicode table versions.
-        This avoids mismatches between CPython's ``unicodedata`` tables
-        and the Rust ``unicode-normalization`` crate's tables (e.g.
-        codepoints assigned in Unicode 16.0 but unassigned in 15.1).
-
-        The Rust path enforces a **10 MiB input limit** and a
-        **50 MiB output limit** per string to bound worst-case memory from
-        pathological Unicode expansion (e.g. NFKD can expand a single
-        codepoint into up to 18 characters).
+        >>> normalize(["e\u0301", "n\u0303o"], form="NFC")
+        ['é', 'ño']
     """
+    if isinstance(text, list):
+        _validate_batch(text, "normalize")
+        return _normalize_batch(text, form=form)
     if not isinstance(text, str):
-        raise TypeError(f"normalize() expects str, got {type(text).__name__}")
-    # Fast path: ASCII is already in all normalization forms.
+        raise TypeError(f"normalize() expects str or list[str], got {type(text).__name__}")
     if text.isascii():
         return text
     return _normalize(text, form=form)
@@ -525,29 +635,37 @@ def sanitize_filename(
     )
 
 
-def strip_accents(text: str) -> str:
+@overload
+def strip_accents(text: str) -> str: ...
+
+
+@overload
+def strip_accents(text: list[str]) -> list[str]: ...
+
+
+def strip_accents(text: str | list[str]) -> str | list[str]:
     """Remove diacritical marks while preserving base characters.
 
     NFD decompose → strip combining marks → NFC recompose.
-    café → cafe, naïve → naive.
+    Accepts a single string or a list of strings.
 
     Args:
-        text: Input Unicode string.
+        text: Input string, or list of strings for batch processing.
 
     Returns:
-        String with diacritical marks removed.
+        String(s) with diacritical marks removed.
 
     Examples:
         >>> strip_accents("café résumé naïve")
         'cafe resume naive'
-        >>> strip_accents("ÀÁÂÃÄÅ")
-        'AAAAAA'
-        >>> strip_accents("hello")  # pure ASCII: fast path, no-op
-        'hello'
+        >>> strip_accents(["café", "naïve"])
+        ['cafe', 'naive']
     """
+    if isinstance(text, list):
+        _validate_batch(text, "strip_accents")
+        return _strip_accents_batch(text)
     if not isinstance(text, str):
-        raise TypeError(f"strip_accents() expects str, got {type(text).__name__}")
-    # Fast path: ASCII has no diacritical marks.
+        raise TypeError(f"strip_accents() expects str or list[str], got {type(text).__name__}")
     if text.isascii():
         return text
     return _strip_accents(text)
@@ -721,207 +839,6 @@ def set_emoji_provider(provider: EmojiProvider | None = None) -> None:
             f"EmojiProvider must have a callable lookup() method; got {type(provider).__name__}"
         )
     _set_emoji_provider(provider)
-
-
-# --- Batch APIs ---
-# These process a list of strings in a single PyO3 boundary crossing,
-# amortising the ~240 ns per-call overhead across N strings.
-
-
-def transliterate_batch(
-    texts: list[str],
-    *,
-    lang: str | None = None,
-    target: str | None = None,
-    errors: ErrorMode = "replace",
-    replace_with: str = "[?]",
-    strict_iso9: bool = False,
-    gost7034: bool = False,
-) -> list[str]:
-    """Batch Unicode → ASCII transliteration.
-
-    Processes all strings in a single Rust call, amortising the PyO3
-    boundary-crossing overhead. For N=1000, overhead drops from ~240 µs
-    (1000 × 240 ns) to ~240 ns (one crossing).
-
-    Args:
-        texts: List of input Unicode strings.
-        lang: Language code for language-specific mappings.
-        target: Target language code for *reverse* transliteration
-                (romanized Latin → native script). Mutually exclusive with
-                *lang*. Use :func:`reverse_langs` to list supported languages.
-        errors: How to handle untransliterable characters.
-        replace_with: Replacement string when errors="replace".
-        strict_iso9: Use ISO 9:1995 scholarly transliteration for Cyrillic.
-        gost7034: Use GOST R 7.0.34-2014 simplified transliteration for
-                  Russian Cyrillic. Mutually exclusive with *strict_iso9*.
-
-    Returns:
-        List of ASCII transliterations, same length as input.
-
-    Raises:
-        TranslitError: If an internal Rust error occurs.
-        ValueError: If both *strict_iso9* and *gost7034* are True.
-        ValueError: If both *lang* and *target* are set.
-        ValueError: If *target* is set with forward-only parameters.
-
-    Examples:
-        >>> transliterate_batch(["café", "naïve", "résumé"])
-        ['cafe', 'naive', 'resume']
-        >>> transliterate_batch(["München", "Zürich"], lang="de")
-        ['Muenchen', 'Zuerich']
-        >>> transliterate_batch(["Moskva", "Kyiv"], target="ru")
-        ['Москва', 'Кыив']
-
-    Note:
-        All input strings and output strings are held in memory
-        simultaneously. For very large batches (millions of strings),
-        consider chunking to control peak memory usage.
-    """
-    _validate_batch(texts, "transliterate_batch")
-
-    if target is not None:
-        if lang is not None:
-            raise ValueError("'lang' and 'target' are mutually exclusive")
-        forward_only: dict[str, object] = {}
-        if errors != "replace":
-            forward_only["errors"] = errors
-        if replace_with != "[?]":
-            forward_only["replace_with"] = replace_with
-        if strict_iso9:
-            forward_only["strict_iso9"] = strict_iso9
-        if gost7034:
-            forward_only["gost7034"] = gost7034
-        if forward_only:
-            names = ", ".join(sorted(forward_only))
-            raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
-        return [_reverse_transliterate(t, lang=target) for t in texts]
-
-    return _transliterate_batch(
-        texts,
-        lang=lang,
-        errors=errors,
-        replace_with=replace_with,
-        strict_iso9=strict_iso9,
-        gost7034=gost7034,
-    )
-
-
-def slugify_batch(
-    texts: list[str],
-    *,
-    separator: str = "-",
-    lowercase: bool = True,
-    max_length: int = 0,
-    word_boundary: bool = False,
-    save_order: bool = False,
-    stopwords: Iterable[str] = (),
-    regex_pattern: str | None = None,
-    replacements: Iterable[tuple[str, str]] = (),
-    allow_unicode: bool = False,
-    lang: str | None = None,
-    entities: bool = True,
-    decimal: bool = True,
-    hexadecimal: bool = True,
-) -> list[str]:
-    """Batch URL-safe slug generation.
-
-    Processes all strings in a single Rust call.
-
-    Args:
-        texts: List of input strings.
-        separator: Separator between words (default ``"-"``).
-        lowercase: Lowercase the output (default ``True``).
-        max_length: Truncate to this many bytes (0 = unlimited).
-        word_boundary: Break only at word boundaries when truncating.
-        save_order: Accepted for python-slugify compatibility but has no
-            effect — word order is always preserved.
-        stopwords: Words to remove before slugifying.
-        regex_pattern: Custom regex for allowed characters.
-        replacements: Character replacement pairs applied before slugifying.
-        allow_unicode: Keep non-ASCII letters in the slug.
-        lang: Language code for transliteration (e.g. ``"de"``).
-        entities: Decode HTML entities.
-        decimal: Decode HTML decimal references.
-        hexadecimal: Decode HTML hex references.
-
-    Returns:
-        List of slugs, same length as input.
-
-    Raises:
-        TranslitError: If an internal Rust error occurs.
-
-    Examples:
-        >>> slugify_batch(["Hello World", "Foo Bar"])
-        ['hello-world', 'foo-bar']
-
-    Note:
-        All input strings and output strings are held in memory
-        simultaneously. For very large batches (millions of strings),
-        consider chunking to control peak memory usage.
-    """
-    _validate_batch(texts, "slugify_batch")
-    return _slugify_batch(
-        texts,
-        separator=separator,
-        lowercase=lowercase,
-        max_length=max_length,
-        word_boundary=word_boundary,
-        save_order=save_order,
-        stopwords=stopwords if isinstance(stopwords, (tuple, list)) else list(stopwords),
-        regex_pattern=regex_pattern,
-        replacements=replacements
-        if isinstance(replacements, (tuple, list))
-        else list(replacements),
-        allow_unicode=allow_unicode,
-        lang=lang,
-        entities=entities,
-        decimal=decimal,
-        hexadecimal=hexadecimal,
-    )
-
-
-def normalize_batch(
-    texts: list[str],
-    *,
-    form: NormalizationForm = "NFC",
-) -> list[str]:
-    """Batch Unicode normalization.
-
-    Processes all strings in a single Rust call.
-
-    Args:
-        texts: List of input strings.
-        form: Normalization form — "NFC", "NFD", "NFKC", or "NFKD".
-
-    Returns:
-        List of normalized strings, same length as input.
-
-    Examples:
-        >>> normalize_batch(["e\u0301", "n\u0303o"], form="NFC")
-        ['é', 'ño']
-    """
-    _validate_batch(texts, "normalize_batch")
-    return _normalize_batch(texts, form=form)
-
-
-def strip_accents_batch(texts: list[str]) -> list[str]:
-    """Batch accent stripping.
-
-    Processes all strings in a single Rust call.
-
-    Args:
-        texts: List of input strings.
-
-    Returns:
-        List of accent-stripped strings, same length as input.
-
-    Examples:
-        >>> strip_accents_batch(["café", "naïve", "résumé"])
-        ['cafe', 'naive', 'resume']
-    """
-    _validate_batch(texts, "strip_accents_batch")
-    return _strip_accents_batch(texts)
 
 
 # --- Precompiled pipelines ---
@@ -2142,11 +2059,6 @@ __all__ = [
     "collapse_whitespace",
     "demojize",
     "set_emoji_provider",
-    # Batch APIs
-    "transliterate_batch",
-    "slugify_batch",
-    "normalize_batch",
-    "strip_accents_batch",
     # Precompiled pipelines
     "security_clean",
     "ml_normalize",

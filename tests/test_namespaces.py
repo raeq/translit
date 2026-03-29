@@ -123,8 +123,8 @@ class TestNormalizeNamespace:
             "fold_case",
             "collapse_whitespace",
             "is_normalized",
-            "normalize_batch",
-            "strip_accents_batch",
+            "normalize",
+            "strip_accents",
         ):
             assert name in translit.normalization.__all__, f"{name} missing from __all__"
 

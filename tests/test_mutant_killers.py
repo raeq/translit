@@ -36,13 +36,10 @@ from translit import (
     search_key,
     security_clean,
     slugify,
-    slugify_batch,
     sort_key,
     strip_accents,
-    strip_accents_batch,
     strip_zalgo,
     transliterate,
-    transliterate_batch,
 )
 
 # ---------------------------------------------------------------------------
@@ -256,15 +253,15 @@ class TestDefaultParameterValues:
         marks = sum(1 for c in result if unicodedata.category(c) == "Mn")
         assert marks <= 2
 
-    # -- batch defaults --
+    # -- list input defaults --
 
-    def test_transliterate_batch_default_errors_replace(self):
-        results = transliterate_batch(["café", "Москва"])
+    def test_transliterate_list_default_errors_replace(self):
+        results = transliterate(["café", "Москва"])
         assert all(isinstance(r, str) for r in results)
         assert results[0] == "cafe"
 
-    def test_slugify_batch_default_separator(self):
-        results = slugify_batch(["hello world", "foo bar"])
+    def test_slugify_list_default_separator(self):
+        results = slugify(["hello world", "foo bar"])
         assert all("-" in r for r in results)
 
 
@@ -595,18 +592,14 @@ class TestBoundaryChecks:
         with pytest.raises(TypeError, match="expects str"):
             sanitize_filename(["file.txt"])  # type: ignore[arg-type]
 
-    def test_transliterate_batch_rejects_str(self):
-        with pytest.raises(TypeError, match="expects list"):
-            transliterate_batch("hello")  # type: ignore[arg-type]
-
-    def test_transliterate_batch_rejects_list_of_int(self):
+    def test_transliterate_list_rejects_list_of_int(self):
         with pytest.raises(TypeError, match="element 0 must be str"):
-            transliterate_batch([42])  # type: ignore[list-item]
+            transliterate([42])  # type: ignore[list-item]
+
+    def test_transliterate_rejects_wrong_type(self):
+        with pytest.raises(TypeError, match="expects str or list"):
+            transliterate(42)  # type: ignore[arg-type]
 
     def test_strip_accents_rejects_int(self):
         with pytest.raises(TypeError):
             strip_accents(123)  # type: ignore[arg-type]
-
-    def test_strip_accents_batch_rejects_str(self):
-        with pytest.raises(TypeError):
-            strip_accents_batch("hello")  # type: ignore[arg-type]
