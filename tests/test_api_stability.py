@@ -249,6 +249,7 @@ CORE_FUNCTION_PARAMS = {
         "strict_iso9",
         "gost7034",
         "tones",
+        "context",
     ],
     "slugify": [
         "text",

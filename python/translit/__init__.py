@@ -156,6 +156,7 @@ from translit._translit import (
     _TextPipeline,
     # Core transforms (Rust implementations)
     _transliterate,
+    _transliterate_context,
     # Batch APIs (single PyO3 boundary crossing for N strings)
     _transliterate_batch,
     _UniqueSlugifier,
@@ -194,6 +195,7 @@ def transliterate(
     strict_iso9: bool = ...,
     gost7034: bool = ...,
     tones: bool = ...,
+    context: bool = ...,
 ) -> str: ...
 
 
@@ -208,6 +210,7 @@ def transliterate(
     strict_iso9: bool = ...,
     gost7034: bool = ...,
     tones: bool = ...,
+    context: bool = ...,
 ) -> list[str]: ...
 
 
@@ -221,6 +224,7 @@ def transliterate(
     strict_iso9: bool = False,
     gost7034: bool = False,
     tones: bool = False,
+    context: bool = False,
 ) -> str | list[str]:
     """Unicode → ASCII transliteration.
 
@@ -329,6 +333,17 @@ def transliterate(
             names = ", ".join(sorted(forward_only_s))
             raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
         return _reverse_transliterate(text, lang=target)
+
+    # Context-aware path: use dictionary-based vowel restoration for abjad scripts
+    if context:
+        return _transliterate_context(
+            text,
+            lang=lang,
+            errors=errors,
+            replace_with=replace_with,
+            strict_iso9=strict_iso9,
+            gost7034=gost7034,
+        )
 
     # Fast path: pure ASCII needs no transliteration (~30 ns vs ~240 ns PyO3 call).
     if text.isascii():

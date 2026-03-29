@@ -90,6 +90,7 @@ pub mod zalgo;
 fn _translit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core transforms
     m.add_function(wrap_pyfunction!(transliterate::_transliterate, m)?)?;
+    m.add_function(wrap_pyfunction!(transliterate::_transliterate_context, m)?)?;
     m.add_function(wrap_pyfunction!(transliterate::_strip_accents, m)?)?;
     m.add_function(wrap_pyfunction!(transliterate::_is_ascii, m)?)?;
     m.add_function(wrap_pyfunction!(transliterate::_list_langs, m)?)?;
