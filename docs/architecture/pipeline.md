@@ -76,4 +76,4 @@ pipe = TextPipeline(
 results = [pipe(record) for record in dataset]
 ```
 
-The pipeline object is created once and called many times. For processing lists of strings, the batch APIs (`transliterate_batch`, `slugify_batch`) are even faster because they also amortize the per-item PyO3 boundary crossing.
+The pipeline object is created once and called many times. For processing lists of strings, pass a `list[str]` directly to `transliterate()` or `slugify()` — this processes all strings in a single PyO3 boundary crossing, amortizing the per-item overhead.

@@ -86,41 +86,23 @@ strip_zalgo("café", max_marks=0)  # => "cafe"
 
 ---
 
-## Batch APIs
+## List input (batch processing)
 
-The batch functions process multiple strings in a single Rust call, amortizing the Python → Rust boundary overhead (~240 ns per call). They return a `list[str]` in the same order as the input.
-
-### transliterate_batch
-
-::: translit.transliterate_batch
-
-### slugify_batch
-
-::: translit.slugify_batch
-
-### normalize_batch
-
-::: translit.normalize_batch
-
-### strip_accents_batch
-
-::: translit.strip_accents_batch
-
-### Example
+`transliterate`, `slugify`, `normalize`, and `strip_accents` accept either a single `str` or a `list[str]`. When a list is passed, all strings are processed in a single Rust call, amortizing the Python → Rust boundary overhead. The return type matches the input type.
 
 ```python
-from translit import transliterate_batch, slugify_batch
+from translit import transliterate, slugify
 
 titles = ["café résumé", "Straße nach München", "Москва"]
 
-transliterate_batch(titles)
+transliterate(titles)
 # => ["cafe resume", "Strasse nach Munchen", "Moskva"]
 
-slugify_batch(titles, lang="de")
+slugify(titles, lang="de")
 # => ["cafe-resume", "strasse-nach-muenchen", "moskva"]
 ```
 
-For large datasets, batch APIs are significantly faster than calling the scalar function in a Python loop. See [Performance](../performance.md) for benchmarks.
+For large datasets, passing a list is significantly faster than calling the function in a Python loop. See [Performance](../performance.md) for benchmarks.
 
 ## Compatibility aliases
 

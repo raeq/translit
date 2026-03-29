@@ -45,6 +45,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
   raw strings to handle combining mark reorder between Tibetan and Latin marks.
 
 ### Changed
+- **BREAKING: `transliterate_batch()`, `slugify_batch()`, `normalize_batch()`, and
+  `strip_accents_batch()` removed.** The base functions now accept both `str` and
+  `list[str]` via `@typing.overload`. Pass a list to get batch processing:
+  `transliterate(["café", "naïve"])` → `["cafe", "naive"]`. The Rust batch path is
+  used automatically — no API change needed for single-string callers.
 - CI excludes Hypothesis/property-based tests (`-m "not formal and not hypothesis"`)
   for 10× faster runs (~4s vs ~46s). Hypothesis tests are for developer worktrees.
 - Pinned `ruff==0.15.4` in CI and `pyproject.toml` to prevent format drift.

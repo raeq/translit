@@ -17,7 +17,6 @@ from translit import (
     reverse_langs,
     slugify,
     transliterate,
-    transliterate_batch,
 )
 from translit._enums import LANG_AUTO, LANG_META, SCRIPT_META
 
@@ -250,7 +249,7 @@ class TestEveryLangTransliterates:
         """transliterate_batch with lang= for each language."""
         for lang in all_langs:
             sample = LANG_SAMPLES[lang]
-            results = transliterate_batch([sample, sample], lang=lang)
+            results = transliterate([sample, sample], lang=lang)
             assert len(results) == 2
             assert results[0] == results[1]
 
