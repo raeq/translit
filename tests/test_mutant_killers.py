@@ -281,7 +281,7 @@ class TestPipelineStepTuples:
     def test_presets_is_dict(self):
         assert isinstance(PRESETS, dict)
 
-    def test_presets_has_all_seven(self):
+    def test_presets_has_all_eight(self):
         expected = {
             "security_clean",
             "ml_normalize",
@@ -290,6 +290,7 @@ class TestPipelineStepTuples:
             "search_key",
             "sort_key",
             "sanitize_user_input",
+            "strip_obfuscation",
         }
         assert set(PRESETS.keys()) == expected
 
