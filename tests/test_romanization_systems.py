@@ -40,6 +40,7 @@ class TestKunreiShiki:
 
     def test_kunrei_in_list_langs(self):
         from translit import list_langs
+
         assert "ja-kunrei" in list_langs()
 
 

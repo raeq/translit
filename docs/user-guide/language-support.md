@@ -253,6 +253,24 @@ For **unambiguous scripts** (one script = one language), detection is immediate:
 | Thaana | `dv` (Dhivehi) |
 | Bengali, Tamil, Telugu, Kannada, Malayalam, Gujarati, Gurmukhi, Odia, Sinhala | respective language |
 | Ethiopic, Tibetan, Lao, Myanmar, Khmer, Mongolian, Javanese, Hebrew | respective language |
+| Balinese | `ban` |
+| Bamum | `bax` |
+| Buginese (Lontara) | `bug` |
+| Cham | `cjm` |
+| Cherokee | `chr` |
+| Coptic | `cop` |
+| Lisu (Fraser) | `lis` |
+| Meetei Mayek | `mni` |
+| N'Ko | `nqo` |
+| New Tai Lue | `khb` |
+| Ol Chiki | `sat` |
+| Sundanese | `su` |
+| Syriac | `syr` |
+| Tagalog (Baybayin) | `tl` |
+| Tai Le | `tdd` |
+| Tai Tham (Lanna) | `nod` |
+| Tifinagh | `tzm` |
+| Vai | `vai` |
 
 ### Character-level discrimination for ambiguous scripts
 

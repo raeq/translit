@@ -100,10 +100,16 @@ Each language has a reference text used for integration testing. These texts are
 | `am` | Amharic | የኢትዮጵያ ፌዴራላዊ ዲሞክራሲያዊ ሪፐብሊክ... |
 | `ar` | Arabic | المملكة العربية السعودية دولة عربية تقع في شبه الجزيرة العربية |
 | `as` | Assamese | অসম ভাৰতৰ উত্তৰ পূৰ্বাঞ্চলৰ এখন ৰাজ্য |
+| `ban` | Balinese | ᬅᬓᬗᬕᬘ |
+| `bax` | Bamum | ꚠꚡꚢꚣ |
 | `bg` | Bulgarian | Република България е държава в Югоизточна Европа |
 | `bn` | Bengali | গণপ্রজাতন্ত্রী বাংলাদেশ দক্ষিণ এশিয়ার একটি রাষ্ট্র |
 | `bo` | Tibetan | བོད་རང་སྐྱོང་ལྗོངས་ནི་རྒྱ་ནག་གི་ཁོངས་གཏོགས |
+| `bug` | Buginese | ᨀᨁᨂᨃᨄ |
 | `ca` | Catalan | Catalunya és una comunitat autònoma d'Espanya |
+| `chr` | Cherokee | ᏣᏔᏂᏃ |
+| `cjm` | Cham | ꨀꨁꨂꨃ |
+| `cop` | Coptic | Ⲁⲁ Ⲃⲃ Ⲅⲅ |
 | `cs` | Czech | Česká republika je stát ve střední Evropě |
 | `cy` | Welsh | Cymru yw gwlad sy'n rhan o'r Deyrnas Unedig |
 | `da` | Danish | København er Danmarks hovedstad og største by |
@@ -127,20 +133,25 @@ Each language has a reference text used for integration testing. These texts are
 | `ja` | Japanese | 日本国は東アジアに位置する島国である |
 | `jv` | Javanese | ꦐꦟꦪꦣꦨ |
 | `ka` | Georgian | საქართველო სახელმწიფოა აღმოსავლეთ ევროპაში |
+| `khb` | Tai Lue | ᦀᦁᦂᦃ |
 | `km` | Khmer | ព្រះរាជាណាចក្រកម្ពុជា ជាប្រទេសមួយ |
 | `kn` | Kannada | ಕರ್ನಾಟಕ ದಕ್ಷಿಣ ಭಾರತದ ಒಂದು ರಾಜ್ಯ |
 | `ko` | Korean | 대한민국은 동아시아에 있는 공화국이다 |
+| `lis` | Lisu | ꓐꓑꓒꓓ |
 | `lo` | Lao | ສາທາລະນະລັດ ປະຊາທິປະໄຕ ປະຊາຊົນລາວ |
 | `lt` | Lithuanian | Lietuvos Respublika yra valstybė šiaurės Europoje |
 | `lv` | Latvian | Latvijas Republika ir valsts Ziemeļeiropā |
 | `ml` | Malayalam | കേരളം ഇന്ത്യയിലെ ഒരു സംസ്ഥാനമാണ് |
 | `mn` | Mongolian | ᠮᠣᠩᠭᠣᠯ |
+| `mni` | Meitei | ꯀꯁꯂꯃ |
 | `mr` | Marathi | महाराष्ट्र हे भारतातील एक राज्य आहे |
 | `mt` | Maltese | Ir-Repubblika ta' Malta hija stat gżejjer fil-Mediterran |
 | `my` | Myanmar | မြန်မာနိုင်ငံသည် အရှေ့တောင်အာရှတွင် |
 | `ne` | Nepali | नेपाल एशियाको एक स्वतन्त्र देश हो |
 | `nl` | Dutch | Het Koninkrijk der Nederlanden is een staat in West-Europa |
 | `no` | Norwegian | Kongeriket Norge er et nordisk land i Skandinavia |
+| `nod` | Northern Thai | ᨠᨡᨢᨣ |
+| `nqo` | N'Ko | ߁߂߃߄ |
 | `or` | Odia | ଓଡ଼ିଶା ଭାରତର ପୂର୍ବ ଉପକୂଳରେ ଅବସ୍ଥିତ |
 | `pa` | Punjabi | ਪੰਜਾਬ ਭਾਰਤ ਦਾ ਇੱਕ ਰਾਜ ਹੈ |
 | `pl` | Polish | Rzeczpospolita Polska jest państwem w Europie Środkowej |
@@ -148,17 +159,24 @@ Each language has a reference text used for integration testing. These texts are
 | `ro` | Romanian | România este un stat situat în sud-estul Europei |
 | `ru` | Russian | Российская Федерация является демократическим федеративным государством |
 | `sa` | Sanskrit | संस्कृतम् जगतः एका प्राचीनतमा भाषा |
+| `sat` | Santali | ᱚᱛᱜᱝ |
 | `si` | Sinhala | ශ්‍රී ලංකා ප්‍රජාතාන්ත්‍රික සමාජවාදී ජනරජය |
 | `sk` | Slovak | Slovenská republika je štát v strednej Európe |
 | `sl` | Slovenian | Republika Slovenija je država v srednji Evropi |
 | `sq` | Albanian | Republika e Shqipërisë është një shtet në Europën Juglindore |
 | `sr` | Serbian | Београд → Beograd |
+| `su` | Sundanese | ᮃᮄᮅᮆ |
 | `sv` | Swedish | Konungariket Sverige är ett nordiskt land på Skandinaviska halvön |
+| `syr` | Syriac | ܐܒܓܕ |
 | `ta` | Tamil | தமிழ்நாடு இந்தியாவின் தெற்கே அமைந்துள்ள மாநிலம் |
+| `tdd` | Tai Le | ᥐᥑᥒᥓ |
 | `te` | Telugu | తెలుగు భాష ద్రావిడ భాషా కుటుంబానికి చెందిన భాష |
 | `th` | Thai | ประเทศไทยเป็นรัฐชาติอันตั้งอยู่ในเอเชียตะวันออกเฉียงใต้ |
+| `tl` | Tagalog | ᜀᜁᜂᜃ |
 | `tr` | Turkish | Türkiye Cumhuriyeti Avrupa ile Asya arasında yer alan bir ülkedir |
+| `tzm` | Tamazight | ⴰⴱⴳⴷ |
 | `uk` | Ukrainian | Україна є державою у Східній та Центральній Європі |
+| `vai` | Vai | ꔀꔁꔂꔃ |
 | `vi` | Vietnamese | Cộng hòa xã hội chủ nghĩa Việt Nam là một quốc gia |
 | `zh` | Chinese | 中华人民共和国是位于东亚的社会主义国家 |
 

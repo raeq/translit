@@ -314,71 +314,63 @@ class TestUniqueSlugifierProperties:
 # Hypothesis strategies for script-specific text
 _devanagari_consonants = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x0915, 0x093A)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _devanagari_vowels = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x0905, 0x0915)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _devanagari_full = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0900, 0x0980) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0900, 0x0980) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _bengali_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0980, 0x0A00) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0980, 0x0A00) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _tamil_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0B80, 0x0C00) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0B80, 0x0C00) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _telugu_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0C00, 0x0C80) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0C00, 0x0C80) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _gujarati_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0A80, 0x0B00) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0A80, 0x0B00) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _kannada_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0C80, 0x0D00) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0C80, 0x0D00) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _malayalam_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0D00, 0x0D80) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0D00, 0x0D80) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _gurmukhi_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0A00, 0x0A80) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0A00, 0x0A80) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _odia_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0B00, 0x0B80) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0B00, 0x0B80) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _any_indic_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0900, 0x0E00) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=40,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0900, 0x0E00) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=40,
 )
 
 
@@ -486,31 +478,30 @@ class TestIndicTransliterationProperties:
 
 _hebrew_consonants = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x05D0, 0x05EB)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _hebrew_nikkud = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x05B0, 0x05BE)]),
-    min_size=1, max_size=10,
+    min_size=1,
+    max_size=10,
 )
 _hebrew_full = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0590, 0x0600) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0590, 0x0600) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 _hebrew_presentation = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0xFB1D, 0xFB50) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=15,
+    alphabet=st.sampled_from([chr(c) for c in range(0xFB1D, 0xFB50) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=15,
 )
 
 
 _sinhala_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0D80, 0x0E00) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=30,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0D80, 0x0E00) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=30,
 )
 
 
@@ -540,14 +531,15 @@ class TestSinhalaTransliterationProperties:
 
 _georgian_text = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x10D0, 0x10F1)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _armenian_text = st.text(
     alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0531, 0x0557)]
-        + [chr(c) for c in range(0x0561, 0x0588)]
+        [chr(c) for c in range(0x0531, 0x0557)] + [chr(c) for c in range(0x0561, 0x0588)]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 
 
@@ -615,19 +607,21 @@ class TestArmenianTransliterationProperties:
 
 _thai_text = st.text(
     alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0E01, 0x0E3B)]
-        + [chr(c) for c in range(0x0E40, 0x0E4C)]
+        [chr(c) for c in range(0x0E01, 0x0E3B)] + [chr(c) for c in range(0x0E40, 0x0E4C)]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _thai_consonants = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x0E01, 0x0E2F)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _thai_tone_marks = st.sampled_from([chr(c) for c in range(0x0E48, 0x0E4C)])
 _thai_digits = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x0E50, 0x0E5A)]),
-    min_size=1, max_size=10,
+    min_size=1,
+    max_size=10,
 )
 _lao_text = st.text(
     alphabet=st.sampled_from(
@@ -635,23 +629,51 @@ _lao_text = st.text(
         + [chr(c) for c in range(0x0EB0, 0x0EBA)]
         + [chr(c) for c in range(0x0EC0, 0x0EC5)]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _lao_consonants = st.text(
     alphabet=st.sampled_from(
-        [chr(c) for c in [
-            0x0E81, 0x0E82, 0x0E84, 0x0E87, 0x0E88, 0x0E8A, 0x0E8D,
-            0x0E94, 0x0E95, 0x0E96, 0x0E97, 0x0E99, 0x0E9A, 0x0E9B,
-            0x0E9C, 0x0E9D, 0x0E9E, 0x0E9F, 0x0EA1, 0x0EA2, 0x0EA3,
-            0x0EA5, 0x0EA7, 0x0EAA, 0x0EAB, 0x0EAE,
-        ]]
+        [
+            chr(c)
+            for c in [
+                0x0E81,
+                0x0E82,
+                0x0E84,
+                0x0E87,
+                0x0E88,
+                0x0E8A,
+                0x0E8D,
+                0x0E94,
+                0x0E95,
+                0x0E96,
+                0x0E97,
+                0x0E99,
+                0x0E9A,
+                0x0E9B,
+                0x0E9C,
+                0x0E9D,
+                0x0E9E,
+                0x0E9F,
+                0x0EA1,
+                0x0EA2,
+                0x0EA3,
+                0x0EA5,
+                0x0EA7,
+                0x0EAA,
+                0x0EAB,
+                0x0EAE,
+            ]
+        ]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _lao_tone_marks = st.sampled_from([chr(c) for c in range(0x0EC8, 0x0ECC)])
 _lao_digits = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x0ED0, 0x0EDA)]),
-    min_size=1, max_size=10,
+    min_size=1,
+    max_size=10,
 )
 _any_tai_text = st.one_of(_thai_text, _lao_text)
 
@@ -693,7 +715,7 @@ class TestThaiTransliterationProperties:
         with_tone = transliterate(consonant + tone, errors="ignore")
         without_tone = transliterate(consonant, errors="ignore")
         assert with_tone == without_tone, (
-            f"Tone mark not stripped: {consonant+tone!r} → {with_tone!r} vs {without_tone!r}"
+            f"Tone mark not stripped: {consonant + tone!r} → {with_tone!r} vs {without_tone!r}"
         )
 
     @given(text=_thai_digits)
@@ -749,7 +771,7 @@ class TestLaoTransliterationProperties:
         with_tone = transliterate(consonant + tone, errors="ignore")
         without_tone = transliterate(consonant, errors="ignore")
         assert with_tone == without_tone, (
-            f"Tone mark not stripped: {consonant+tone!r} → {with_tone!r} vs {without_tone!r}"
+            f"Tone mark not stripped: {consonant + tone!r} → {with_tone!r} vs {without_tone!r}"
         )
 
     @given(text=_lao_digits)
@@ -830,30 +852,46 @@ _ethiopic_text = st.text(
         # Main syllabary: 7 orders per consonant in 8-wide blocks
         [chr(base + i) for base in range(0x1200, 0x1358, 8) for i in range(7)]
         # Labialized consonants (specific mapped offsets)
-        + [chr(base + o) for base in [0x1248, 0x1258, 0x1288, 0x12B0, 0x12C0, 0x1308]
-           for o in [0, 1, 3, 4]]
+        + [
+            chr(base + o)
+            for base in [0x1248, 0x1258, 0x1288, 0x12B0, 0x12C0, 0x1308]
+            for o in [0, 1, 3, 4]
+        ]
         # Digits and punctuation
         + [chr(c) for c in range(0x1361, 0x137C)]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 # Use only the regular 7-order consonant blocks (skip labialized/special blocks)
 _ETHIOPIC_SKIP_BASES = {
-    0x1248, 0x1258, 0x1288, 0x12B0, 0x12C0, 0x1308, 0x1310, 0x1318,
-    0x12A0, 0x12D0,  # glottal/pharyngeal: order 6 maps to empty
+    0x1248,
+    0x1258,
+    0x1288,
+    0x12B0,
+    0x12C0,
+    0x1308,
+    0x1310,
+    0x1318,
+    0x12A0,
+    0x12D0,  # glottal/pharyngeal: order 6 maps to empty
 }
 _ethiopic_syllables = st.text(
     alphabet=st.sampled_from(
-        [chr(base + i)
-         for base in range(0x1200, 0x1358, 8)
-         if base not in _ETHIOPIC_SKIP_BASES
-         for i in range(7)]
+        [
+            chr(base + i)
+            for base in range(0x1200, 0x1358, 8)
+            if base not in _ETHIOPIC_SKIP_BASES
+            for i in range(7)
+        ]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _ethiopic_digits = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x1369, 0x137C)]),
-    min_size=1, max_size=10,
+    min_size=1,
+    max_size=10,
 )
 
 # ---------------------------------------------------------------------------
@@ -861,18 +899,19 @@ _ethiopic_digits = st.text(
 # ---------------------------------------------------------------------------
 
 _myanmar_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x1000, 0x104C) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x1000, 0x104C) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 _myanmar_consonants = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x1000, 0x1022)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _myanmar_digits = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x1040, 0x104A)]),
-    min_size=1, max_size=10,
+    min_size=1,
+    max_size=10,
 )
 
 # ---------------------------------------------------------------------------
@@ -880,18 +919,19 @@ _myanmar_digits = st.text(
 # ---------------------------------------------------------------------------
 
 _khmer_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x1780, 0x17EA) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x1780, 0x17EA) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 _khmer_consonants = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x1780, 0x17A3)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _khmer_digits = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x17E0, 0x17EA)]),
-    min_size=1, max_size=10,
+    min_size=1,
+    max_size=10,
 )
 
 # ---------------------------------------------------------------------------
@@ -904,17 +944,20 @@ _tibetan_text = st.text(
         + [chr(c) for c in range(0x0F71, 0x0F85) if chr(c).isprintable()]
         + [chr(c) for c in range(0x0F90, 0x0FBD) if chr(c).isprintable()]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _tibetan_consonants = st.text(
     alphabet=st.sampled_from(
         [chr(c) for c in range(0x0F40, 0x0F6A) if chr(c).isprintable() and c != 0x0F48]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _tibetan_digits = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x0F20, 0x0F2A)]),
-    min_size=1, max_size=10,
+    min_size=1,
+    max_size=10,
 )
 
 
@@ -950,7 +993,9 @@ class TestEthiopicTransliterationProperties:
     @settings(max_examples=200)
     def test_ethiopic_digits_are_arabic(self, text: str) -> None:
         result = transliterate(text, errors="ignore")
-        assert all(c.isdigit() or c.isspace() for c in result), f"Non-digit from Ethiopic digits: {result!r}"
+        assert all(c.isdigit() or c.isspace() for c in result), (
+            f"Non-digit from Ethiopic digits: {result!r}"
+        )
 
     @given(text=_ethiopic_text)
     @settings(max_examples=300)
@@ -992,7 +1037,9 @@ class TestMyanmarTransliterationProperties:
     @settings(max_examples=200)
     def test_myanmar_digits_are_arabic(self, text: str) -> None:
         result = transliterate(text, errors="ignore")
-        assert all(c.isdigit() or c.isspace() for c in result), f"Non-digit from Myanmar digits: {result!r}"
+        assert all(c.isdigit() or c.isspace() for c in result), (
+            f"Non-digit from Myanmar digits: {result!r}"
+        )
 
     @given(text=_myanmar_text)
     @settings(max_examples=300)
@@ -1034,7 +1081,9 @@ class TestKhmerTransliterationProperties:
     @settings(max_examples=200)
     def test_khmer_digits_are_arabic(self, text: str) -> None:
         result = transliterate(text, errors="ignore")
-        assert all(c.isdigit() or c.isspace() for c in result), f"Non-digit from Khmer digits: {result!r}"
+        assert all(c.isdigit() or c.isspace() for c in result), (
+            f"Non-digit from Khmer digits: {result!r}"
+        )
 
     @given(text=_khmer_text)
     @settings(max_examples=300)
@@ -1076,7 +1125,9 @@ class TestTibetanTransliterationProperties:
     @settings(max_examples=200)
     def test_tibetan_digits_are_arabic(self, text: str) -> None:
         result = transliterate(text, errors="ignore")
-        assert all(c.isdigit() or c.isspace() for c in result), f"Non-digit from Tibetan digits: {result!r}"
+        assert all(c.isdigit() or c.isspace() for c in result), (
+            f"Non-digit from Tibetan digits: {result!r}"
+        )
 
     @given(text=_tibetan_text)
     @settings(max_examples=300)
@@ -1091,29 +1142,32 @@ class TestTibetanTransliterationProperties:
 # ---------------------------------------------------------------------------
 
 _latin_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0041, 0x007B) if chr(c).isalpha()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0041, 0x007B) if chr(c).isalpha()]),
+    min_size=1,
+    max_size=20,
 )
 _extended_latin = st.text(
     alphabet=st.sampled_from(
         [chr(c) for c in range(0x00C0, 0x0250) if chr(c).isprintable()]
         + [chr(c) for c in range(0x1E00, 0x1F00) if chr(c).isprintable()]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _cyrillic_text = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x0400, 0x0500) if chr(c).isprintable()]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _cjk_text = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x4E00, 0x5100)]),
-    min_size=1, max_size=10,
+    min_size=1,
+    max_size=10,
 )
 _hangul_text = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0xAC00, 0xAD00)]),
-    min_size=1, max_size=10,
+    min_size=1,
+    max_size=10,
 )
 
 
@@ -1256,9 +1310,7 @@ class TestMultiScriptMixtureProperties:
         hebrew=_hebrew_full,
     )
     @settings(max_examples=200)
-    def test_multi_script_slugify_valid(
-        self, latin: str, indic: str, hebrew: str
-    ) -> None:
+    def test_multi_script_slugify_valid(self, latin: str, indic: str, hebrew: str) -> None:
         """Slugifying multi-script text always produces a valid slug."""
         mixed = _interleave(latin, indic, hebrew)
         result = slugify(mixed)
@@ -1271,9 +1323,7 @@ class TestMultiScriptMixtureProperties:
         hebrew=_hebrew_full,
     )
     @settings(max_examples=200)
-    def test_multi_script_preserve_nonempty(
-        self, latin: str, indic: str, hebrew: str
-    ) -> None:
+    def test_multi_script_preserve_nonempty(self, latin: str, indic: str, hebrew: str) -> None:
         """Multi-script text with errors='preserve' is never shorter than
         it would be with errors='ignore'."""
         mixed = _interleave(latin, indic, hebrew)
@@ -1341,8 +1391,14 @@ class TestMultiScriptMixtureProperties:
     )
     @settings(max_examples=200)
     def test_seven_script_mixture_ascii(
-        self, latin: str, cyrillic: str, indic: str, hebrew: str,
-        cjk: str, thai: str, lao: str,
+        self,
+        latin: str,
+        cyrillic: str,
+        indic: str,
+        hebrew: str,
+        cjk: str,
+        thai: str,
+        lao: str,
     ) -> None:
         """Seven-script mixture (Latin+Cyrillic+Indic+Hebrew+CJK+Thai+Lao) → ASCII."""
         mixed = _interleave(latin, cyrillic, indic, hebrew, cjk, thai, lao)
@@ -1360,8 +1416,14 @@ class TestMultiScriptMixtureProperties:
     )
     @settings(max_examples=200)
     def test_seven_script_mixture_idempotent(
-        self, latin: str, cyrillic: str, indic: str, hebrew: str,
-        cjk: str, thai: str, lao: str,
+        self,
+        latin: str,
+        cyrillic: str,
+        indic: str,
+        hebrew: str,
+        cjk: str,
+        thai: str,
+        lao: str,
     ) -> None:
         """Seven-script mixture transliteration is idempotent."""
         mixed = _interleave(latin, cyrillic, indic, hebrew, cjk, thai, lao)
@@ -1411,13 +1473,22 @@ class TestMultiScriptMixtureProperties:
     )
     @settings(max_examples=100)
     def test_ten_script_mixture_ascii(
-        self, latin: str, cyrillic: str, indic: str, hebrew: str,
-        cjk: str, thai: str, ethiopic: str, myanmar: str, khmer: str,
+        self,
+        latin: str,
+        cyrillic: str,
+        indic: str,
+        hebrew: str,
+        cjk: str,
+        thai: str,
+        ethiopic: str,
+        myanmar: str,
+        khmer: str,
         tibetan: str,
     ) -> None:
         """Ten-script mixture → ASCII."""
-        mixed = _interleave(latin, cyrillic, indic, hebrew, cjk, thai,
-                           ethiopic, myanmar, khmer, tibetan)
+        mixed = _interleave(
+            latin, cyrillic, indic, hebrew, cjk, thai, ethiopic, myanmar, khmer, tibetan
+        )
         result = transliterate(mixed, errors="ignore")
         assert is_ascii(result), f"Non-ASCII from 10-script mix: {result!r}"
 
@@ -1432,17 +1503,18 @@ _arabic_text = st.text(
         [chr(c) for c in range(0x0621, 0x064B) if chr(c).isprintable()]
         + [chr(c) for c in range(0x0660, 0x066A)]  # Arabic-Indic digits
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _arabic_consonants = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x0621, 0x063B)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 _arabic_presentation_b = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0xFE70, 0xFF00) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0xFE70, 0xFF00) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 
 # ── Syriac ──
@@ -1451,113 +1523,106 @@ _syriac_text = st.text(
         [chr(c) for c in range(0x0710, 0x0730) if chr(c).isprintable()]
         + [chr(c) for c in range(0x0730, 0x0740)]  # vowel points
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 
 # ── Thaana ──
 _thaana_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x0780, 0x07B1) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x0780, 0x07B1) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 
 # ── N'Ko ──
 _nko_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x07C0, 0x07FA) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x07C0, 0x07FA) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 
 # ── Coptic ──
 _coptic_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x2C80, 0x2CC2) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x2C80, 0x2CC2) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 
 # ── Cherokee ──
 _cherokee_text = st.text(
     alphabet=st.sampled_from(
-        [chr(c) for c in range(0x13A0, 0x13F6)]
-        + [chr(c) for c in range(0xAB70, 0xABC0)]
+        [chr(c) for c in range(0x13A0, 0x13F6)] + [chr(c) for c in range(0xAB70, 0xABC0)]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 
 # ── Canadian Aboriginal Syllabics ──
 _canadian_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x1401, 0x1677) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x1401, 0x1677) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 
 # ── Vai ──
 _vai_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0xA500, 0xA62C) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0xA500, 0xA62C) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 
 # ── Mongolian ──
 _mongolian_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x1820, 0x1879) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x1820, 0x1879) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 
 # ── Runic ──
 _runic_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x16A0, 0x16F9) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x16A0, 0x16F9) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 
 # ── Ogham ──
 _ogham_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x1681, 0x169B)]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x1681, 0x169B)]),
+    min_size=1,
+    max_size=20,
 )
 
 # ── Balinese ──
 _balinese_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0x1B05, 0x1B5A) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0x1B05, 0x1B5A) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 _balinese_consonants = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0x1B13, 0x1B34)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 
 # ── Javanese ──
 _javanese_text = st.text(
-    alphabet=st.sampled_from(
-        [chr(c) for c in range(0xA984, 0xA9C1) if chr(c).isprintable()]
-    ),
-    min_size=1, max_size=20,
+    alphabet=st.sampled_from([chr(c) for c in range(0xA984, 0xA9C1) if chr(c).isprintable()]),
+    min_size=1,
+    max_size=20,
 )
 _javanese_consonants = st.text(
     alphabet=st.sampled_from([chr(c) for c in range(0xA990, 0xA9B3)]),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 
 # ── Tai Le ──
 _tai_le_text = st.text(
     alphabet=st.sampled_from(
-        [chr(c) for c in range(0x1950, 0x196E)]
-        + [chr(c) for c in range(0x1970, 0x1975)]
+        [chr(c) for c in range(0x1950, 0x196E)] + [chr(c) for c in range(0x1970, 0x1975)]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 
 # ── New Tai Lue ──
@@ -1567,15 +1632,27 @@ _new_tai_lue_text = st.text(
         + [chr(c) for c in range(0x19B0, 0x19CA)]
         + [chr(c) for c in range(0x19D0, 0x19DA)]
     ),
-    min_size=1, max_size=20,
+    min_size=1,
+    max_size=20,
 )
 
 # Composite: all new scripts
 _any_new_script_text = st.one_of(
-    _arabic_text, _syriac_text, _thaana_text, _nko_text, _coptic_text,
-    _cherokee_text, _canadian_text, _vai_text, _mongolian_text,
-    _runic_text, _ogham_text, _balinese_text, _javanese_text,
-    _tai_le_text, _new_tai_lue_text,
+    _arabic_text,
+    _syriac_text,
+    _thaana_text,
+    _nko_text,
+    _coptic_text,
+    _cherokee_text,
+    _canadian_text,
+    _vai_text,
+    _mongolian_text,
+    _runic_text,
+    _ogham_text,
+    _balinese_text,
+    _javanese_text,
+    _tai_le_text,
+    _new_tai_lue_text,
 )
 
 
@@ -1944,10 +2021,14 @@ class TestExpandedMultiScriptMixtureProperties:
         result = transliterate(mixed, errors="ignore")
         assert is_ascii(result), f"Non-ASCII from Thaana+Arabic: {result!r}"
 
-    @given(coptic=_coptic_text, greek=st.text(
-        alphabet=st.sampled_from([chr(c) for c in range(0x0391, 0x03CA)]),
-        min_size=1, max_size=10,
-    ))
+    @given(
+        coptic=_coptic_text,
+        greek=st.text(
+            alphabet=st.sampled_from([chr(c) for c in range(0x0391, 0x03CA)]),
+            min_size=1,
+            max_size=10,
+        ),
+    )
     @settings(max_examples=300)
     def test_coptic_greek_mixture_ascii(self, coptic: str, greek: str) -> None:
         """Coptic + Greek (related scripts, adjacent blocks)."""
@@ -1980,8 +2061,12 @@ class TestExpandedMultiScriptMixtureProperties:
     )
     @settings(max_examples=200)
     def test_five_new_scripts_mixture_ascii(
-        self, arabic: str, cherokee: str, balinese: str,
-        mongolian: str, coptic: str,
+        self,
+        arabic: str,
+        cherokee: str,
+        balinese: str,
+        mongolian: str,
+        coptic: str,
     ) -> None:
         """Five new scripts mixed together → ASCII."""
         mixed = _interleave(arabic, cherokee, balinese, mongolian, coptic)
@@ -1997,8 +2082,12 @@ class TestExpandedMultiScriptMixtureProperties:
     )
     @settings(max_examples=200)
     def test_five_new_scripts_mixture_idempotent(
-        self, arabic: str, cherokee: str, balinese: str,
-        mongolian: str, coptic: str,
+        self,
+        arabic: str,
+        cherokee: str,
+        balinese: str,
+        mongolian: str,
+        coptic: str,
     ) -> None:
         """Five new scripts mixture is idempotent."""
         mixed = _interleave(arabic, cherokee, balinese, mongolian, coptic)
@@ -2020,14 +2109,30 @@ class TestExpandedMultiScriptMixtureProperties:
     )
     @settings(max_examples=100)
     def test_grand_mixture_ascii(
-        self, latin: str, cyrillic: str, arabic: str, indic: str,
-        hebrew: str, cjk: str, thai: str, ethiopic: str,
-        cherokee: str, balinese: str,
+        self,
+        latin: str,
+        cyrillic: str,
+        arabic: str,
+        indic: str,
+        hebrew: str,
+        cjk: str,
+        thai: str,
+        ethiopic: str,
+        cherokee: str,
+        balinese: str,
     ) -> None:
         """Grand 10-family mixture including new scripts → ASCII."""
         mixed = _interleave(
-            latin, cyrillic, arabic, indic, hebrew,
-            cjk, thai, ethiopic, cherokee, balinese,
+            latin,
+            cyrillic,
+            arabic,
+            indic,
+            hebrew,
+            cjk,
+            thai,
+            ethiopic,
+            cherokee,
+            balinese,
         )
         result = transliterate(mixed, errors="ignore")
         assert is_ascii(result), f"Non-ASCII from grand mix: {result!r}"
@@ -2046,14 +2151,30 @@ class TestExpandedMultiScriptMixtureProperties:
     )
     @settings(max_examples=100)
     def test_grand_mixture_idempotent(
-        self, latin: str, cyrillic: str, arabic: str, indic: str,
-        hebrew: str, cjk: str, thai: str, ethiopic: str,
-        cherokee: str, balinese: str,
+        self,
+        latin: str,
+        cyrillic: str,
+        arabic: str,
+        indic: str,
+        hebrew: str,
+        cjk: str,
+        thai: str,
+        ethiopic: str,
+        cherokee: str,
+        balinese: str,
     ) -> None:
         """Grand 10-family mixture is idempotent."""
         mixed = _interleave(
-            latin, cyrillic, arabic, indic, hebrew,
-            cjk, thai, ethiopic, cherokee, balinese,
+            latin,
+            cyrillic,
+            arabic,
+            indic,
+            hebrew,
+            cjk,
+            thai,
+            ethiopic,
+            cherokee,
+            balinese,
         )
         once = transliterate(mixed, errors="ignore")
         twice = transliterate(once, errors="ignore")

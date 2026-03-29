@@ -9,10 +9,14 @@ from collections.abc import Iterable
 from typing import Any
 
 from translit._enums import (
+    LANG_AM,
     LANG_AR,
+    LANG_AS,
     LANG_BAN,
     LANG_BAX,
     LANG_BG,
+    LANG_BN,
+    LANG_BO,
     LANG_BUG,
     LANG_CA,
     LANG_CHR,
@@ -22,6 +26,7 @@ from translit._enums import (
     LANG_CY,
     LANG_DA,
     LANG_DE,
+    LANG_DV,
     LANG_EL,
     LANG_ES,
     LANG_ET,
@@ -29,27 +34,46 @@ from translit._enums import (
     LANG_FI,
     LANG_FR,
     LANG_GA,
+    LANG_GU,
+    LANG_HE,
+    LANG_HI,
     LANG_HR,
     LANG_HU,
+    LANG_HY,
     LANG_IS,
     LANG_IT,
     LANG_JA,
+    LANG_JV,
+    LANG_KA,
     LANG_KHB,
+    LANG_KM,
+    LANG_KN,
     LANG_KO,
     LANG_LIS,
+    LANG_LO,
     LANG_LT,
     LANG_LV,
+    LANG_META,
+    LANG_ML,
+    LANG_MN,
     LANG_MNI,
+    LANG_MR,
     LANG_MT,
+    LANG_MY,
+    LANG_NE,
     LANG_NL,
     LANG_NO,
     LANG_NOD,
     LANG_NQO,
+    LANG_OR,
+    LANG_PA,
     LANG_PL,
     LANG_PT,
     LANG_RO,
     LANG_RU,
+    LANG_SA,
     LANG_SAT,
+    LANG_SI,
     LANG_SK,
     LANG_SL,
     LANG_SQ,
@@ -57,7 +81,10 @@ from translit._enums import (
     LANG_SU,
     LANG_SV,
     LANG_SYR,
+    LANG_TA,
     LANG_TDD,
+    LANG_TE,
+    LANG_TH,
     LANG_TL,
     LANG_TR,
     LANG_TZM,
@@ -65,7 +92,10 @@ from translit._enums import (
     LANG_VAI,
     LANG_VI,
     LANG_ZH,
+    SCRIPT_META,
+    LangMeta,
     Script,
+    ScriptMeta,
 )
 from translit._translit import (
     SafeHostnameDetails,
@@ -245,9 +275,7 @@ def transliterate(
             forward_only["tones"] = tones
         if forward_only:
             names = ", ".join(sorted(forward_only))
-            raise ValueError(
-                f"forward-only parameters ({names}) cannot be used with 'target'"
-            )
+            raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
         return _reverse_transliterate(text, lang=target)
 
     # Fast path: pure ASCII needs no transliteration (~30 ns vs ~240 ns PyO3 call).
@@ -765,9 +793,7 @@ def transliterate_batch(
             forward_only["gost7034"] = gost7034
         if forward_only:
             names = ", ".join(sorted(forward_only))
-            raise ValueError(
-                f"forward-only parameters ({names}) cannot be used with 'target'"
-            )
+            raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
         return [_reverse_transliterate(t, lang=target) for t in texts]
 
     return _transliterate_batch(
@@ -1290,7 +1316,6 @@ def is_safe_hostname(hostname: str) -> tuple[bool, SafeHostnameDetails]:
 
 
 # --- Reverse transliteration ---
-
 
 
 def reverse_langs() -> list[str]:
@@ -1878,9 +1903,7 @@ def get_pipeline(profile: str) -> TextPipeline:
         kwargs = _POLICY_PROFILES[profile]
     except KeyError:
         avail = ", ".join(sorted(_POLICY_PROFILES))
-        raise TranslitError(
-            f"Unknown profile {profile!r}; available: {avail}"
-        ) from None
+        raise TranslitError(f"Unknown profile {profile!r}; available: {avail}") from None
     return TextPipeline(**kwargs)
 
 
@@ -1932,6 +1955,49 @@ def list_scripts() -> list[str]:
         True
     """
     return sorted(s.value for s in Script)
+
+
+def lang_info(code: str) -> LangMeta:
+    """Return metadata for a language code.
+
+    Args:
+        code: Language code (e.g. ``"de"``, ``"cop"``, ``"ban"``).
+
+    Returns:
+        Dict with ``name``, ``script``, and ``region`` keys.
+
+    Raises:
+        KeyError: If the code is not a recognized language.
+
+    Examples:
+        >>> lang_info("de")["name"]
+        'German'
+        >>> lang_info("cop")["script"]
+        'Coptic'
+    """
+    return LANG_META[code]
+
+
+def script_info(script: str | Script) -> ScriptMeta:
+    """Return metadata for a Unicode script.
+
+    Args:
+        script: Script name (e.g. ``"Coptic"``) or :class:`Script` enum value.
+
+    Returns:
+        Dict with ``name``, ``default_lang``, and ``example`` keys.
+
+    Raises:
+        KeyError: If the script is not recognized.
+
+    Examples:
+        >>> script_info("Coptic")["default_lang"]
+        'cop'
+        >>> script_info(Script.THAI)["name"]
+        'Thai'
+    """
+    key = script.value if isinstance(script, Script) else script
+    return SCRIPT_META[key]
 
 
 def register_lang(code: str, mappings: dict[str, str]) -> None:
@@ -2078,6 +2144,12 @@ __all__ = [
     # Language profiles
     "list_langs",
     "list_scripts",
+    "lang_info",
+    "script_info",
+    "LANG_META",
+    "SCRIPT_META",
+    "LangMeta",
+    "ScriptMeta",
     "register_lang",
     "register_replacements",
     "remove_replacement",
@@ -2086,10 +2158,14 @@ __all__ = [
     "EmojiProvider",
     "NF",
     "Script",
+    "LANG_AM",
     "LANG_AR",
+    "LANG_AS",
     "LANG_BAN",
     "LANG_BAX",
     "LANG_BG",
+    "LANG_BN",
+    "LANG_BO",
     "LANG_BUG",
     "LANG_CA",
     "LANG_CHR",
@@ -2099,6 +2175,7 @@ __all__ = [
     "LANG_CY",
     "LANG_DA",
     "LANG_DE",
+    "LANG_DV",
     "LANG_EL",
     "LANG_ES",
     "LANG_ET",
@@ -2106,27 +2183,45 @@ __all__ = [
     "LANG_FI",
     "LANG_FR",
     "LANG_GA",
+    "LANG_GU",
+    "LANG_HE",
+    "LANG_HI",
     "LANG_HR",
     "LANG_HU",
+    "LANG_HY",
     "LANG_IS",
     "LANG_IT",
     "LANG_JA",
+    "LANG_JV",
+    "LANG_KA",
     "LANG_KHB",
+    "LANG_KM",
+    "LANG_KN",
     "LANG_KO",
     "LANG_LIS",
+    "LANG_LO",
     "LANG_LT",
     "LANG_LV",
+    "LANG_ML",
+    "LANG_MN",
     "LANG_MNI",
+    "LANG_MR",
     "LANG_MT",
+    "LANG_MY",
+    "LANG_NE",
     "LANG_NL",
     "LANG_NO",
     "LANG_NOD",
     "LANG_NQO",
+    "LANG_OR",
+    "LANG_PA",
     "LANG_PL",
     "LANG_PT",
     "LANG_RO",
     "LANG_RU",
+    "LANG_SA",
     "LANG_SAT",
+    "LANG_SI",
     "LANG_SK",
     "LANG_SL",
     "LANG_SQ",
@@ -2134,7 +2229,10 @@ __all__ = [
     "LANG_SU",
     "LANG_SV",
     "LANG_SYR",
+    "LANG_TA",
     "LANG_TDD",
+    "LANG_TE",
+    "LANG_TH",
     "LANG_TL",
     "LANG_TR",
     "LANG_TZM",
@@ -2164,6 +2262,7 @@ __all__ = [
 # ---------------------------------------------------------------------------
 # Make the module itself callable: import translit; translit("Москва")
 # ---------------------------------------------------------------------------
+
 
 class _CallableModule(_stdlib_types.ModuleType):
     """Make ``import translit; translit(...)`` a shorthand for ``transliterate()``."""

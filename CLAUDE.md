@@ -56,20 +56,66 @@ NEVER push directly to `main` — it will be rejected.
 
 **You MUST run all linters and tests locally and confirm they pass BEFORE pushing any commit.** Do not push first and wait for CI — catch failures locally.
 
+### Rust
+
 ```bash
-# 1. Rust format
-cargo fmt --check
+# 1. Ensure toolchain components are present
+rustup component add rustfmt clippy
 
-# 2. Python lint
-ruff check python/ tests/
+# 2. Format all code (auto-fixes formatting issues)
+cargo fmt --all
 
-# 3. Type check
+# 3. Check formatting is clean (gate; exits non-zero if fmt changed anything)
+cargo fmt --all -- --check
+
+# 4. Auto-fix compiler-detectable issues
+cargo fix --edition --all-targets --all-features
+
+# 5. Run Clippy with auto-fix for fixable lints
+cargo clippy --fix --all-targets --all-features --allow-dirty --allow-staged
+
+# 6. Run Clippy in report-only mode (treat warnings as errors)
+cargo clippy --all-targets --all-features -- -D warnings
+
+# 7. Build to confirm nothing is broken post-fix
+cargo build --all-targets --all-features
+
+# 8. Run tests to confirm behaviour is preserved
+cargo test --all-targets --all-features
+```
+
+### Python
+
+```bash
+# 9. Auto-fix lint issues (safe fixes only)
+ruff check --fix .
+
+# 10. Apply unsafe fixes (import reordering, pyupgrade — review diff after)
+ruff check --fix --unsafe-fixes .
+
+# 11. Format code
+ruff format .
+
+# 12. Verify: lint check with no auto-fix (exit non-zero if issues remain)
+ruff check .
+
+# 13. Verify: format check (exit non-zero if formatting would change anything)
+ruff format --check .
+
+# 14. Type check
 mypy python/translit --ignore-missing-imports
 
-# 4. Python tests (at minimum the two coverage-gate files)
-pytest tests/test_dynamic_coverage.py tests/test_transliterate.py -x -q
+# 15. Run tests
+pytest
 
-# 5. Only after all four pass:
+# 16. Language/script consistency audit
+python scripts/audit_language_consistency.py
+```
+
+### Push
+
+```bash
+# 17. Only after all steps pass:
 git push
 ```
 

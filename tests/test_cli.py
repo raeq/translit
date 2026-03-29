@@ -11,7 +11,9 @@ import subprocess
 import sys
 
 
-def run_cli(*args: str, input_text: str | None = None, timeout: float = 10) -> subprocess.CompletedProcess[str]:
+def run_cli(
+    *args: str, input_text: str | None = None, timeout: float = 10
+) -> subprocess.CompletedProcess[str]:
     """Run the translit CLI and return the result."""
     env = {**os.environ, "PYTHONUTF8": "1"}
     return subprocess.run(

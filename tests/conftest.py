@@ -47,20 +47,28 @@ SCRIPT_SAMPLES: dict[Script, str] = {
     Script.TELUGU: "తెలుగు",
     Script.KANNADA: "ಕನ್ನಡ",
     Script.MALAYALAM: "മലയാളം",
+    Script.MEETEI_MAYEK: "\uabc0\uabc1\uabc2",  # ꯀꯁꯂ
+    Script.OL_CHIKI: "\u1c5a\u1c5b\u1c5c",  # ᱚᱛᱜ
     Script.SINHALA: "සිංහල",
     # East Asian scripts
     Script.HAN: "中文漢字",
     Script.HIRAGANA: "ひらがな",
     Script.KATAKANA: "カタカナ",
     Script.HANGUL: "한국어",
+    Script.LISU: "\ua4d0\ua4d1\ua4d2",  # ꓐꓑꓒ
     # Southeast Asian scripts
     Script.THAI: "ภาษาไทย",
     Script.LAO: "ພາສາລາວ",
     Script.MYANMAR: "မြန်မာ",
     Script.KHMER: "ភាសាខ្មែរ",
     Script.BALINESE: "\u1b05\u1b13\u1b17",  # ᬅᬓᬗ
+    Script.BUGINESE: "\u1a00\u1a01\u1a02",  # ᨀᨁᨂ
+    Script.CHAM: "\uaa00\uaa01\uaa02",  # ꨀꨁꨂ
     Script.JAVANESE: "\ua984\ua989\ua98e",  # ꦄꦉꦎ
+    Script.SUNDANESE: "\u1b83\u1b84\u1b85",  # ᮃᮄᮅ
+    Script.TAGALOG: "\u1700\u1701\u1702",  # ᜀᜁᜂ
     Script.TAI_LE: "\u1950\u1951\u1952",  # ᥐᥑᥒ
+    Script.TAI_THAM: "\u1a20\u1a21\u1a22",  # ᨠᨡᨢ
     Script.NEW_TAI_LUE: "\u1980\u1981\u1982",  # ᦀᦁᦂ
     # Central/North Asian scripts
     Script.TIBETAN: "བོད་སྐད",
@@ -71,6 +79,8 @@ SCRIPT_SAMPLES: dict[Script, str] = {
     # African scripts
     Script.ETHIOPIC: "አማርኛ",
     Script.NKO: "\u07c1\u07c2\u07c3",  # ߁߂߃
+    Script.BAMUM: "\ua6a0\ua6a1\ua6a2",  # ꚠꚡꚢ
+    Script.TIFINAGH: "\u2d30\u2d31\u2d33",  # ⴰⴱⴳ
     Script.VAI: "\ua500\ua501\ua502",  # ꔀꔁꔂ
     # Middle Eastern scripts
     Script.SYRIAC: "\u0710\u0712\u0713",  # ܐܒܓ
@@ -84,7 +94,7 @@ SCRIPT_SAMPLES: dict[Script, str] = {
     Script.OGHAM: "\u1681\u1682\u1683",  # ᚁᚂᚃ
     Script.GOTHIC: "\U00010330\U00010331\U00010332",  # 𐌰𐌱𐌲
     # Ancient Near Eastern scripts
-    Script.OLD_PERSIAN: "\U000103A0\U000103A1\U000103A2",  # 𐎠𐎡𐎢
+    Script.OLD_PERSIAN: "\U000103a0\U000103a1\U000103a2",  # 𐎠𐎡𐎢
     Script.CUNEIFORM: "\U00012000\U00012001\U00012002",  # 𒀀𒀁𒀂
     Script.LINEAR_B: "\U00010000\U00010001\U00010002",  # 𐀀𐀁𐀂
 }

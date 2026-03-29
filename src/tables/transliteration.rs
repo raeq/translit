@@ -61,7 +61,12 @@ pub fn lookup_gost7034(ch: char) -> Option<&'static str> {
 pub fn lookup_lang(lang: &str, ch: char) -> Option<&'static str> {
     let table: Option<&phf::Map<char, &'static str>> = match lang {
         "de" => Some(&LANG_DE),
-        "no" | "nb" | "nn" | "da" => Some(&LANG_NO), // Danish uses same rules as Norwegian
+        // Norwegian Bokmål (nb) and Nynorsk (nn) are aliases for Norwegian (no).
+        // They share the same Å→Aa, Ø→Oe, Æ→Ae overrides.
+        // Danish (da) also uses identical override rules.
+        // nb/nn are NOT in BUILTIN_LANGS (list_langs() returns "no" only) but
+        // are accepted here so callers passing BCP 47 codes get correct results.
+        "no" | "nb" | "nn" | "da" => Some(&LANG_NO),
         "sv" => Some(&LANG_SV),
         // Finnish: ä/ö are independent phonemes, NOT ae/oe variants like in
         // Swedish/German. Finnish falls through to default table (ä→a, ö→o).

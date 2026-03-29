@@ -3,8 +3,25 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
+    paths:
+      - "**.py"
+      - "**.rs"
+      - "**.toml"
+      - "**.tsv"
+      - ".github/workflows/**"
   pull_request:
     branches: [main]
+    paths:
+      - "**.py"
+      - "**.rs"
+      - "**.toml"
+      - "**.tsv"
+      - ".github/workflows/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -14,114 +31,196 @@ env:
   RUSTFLAGS: "-D warnings"
 
 jobs:
-  rust-check:
-    name: Rust check, clippy & test
+
+  # ── Tier 1: Lint and format (Linux only, always) ────────────────
+  lint:
+    name: Lint & format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
-      - run: cargo fmt --check
-      - run: cargo check --no-default-features
-      - run: cargo clippy --no-default-features -- -D warnings
-      - run: cargo test --no-default-features
 
-  build-and-test:
-    name: Build & test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+      - name: Rust format
+        run: cargo fmt --all -- --check
+
+      - name: Rust clippy
+        run: cargo clippy --no-default-features -- -D warnings
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python lint tools
+        run: pip install ruff mypy
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format
+        run: ruff format --check .
+
+      - name: Type check (mypy)
+        run: mypy python/translit --ignore-missing-imports
+
+
+  # ── Tier 2: Test ────────────────────────────────────────────────
+  # Linux only on PRs and pushes to main.
+  # Full OS × Python matrix only on release tags (v*).
+  test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    needs: lint
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ github.event_name == 'push' && fromJSON('["ubuntu-latest","macos-latest","windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
-        python-version: ${{ github.event_name == 'push' && fromJSON('["3.9","3.10","3.11","3.12","3.13","3.14"]') || fromJSON('["3.12"]') }}
+        os: ${{ startsWith(github.ref, 'refs/tags/v') && fromJSON('["ubuntu-latest","windows-latest","macos-13"]') || fromJSON('["ubuntu-latest"]') }}
+        python-version: ${{ startsWith(github.ref, 'refs/tags/v') && fromJSON('["3.9","3.10","3.11","3.12","3.13"]') || fromJSON('["3.12"]') }}
     steps:
       - uses: actions/checkout@v6
+
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
+
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+
+      - name: Rust tests
+        run: cargo test --no-default-features
+
       - name: Install maturin (Linux)
         if: runner.os == 'Linux'
         run: pip install maturin[patchelf]
       - name: Install maturin (macOS / Windows)
         if: runner.os != 'Linux'
         run: pip install maturin
-      - name: Build wheel and install test deps
+
+      - name: Build wheel and install
         run: |
           maturin build --out dist
           pip install dist/*.whl
           pip install ".[test]"
           pip install pytest-cov
+
       - name: Run tests
         run: pytest tests/ --ignore=tests/test_typing.py -q --tb=short --cov=translit --cov-report=xml --cov-report=term-missing
+
       - name: Run doctests
         shell: bash
         run: |
           TRANSLIT_DIR=$(python -c "import translit, os; print(os.path.dirname(translit.__file__))")
           pytest --doctest-modules "$TRANSLIT_DIR/__init__.py" "$TRANSLIT_DIR/_compat.py" -q
+
       - name: Upload coverage report
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage.xml
-      - name: Lint (ruff)
-        run: |
-          pip install ruff
-          ruff check python/ tests/
-      - name: Type check (mypy)
-        run: |
-          pip install mypy
-          mypy python/translit --ignore-missing-imports
 
+
+  # ── Tier 3: Build platform wheels (release tags only) ───────────
+  build:
+    name: Build wheels (${{ matrix.os }})
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-13]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          args: --release --out dist
+          manylinux: auto
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-${{ matrix.os }}
+          path: dist/
+
+
+  # ── Tier 4: Publish to PyPI (release tags only) ─────────────────
+  publish:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+
+  # ── Benchmarks (pushes to main only, Linux) ─────────────────────
   bench:
-    name: Benchmarks (compile + smoke test)
-    if: github.event_name == 'push'
+    name: Benchmarks (smoke test)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+
       - name: Criterion benchmarks (short run)
         run: cargo bench --no-default-features --bench bench_core -- --warm-up-time 1 --measurement-time 2 --sample-size 10
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Install maturin (Linux)
-        if: runner.os == 'Linux'
+
+      - name: Install maturin
         run: pip install maturin[patchelf]
-      - name: Install maturin (macOS / Windows)
-        if: runner.os != 'Linux'
-        run: pip install maturin
+
       - name: Python quick benchmarks
         run: |
           maturin build --out dist
           pip install dist/*.whl
           python benchmarks/bench_quick.py
 
+
+  # ── Status gates (for branch protection rules) ──────────────────
   rust-ok:
     name: Rust checks passed
     if: always()
-    needs: [rust-check]
+    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - run: |
-          if [[ "${{ needs.rust-check.result }}" != "success" ]]; then
-            echo "rust-check failed or was cancelled"
+          if [[ "${{ needs.lint.result }}" != "success" || "${{ needs.test.result }}" != "success" ]]; then
+            echo "lint or test failed"
             exit 1
           fi
 
   python-ok:
     name: Python checks passed
     if: always()
-    needs: [build-and-test]
+    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - run: |
-          if [[ "${{ needs.build-and-test.result }}" != "success" ]]; then
-            echo "build-and-test failed or was cancelled"
+          if [[ "${{ needs.lint.result }}" != "success" || "${{ needs.test.result }}" != "success" ]]; then
+            echo "lint or test failed"
             exit 1
           fi
