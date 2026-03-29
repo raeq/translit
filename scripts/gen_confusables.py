@@ -111,35 +111,21 @@ def generate_rust(mappings: list[tuple[int, str]], version_line: str) -> str:
     lines = []
     lines.append("//! Unicode TR39 confusable character mappings (non-Latin → Latin).")
     lines.append("//!")
-    lines.append(
-        "//! Auto-generated from confusables.txt by scripts/gen_confusables.py."
-    )
+    lines.append("//! Auto-generated from confusables.txt by scripts/gen_confusables.py.")
     lines.append(f"//! {version_line}")
     lines.append("//!")
-    lines.append(
-        f"//! Contains {len(mappings)} mappings from non-Latin scripts to Latin"
-    )
-    lines.append(
-        "//! equivalents. Uses compile-time perfect hash maps (`phf`) for O(1)"
-    )
-    lines.append(
-        "//! lookups. Covers Cyrillic, Greek, Armenian, Georgian, CJK compatibility,"
-    )
-    lines.append(
-        "//! mathematical symbols, fullwidth forms, and other confusable characters."
-    )
+    lines.append(f"//! Contains {len(mappings)} mappings from non-Latin scripts to Latin")
+    lines.append("//! equivalents. Uses compile-time perfect hash maps (`phf`) for O(1)")
+    lines.append("//! lookups. Covers Cyrillic, Greek, Armenian, Georgian, CJK compatibility,")
+    lines.append("//! mathematical symbols, fullwidth forms, and other confusable characters.")
     lines.append("//!")
-    lines.append(
-        "//! DO NOT EDIT — regenerate with: python scripts/gen_confusables.py"
-    )
+    lines.append("//! DO NOT EDIT — regenerate with: python scripts/gen_confusables.py")
     lines.append("")
     lines.append("use phf::phf_map;")
     lines.append("")
     lines.append("/// Non-Latin → Latin confusable mappings (O(1) PHF lookup).")
     lines.append("///")
-    lines.append(
-        "/// Maps visually similar non-Latin characters to their Latin prototypes"
-    )
+    lines.append("/// Maps visually similar non-Latin characters to their Latin prototypes")
     lines.append("/// per Unicode Technical Report #39.")
     lines.append("static TO_LATIN: phf::Map<char, &'static str> = phf_map! {")
 
@@ -156,16 +142,12 @@ def generate_rust(mappings: list[tuple[int, str]], version_line: str) -> str:
 
     lines.append("};")
     lines.append("")
-    lines.append(
-        "/// Look up a confusable mapping for a character to the target script."
-    )
+    lines.append("/// Look up a confusable mapping for a character to the target script.")
     lines.append("///")
     lines.append("/// Returns the Latin prototype string if the character is a known")
     lines.append("/// confusable, or None if it is not.")
     lines.append("#[inline]")
-    lines.append(
-        "pub fn lookup(ch: char, target_script: &str) -> Option<&'static str> {"
-    )
+    lines.append("pub fn lookup(ch: char, target_script: &str) -> Option<&'static str> {")
     lines.append('    if target_script != "latin" {')
     lines.append("        return None;")
     lines.append("    }")
@@ -179,9 +161,7 @@ def generate_rust(mappings: list[tuple[int, str]], version_line: str) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate confusables_data.rs")
-    parser.add_argument(
-        "--input", type=Path, help="Local confusables.txt (default: download)"
-    )
+    parser.add_argument("--input", type=Path, help="Local confusables.txt (default: download)")
     args = parser.parse_args()
 
     if args.input:

@@ -121,11 +121,11 @@ class TestCanadianSyllabics:
     def test_cree_consonant_series(self):
         # U+1474=ki, U+14C2=ni, U+14EC=si
         assert transliterate("\u1474") == "ki"
-        assert transliterate("\u14C2") == "ni"
-        assert transliterate("\u14EC") == "si"
+        assert transliterate("\u14c2") == "ni"
+        assert transliterate("\u14ec") == "si"
 
     def test_cree_script_detection(self):
-        assert detect_scripts("\u1403\u1474\u14C4") == [Script.CANADIAN_ABORIGINAL]
+        assert detect_scripts("\u1403\u1474\u14c4") == [Script.CANADIAN_ABORIGINAL]
 
 
 class TestMongolian:

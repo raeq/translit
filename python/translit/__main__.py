@@ -96,19 +96,26 @@ def _add_transliterate_parser(sub: argparse._SubParsersAction) -> None:  # type:
         p = sub.add_parser(name, help="Transliterate Unicode text to ASCII")
         p.add_argument("text", nargs="*", help="Input text (or pipe via stdin)")
         lang_group = p.add_mutually_exclusive_group()
-        lang_group.add_argument("--lang", default=None, help="Language code (e.g. de, ja, zh, auto)")
+        lang_group.add_argument(
+            "--lang", default=None, help="Language code (e.g. de, ja, zh, auto)"
+        )
         lang_group.add_argument(
             "--target",
             default=None,
             help="Reverse transliteration target script (e.g. ru, uk, el)",
         )
         p.add_argument(
-            "--strict-iso9", action="store_true", default=False, help="Use strict ISO 9 transliteration"
+            "--strict-iso9",
+            action="store_true",
+            default=False,
+            help="Use strict ISO 9 transliteration",
         )
         p.add_argument(
             "--gost7034", action="store_true", default=False, help="Use GOST 7.034 transliteration"
         )
-        p.add_argument("--tones", action="store_true", default=False, help="Include tone marks (Chinese)")
+        p.add_argument(
+            "--tones", action="store_true", default=False, help="Include tone marks (Chinese)"
+        )
         p.set_defaults(func=cmd_transliterate)
 
 

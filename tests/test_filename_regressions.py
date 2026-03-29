@@ -108,9 +108,30 @@ class TestReservedNamePreserveExtension:
     # ── All reserved names with extension ──
 
     RESERVED_NAMES = [
-        "CON", "PRN", "AUX", "NUL",
-        "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-        "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+        "CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        "COM0",
+        "COM1",
+        "COM2",
+        "COM3",
+        "COM4",
+        "COM5",
+        "COM6",
+        "COM7",
+        "COM8",
+        "COM9",
+        "LPT0",
+        "LPT1",
+        "LPT2",
+        "LPT3",
+        "LPT4",
+        "LPT5",
+        "LPT6",
+        "LPT7",
+        "LPT8",
+        "LPT9",
     ]
 
     @pytest.mark.parametrize("name", RESERVED_NAMES)
@@ -139,7 +160,9 @@ class TestReservedNamePreserveExtension:
     # ── POSIX: no reserved name handling ──
 
     def test_posix_nul_no_prefix(self) -> None:
-        result = sanitize_filename("NUL.txt", platform="posix", preserve_extension=True, max_length=7)
+        result = sanitize_filename(
+            "NUL.txt", platform="posix", preserve_extension=True, max_length=7
+        )
         assert result.endswith(".txt"), f"extension lost: {result}"
         assert not result.startswith("_"), f"unexpected prefix on posix: {result}"
 
@@ -280,10 +303,33 @@ class TestUtf8SafeTruncation:
 # exceeds max_length, or produces reserved filenames.
 
 WINDOWS_RESERVED = [
-    "CON", "PRN", "AUX", "NUL",
-    "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-    "CLOCK$", "KEYBD$", "SCREEN$",
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM0",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT0",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
+    "CLOCK$",
+    "KEYBD$",
+    "SCREEN$",
 ]
 
 
@@ -307,9 +353,7 @@ class TestFilenameInvariants:
         """When preserve_extension=True, the extension must survive if it fits."""
         filename = f"{stem}.{ext}"
         dot_ext = f".{ext}"
-        result = sanitize_filename(
-            filename, preserve_extension=True, max_length=max_length
-        )
+        result = sanitize_filename(filename, preserve_extension=True, max_length=max_length)
         assert len(result) <= max_length, f"exceeds max_length {max_length}: {result}"
         if len(dot_ext) < max_length:
             assert result.endswith(dot_ext), (
@@ -335,8 +379,7 @@ class TestFilenameInvariants:
             max_length=max_length,
         )
         assert len(result) <= max_length, (
-            f"exceeds max_length {max_length} "
-            f"(preserve_extension={preserve_extension}): '{result}'"
+            f"exceeds max_length {max_length} (preserve_extension={preserve_extension}): '{result}'"
         )
 
     @given(
@@ -345,15 +388,11 @@ class TestFilenameInvariants:
         max_length=st.integers(min_value=6, max_value=50),
     )
     @settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
-    def test_reserved_name_preserve_ext(
-        self, name: str, ext: str, max_length: int
-    ) -> None:
+    def test_reserved_name_preserve_ext(self, name: str, ext: str, max_length: int) -> None:
         """Reserved names with preserve_extension=True must keep the extension."""
         dot_ext = f".{ext}"
         filename = f"{name}{dot_ext}"
-        result = sanitize_filename(
-            filename, preserve_extension=True, max_length=max_length
-        )
+        result = sanitize_filename(filename, preserve_extension=True, max_length=max_length)
         assert len(result) <= max_length, f"exceeds max_length {max_length}: {result}"
         if len(dot_ext) < max_length:
             assert result.endswith(dot_ext), (

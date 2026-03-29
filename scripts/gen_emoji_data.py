@@ -57,15 +57,9 @@ def generate(entries: dict[tuple[int, ...], str]) -> str:
     lines.append("};")
     lines.append("")
 
-    lines.append(
-        f"/// Multi-codepoint emoji sequences to short name ({len(multi)} entries)."
-    )
-    lines.append(
-        "/// Key format: codepoints as uppercase hex separated by underscores."
-    )
-    lines.append(
-        "pub static EMOJI_MULTI: phf::Map<&'static str, &'static str> = phf_map! {"
-    )
+    lines.append(f"/// Multi-codepoint emoji sequences to short name ({len(multi)} entries).")
+    lines.append("/// Key format: codepoints as uppercase hex separated by underscores.")
+    lines.append("pub static EMOJI_MULTI: phf::Map<&'static str, &'static str> = phf_map! {")
     for cps in sorted(multi):
         key = "_".join(f"{c:04X}" for c in cps)
         lines.append(f'    "{key}" => "{escape_rust_str(multi[cps])}",')

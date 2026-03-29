@@ -36,6 +36,28 @@ class TestLangAutoDetection:
             ("ភាសាខ្មែរ", "km"),
             ("བོད་སྐད", "bo"),
             ("Ελληνικά", "el"),
+            ("ދިވެހި", "dv"),  # Thaana
+            ("\ua990\ua99f\ua9aa", "jv"),  # Javanese
+            ("\u182e\u1823\u1829", "mn"),  # Mongolian
+            # New scripts (v0.3.0+)
+            ("\u1b05\u1b13\u1b17", "ban"),  # Balinese
+            ("\ua6a0\ua6a1\ua6a2", "bax"),  # Bamum
+            ("\u1a00\u1a01\u1a02", "bug"),  # Buginese
+            ("\u13a0\u13a1\u13a2", "chr"),  # Cherokee
+            ("\uaa00\uaa01\uaa02", "cjm"),  # Cham
+            ("\u2c80\u2c81\u2c82", "cop"),  # Coptic
+            ("\u1980\u1981\u1982", "khb"),  # New Tai Lue
+            ("\ua4d0\ua4d1\ua4d2", "lis"),  # Lisu
+            ("\uabc0\uabc1\uabc2", "mni"),  # Meetei Mayek
+            ("\u1a20\u1a21\u1a22", "nod"),  # Tai Tham
+            ("\u07c1\u07c2\u07c3", "nqo"),  # N'Ko
+            ("\u1c5a\u1c5b\u1c5c", "sat"),  # Ol Chiki
+            ("\u1b83\u1b84\u1b85", "su"),  # Sundanese
+            ("\u0710\u0712\u0713", "syr"),  # Syriac
+            ("\u1950\u1951\u1952", "tdd"),  # Tai Le
+            ("\u1700\u1701\u1702", "tl"),  # Tagalog
+            ("\u2d30\u2d31\u2d33", "tzm"),  # Tifinagh
+            ("\ua500\ua501\ua502", "vai"),  # Vai
         ],
     )
     def test_auto_matches_explicit_lang(self, text: str, expected_lang: str) -> None:
@@ -120,9 +142,7 @@ class TestLangDiscriminator:
     def test_vietnamese_detected_by_horn_vowels(self) -> None:
         """Vietnamese ơ/ư triggers vi detection."""
         auto = transliterate("Thành phố Hồ Chí Minh rất đẹp và có nhiều người", lang="auto")
-        explicit = transliterate(
-            "Thành phố Hồ Chí Minh rất đẹp và có nhiều người", lang="vi"
-        )
+        explicit = transliterate("Thành phố Hồ Chí Minh rất đẹp và có nhiều người", lang="vi")
         assert auto == explicit
 
     def test_turkish_detected_by_dotless_i(self) -> None:

@@ -118,6 +118,11 @@ static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
     (0x1680, 0x169F, "Ogham"),
     // Runic
     (0x16A0, 0x16FF, "Runic"),
+    // Tagalog, Hanunoo, Buhid, Tagbanwa
+    (0x1700, 0x171F, "Tagalog"),
+    (0x1720, 0x173F, "Hanunoo"),
+    (0x1740, 0x175F, "Buhid"),
+    (0x1760, 0x177F, "Tagbanwa"),
     // Khmer
     (0x1780, 0x17FF, "Khmer"),
     // Mongolian
@@ -130,10 +135,20 @@ static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
     (0x1980, 0x19DF, "NewTaiLue"),
     // Khmer Symbols
     (0x19E0, 0x19FF, "Khmer"),
+    // Buginese (Lontara)
+    (0x1A00, 0x1A1F, "Buginese"),
+    // Tai Tham (Lanna)
+    (0x1A20, 0x1AAF, "TaiTham"),
     // Inherited — Combining Diacritical Marks Extended
     (0x1AB0, 0x1AFF, "Inherited"),
     // Balinese
     (0x1B00, 0x1B7F, "Balinese"),
+    // Sundanese
+    (0x1B80, 0x1BBF, "Sundanese"),
+    // Batak
+    (0x1BC0, 0x1BFF, "Batak"),
+    // Ol Chiki
+    (0x1C50, 0x1C7F, "OlChiki"),
     // Georgian Extended
     (0x1C90, 0x1CBF, "Georgian"),
     // Latin — Phonetic Extensions
@@ -154,6 +169,8 @@ static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
     (0x2C80, 0x2CFF, "Coptic"),
     // Georgian Supplement
     (0x2D00, 0x2D2F, "Georgian"),
+    // Tifinagh
+    (0x2D30, 0x2D7F, "Tifinagh"),
     // Ethiopic Extended
     (0x2D80, 0x2DDF, "Ethiopic"),
     // Cyrillic Extended-A
@@ -174,10 +191,14 @@ static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
     (0x3400, 0x4DBF, "Han"),
     // CJK Unified
     (0x4E00, 0x9FFF, "Han"),
+    // Lisu (Fraser)
+    (0xA4D0, 0xA4FF, "Lisu"),
     // Vai
     (0xA500, 0xA63F, "Vai"),
     // Cyrillic Extended-B
     (0xA640, 0xA69F, "Cyrillic"),
+    // Bamum
+    (0xA6A0, 0xA6FF, "Bamum"),
     // Latin Extended-D
     (0xA720, 0xA7FF, "Latin"),
     // Devanagari Extended
@@ -186,14 +207,20 @@ static SCRIPT_RANGES: &[(u32, u32, &str)] = &[
     (0xA960, 0xA97F, "Hangul"),
     // Javanese
     (0xA980, 0xA9DF, "Javanese"),
+    // Cham
+    (0xAA00, 0xAA5F, "Cham"),
     // Myanmar Extended-A
     (0xAA60, 0xAA7F, "Myanmar"),
+    // Meetei Mayek Extensions
+    (0xAAE0, 0xAAFF, "MeeteiMayek"),
     // Ethiopic Extended-A
     (0xAB00, 0xAB2F, "Ethiopic"),
     // Latin Extended-E
     (0xAB30, 0xAB6F, "Latin"),
     // Cherokee Supplement
     (0xAB70, 0xABBF, "Cherokee"),
+    // Meetei Mayek
+    (0xABC0, 0xABFF, "MeeteiMayek"),
     // Hangul Syllables
     (0xAC00, 0xD7AF, "Hangul"),
     // Hangul Jamo Extended-B
@@ -570,6 +597,19 @@ pub fn _inspect_auto_lang(py: Python<'_>, text: &str) -> PyResult<PyObject> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_script_ranges_sorted() {
+        for i in 1..SCRIPT_RANGES.len() {
+            let (prev_start, prev_end, prev_script) = SCRIPT_RANGES[i - 1];
+            let (curr_start, _, _) = SCRIPT_RANGES[i];
+            assert!(
+                curr_start > prev_end,
+                "SCRIPT_RANGES not sorted or overlapping at index {i}: \
+                 ({prev_start:#X}..{prev_end:#X}, {prev_script:?}) vs ({curr_start:#X}..)"
+            );
+        }
+    }
 
     #[test]
     fn test_detect_latin() {

@@ -19,7 +19,7 @@ from translit import (
     transliterate,
     transliterate_batch,
 )
-from translit._enums import LANG_AUTO
+from translit._enums import LANG_AUTO, LANG_META, SCRIPT_META
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -53,6 +53,18 @@ SCRIPT_EXEMPLARS: dict[str, str] = {
     "Georgian": "ქართული",
     "Armenian": "Հայերեն",
     "Ethiopic": "አማርኛ",
+    # New enum scripts (v0.3.0+)
+    "Balinese": "\u1b05\u1b13\u1b17",
+    "Bamum": "\ua6a0\ua6a1\ua6a2",
+    "Buginese": "\u1a00\u1a01\u1a02",
+    "Cham": "\uaa00\uaa01\uaa02",
+    "Lisu": "\ua4d0\ua4d1\ua4d2",
+    "MeeteiMayek": "\uabc0\uabc1\uabc2",
+    "OlChiki": "\u1c5a\u1c5b\u1c5c",
+    "Sundanese": "\u1b83\u1b84\u1b85",
+    "Tagalog": "\u1700\u1701\u1702",
+    "TaiTham": "\u1a20\u1a21\u1a22",
+    "Tifinagh": "\u2d30\u2d31\u2d33",
 }
 
 # Sample text per language for lang= transliteration.
@@ -124,24 +136,24 @@ LANG_SAMPLES: dict[str, str] = {
     "vi": "tiếng Việt",
     "zh": "北京市",
     # --- New scripts (v0.3.0+) ---
-    "ban": "\u1B05\u1B13\u1B17",          # Balinese: aka
-    "bax": "\uA6A0\uA6A1\uA6A2",          # Bamum syllables
-    "bug": "\u1A00\u1A01\u1A02",           # Buginese/Lontara: ka ga nga
-    "chr": "\u13A0\u13A1\u13A2",           # Cherokee: a e i
-    "cjm": "\uAA00\uAA01\uAA02",          # Cham consonants
-    "cop": "\u2C80\u2C81\u2C82\u2C83",     # Coptic: Alfa alfa Vida vida
-    "khb": "\u1980\u1981\u1982",           # New Tai Lue consonants
-    "lis": "\uA4D0\uA4D1\uA4D2",          # Lisu letters
-    "mni": "\uABC0\uABC1\uABC2",          # Meetei Mayek: kok sai lai
-    "nod": "\u1A20\u1A21\u1A22",           # Tai Tham consonants
-    "nqo": "\u07C1\u07C2\u07C3",           # N'Ko digits
-    "sat": "\u1C50\u1C51\u1C52",           # Ol Chiki digits
-    "su": "\u1B80\u1B83\u1B84",            # Sundanese
-    "syr": "\u0710\u0712\u0713",           # Syriac: alaph beth gamal
-    "tdd": "\u1950\u1951\u1952",           # Tai Le consonants
-    "tl": "\u1700\u1701\u1702",            # Tagalog: a i u
-    "tzm": "\u2D30\u2D31\u2D33",           # Tifinagh: ya yab yag
-    "vai": "\uA500\uA501\uA502",           # Vai syllables
+    "ban": "\u1b05\u1b13\u1b17",  # Balinese: aka
+    "bax": "\ua6a0\ua6a1\ua6a2",  # Bamum syllables
+    "bug": "\u1a00\u1a01\u1a02",  # Buginese/Lontara: ka ga nga
+    "chr": "\u13a0\u13a1\u13a2",  # Cherokee: a e i
+    "cjm": "\uaa00\uaa01\uaa02",  # Cham consonants
+    "cop": "\u2c80\u2c81\u2c82\u2c83",  # Coptic: Alfa alfa Vida vida
+    "khb": "\u1980\u1981\u1982",  # New Tai Lue consonants
+    "lis": "\ua4d0\ua4d1\ua4d2",  # Lisu letters
+    "mni": "\uabc0\uabc1\uabc2",  # Meetei Mayek: kok sai lai
+    "nod": "\u1a20\u1a21\u1a22",  # Tai Tham consonants
+    "nqo": "\u07c1\u07c2\u07c3",  # N'Ko digits
+    "sat": "\u1c50\u1c51\u1c52",  # Ol Chiki digits
+    "su": "\u1b80\u1b83\u1b84",  # Sundanese
+    "syr": "\u0710\u0712\u0713",  # Syriac: alaph beth gamal
+    "tdd": "\u1950\u1951\u1952",  # Tai Le consonants
+    "tl": "\u1700\u1701\u1702",  # Tagalog: a i u
+    "tzm": "\u2d30\u2d31\u2d33",  # Tifinagh: ya yab yag
+    "vai": "\ua500\ua501\ua502",  # Vai syllables
 }
 
 
@@ -161,6 +173,19 @@ class TestListLangs:
     def test_auto_not_in_list(self):
         """'auto' is a meta-code, not a real language profile."""
         assert LANG_AUTO not in list_langs()
+
+    def test_lang_meta_covers_all_builtin(self):
+        """Every BUILTIN_LANGS code from Rust must have a LANG_META entry."""
+        # Exclude _*-prefixed codes registered dynamically by concurrent tests
+        registered = {c for c in list_langs() if not c.startswith("_")}
+        missing = registered - set(LANG_META.keys())
+        assert not missing, f"LANG_META missing entries for Rust BUILTIN_LANGS: {missing}"
+
+    def test_script_meta_covers_all_enum(self):
+        """Every Script enum value (except meta) must have a SCRIPT_META entry."""
+        scripts = {s.value for s in Script if s.value not in ("Common", "Inherited")}
+        missing = scripts - set(SCRIPT_META.keys())
+        assert not missing, f"SCRIPT_META missing entries for Script enum: {missing}"
 
 
 # ---------------------------------------------------------------------------
@@ -249,8 +274,7 @@ class TestEveryScriptDetectable:
             detected = detect_scripts(text)
             detected_values = [s.value for s in detected]
             assert script_name in detected_values, (
-                f"detect_scripts({text!r}) returned {detected_values}, "
-                f"expected {script_name}"
+                f"detect_scripts({text!r}) returned {detected_values}, expected {script_name}"
             )
 
     def test_exemplar_coverage(self):

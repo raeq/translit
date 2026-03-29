@@ -562,11 +562,11 @@ class TestIndicTransliteration:
         assert result2.isascii()
 
     def test_bare_matra_no_crash(self) -> None:
-        result = transliterate("\u093F")
+        result = transliterate("\u093f")
         assert isinstance(result, str)
 
     def test_bare_virama_no_crash(self) -> None:
-        result = transliterate("\u094D")
+        result = transliterate("\u094d")
         assert isinstance(result, str)
 
     def test_devanagari_multiword(self) -> None:
@@ -609,47 +609,43 @@ class TestIndicTransliteration:
     def test_all_indic_produce_ascii(self) -> None:
         """All Indic script samples should transliterate to pure ASCII."""
         samples = [
-            "नमस्ते",       # Devanagari
-            "কলকাতা",      # Bengali
-            "தமிழ்",       # Tamil
-            "తెలుగు",      # Telugu
-            "ગુજરાતી",     # Gujarati
-            "ಕನ್ನಡ",       # Kannada
-            "മലയാളം",      # Malayalam
-            "ଓଡ଼ିଆ",       # Odia
-            "ਗੁਰਮੁਖੀ",     # Gurmukhi
+            "नमस्ते",  # Devanagari
+            "কলকাতা",  # Bengali
+            "தமிழ்",  # Tamil
+            "తెలుగు",  # Telugu
+            "ગુજરાતી",  # Gujarati
+            "ಕನ್ನಡ",  # Kannada
+            "മലയാളം",  # Malayalam
+            "ଓଡ଼ିଆ",  # Odia
+            "ਗੁਰਮੁਖੀ",  # Gurmukhi
         ]
         for sample in samples:
             result = transliterate(sample, errors="ignore")
-            assert result.isascii(), (
-                f"Expected ASCII for {sample!r}, got {result!r}"
-            )
-            assert len(result) > 0, (
-                f"Expected non-empty result for {sample!r}"
-            )
+            assert result.isascii(), f"Expected ASCII for {sample!r}, got {result!r}"
+            assert len(result) > 0, f"Expected non-empty result for {sample!r}"
 
 
 class TestSinhalaTransliteration:
     """Tests for Sinhala script transliteration."""
 
     def test_sinhala_bare_consonant(self) -> None:
-        assert transliterate("\u0D9A") == "ka"
+        assert transliterate("\u0d9a") == "ka"
 
     def test_sinhala_virama(self) -> None:
-        assert transliterate("\u0D9A\u0DCA") == "k"
+        assert transliterate("\u0d9a\u0dca") == "k"
 
     def test_sinhala_matra(self) -> None:
-        assert transliterate("\u0D9A\u0DD2") == "ki"
-        assert transliterate("\u0D9A\u0DD4") == "ku"
+        assert transliterate("\u0d9a\u0dd2") == "ki"
+        assert transliterate("\u0d9a\u0dd4") == "ku"
 
     def test_sinhala_word(self) -> None:
         result = transliterate("සිංහල")
         assert result == "simhala"
 
     def test_sinhala_independent_vowels(self) -> None:
-        assert transliterate("\u0D85") == "a"
-        assert transliterate("\u0D89") == "i"
-        assert transliterate("\u0D8B") == "u"
+        assert transliterate("\u0d85") == "a"
+        assert transliterate("\u0d89") == "i"
+        assert transliterate("\u0d8b") == "u"
 
     def test_sinhala_digits(self) -> None:
         assert transliterate("෧෨෩") == "123"
@@ -700,13 +696,13 @@ class TestGeorgianTransliteration:
 
     def test_georgian_mtavruli_uppercase(self) -> None:
         """Mtavruli (U+1C90+) uppercase letters."""
-        assert transliterate("\u1C90") == "A"
-        assert transliterate("\u1C91") == "B"
+        assert transliterate("\u1c90") == "A"
+        assert transliterate("\u1c91") == "B"
 
     def test_georgian_supplement(self) -> None:
         """Georgian Supplement (U+2D00+) lowercase Nuskhuri."""
-        assert transliterate("\u2D00") == "a"
-        assert transliterate("\u2D01") == "b"
+        assert transliterate("\u2d00") == "a"
+        assert transliterate("\u2d01") == "b"
 
 
 class TestArmenianTransliteration:
@@ -735,14 +731,14 @@ class TestArmenianTransliteration:
         assert transliterate("և") == "yev"
 
     def test_armenian_presentation_ligatures(self) -> None:
-        assert transliterate("\uFB13") == "mn"
-        assert transliterate("\uFB14") == "me"
-        assert transliterate("\uFB15") == "mi"
-        assert transliterate("\uFB16") == "vn"
-        assert transliterate("\uFB17") == "mkh"
+        assert transliterate("\ufb13") == "mn"
+        assert transliterate("\ufb14") == "me"
+        assert transliterate("\ufb15") == "mi"
+        assert transliterate("\ufb16") == "vn"
+        assert transliterate("\ufb17") == "mkh"
 
     def test_armenian_hyphen(self) -> None:
-        assert transliterate("\u058A") == "-"
+        assert transliterate("\u058a") == "-"
 
     def test_armenian_produces_ascii(self) -> None:
         samples = ["Հայաստան", "Երևան", "Հայերեն"]
@@ -836,8 +832,8 @@ class TestLaoTransliteration:
     def test_lao_tone_marks_dropped(self) -> None:
         """Tone marks should be dropped in BGN/PCGN romanization."""
         # Lao tone marks: U+0EC8-0ECB
-        assert transliterate("ກ\u0EC8") == "k"
-        assert transliterate("ກ\u0EC9") == "k"
+        assert transliterate("ກ\u0ec8") == "k"
+        assert transliterate("ກ\u0ec9") == "k"
 
     def test_lao_word_lao(self) -> None:
         assert transliterate("ລາວ") == "law"
@@ -871,13 +867,13 @@ class TestEthiopicTransliteration:
 
     def test_ethiopic_syllable_orders(self) -> None:
         """First consonant (h) through all 7 vowel orders."""
-        assert transliterate("ሀ") == "he"   # order 1 (ä)
-        assert transliterate("ሁ") == "hu"   # order 2
-        assert transliterate("ሂ") == "hi"   # order 3
-        assert transliterate("ሃ") == "ha"   # order 4
-        assert transliterate("ሄ") == "he"   # order 5 (é)
-        assert transliterate("ህ") == "h"    # order 6 (ə/bare)
-        assert transliterate("ሆ") == "ho"   # order 7
+        assert transliterate("ሀ") == "he"  # order 1 (ä)
+        assert transliterate("ሁ") == "hu"  # order 2
+        assert transliterate("ሂ") == "hi"  # order 3
+        assert transliterate("ሃ") == "ha"  # order 4
+        assert transliterate("ሄ") == "he"  # order 5 (é)
+        assert transliterate("ህ") == "h"  # order 6 (ə/bare)
+        assert transliterate("ሆ") == "ho"  # order 7
 
     def test_ethiopic_ethiopia(self) -> None:
         assert transliterate("ኢትዮጵያ") == "ityopya"
@@ -1051,32 +1047,32 @@ class TestHebrewTransliteration:
 
     def test_hebrew_nikkud(self) -> None:
         """Vowel points produce correct vowels."""
-        assert transliterate("\u05B4") == "i"   # hiriq
-        assert transliterate("\u05B8") == "a"   # qamats
-        assert transliterate("\u05B9") == "o"   # holam
-        assert transliterate("\u05BB") == "u"   # qubbuts
+        assert transliterate("\u05b4") == "i"  # hiriq
+        assert transliterate("\u05b8") == "a"  # qamats
+        assert transliterate("\u05b9") == "o"  # holam
+        assert transliterate("\u05bb") == "u"  # qubbuts
 
     def test_hebrew_presentation_forms_dagesh(self) -> None:
         """Precomposed consonant+dagesh forms give correct romanization."""
-        assert transliterate("\uFB31") == "b"   # bet + dagesh
-        assert transliterate("\uFB3A") == "k"   # final kaf + dagesh
-        assert transliterate("\uFB44") == "p"   # pe + dagesh
+        assert transliterate("\ufb31") == "b"  # bet + dagesh
+        assert transliterate("\ufb3a") == "k"  # final kaf + dagesh
+        assert transliterate("\ufb44") == "p"  # pe + dagesh
 
     def test_hebrew_shin_sin_dots(self) -> None:
         """Shin/sin dot presentation forms distinguish sh vs s."""
-        assert transliterate("\uFB2A") == "sh"  # shin + shin dot
-        assert transliterate("\uFB2B") == "s"   # shin + sin dot
+        assert transliterate("\ufb2a") == "sh"  # shin + shin dot
+        assert transliterate("\ufb2b") == "s"  # shin + sin dot
 
     def test_hebrew_maqaf(self) -> None:
-        assert transliterate("\u05BE") == "-"
+        assert transliterate("\u05be") == "-"
 
     def test_hebrew_yiddish_ligatures(self) -> None:
-        assert transliterate("\u05F0") == "v"   # double vav
-        assert transliterate("\u05F1") == "vy"  # vav yod
-        assert transliterate("\u05F2") == "y"   # double yod
+        assert transliterate("\u05f0") == "v"  # double vav
+        assert transliterate("\u05f1") == "vy"  # vav yod
+        assert transliterate("\u05f2") == "y"  # double yod
 
     def test_hebrew_alef_lamed_ligature(self) -> None:
-        assert transliterate("\uFB4F") == "al"
+        assert transliterate("\ufb4f") == "al"
 
     def test_hebrew_cantillation_stripped(self) -> None:
         """Cantillation marks should be stripped (empty mapping)."""
@@ -1222,28 +1218,28 @@ _ALL_LANG_ASCII_SAMPLES: dict[str, tuple[str, str]] = {
     # --- Dhivehi (Thaana script) ---
     "dv": ("ދިވެހިރާއްޖެ", "Dhivehi Maldives"),
     # --- Javanese ---
-    "jv": ("\uA990\uA99F\uA9AA\uA9A3\uA9A8", "Javanese consonants"),
+    "jv": ("\ua990\ua99f\ua9aa\ua9a3\ua9a8", "Javanese consonants"),
     # --- Mongolian ---
-    "mn": ("\u182E\u1823\u1829\u182D\u1823\u182F", "Mongolian mongol"),
+    "mn": ("\u182e\u1823\u1829\u182d\u1823\u182f", "Mongolian mongol"),
     # --- New scripts (v0.3.0+) ---
-    "ban": ("\u1B05\u1B13\u1B17\u1B15\u1B18", "Balinese consonants"),
-    "bax": ("\uA6A0\uA6A1\uA6A2\uA6A3", "Bamum syllables"),
-    "bug": ("\u1A00\u1A01\u1A02\u1A03\u1A04", "Buginese Lontara"),
-    "chr": ("\u13A0\u13A1\u13A2\u13A3\u13A4", "Cherokee syllabary"),
-    "cjm": ("\uAA00\uAA01\uAA02\uAA03", "Cham consonants"),
-    "cop": ("\u2C80\u2C81\u2C82\u2C83\u2C84\u2C85", "Coptic letters"),
+    "ban": ("\u1b05\u1b13\u1b17\u1b15\u1b18", "Balinese consonants"),
+    "bax": ("\ua6a0\ua6a1\ua6a2\ua6a3", "Bamum syllables"),
+    "bug": ("\u1a00\u1a01\u1a02\u1a03\u1a04", "Buginese Lontara"),
+    "chr": ("\u13a0\u13a1\u13a2\u13a3\u13a4", "Cherokee syllabary"),
+    "cjm": ("\uaa00\uaa01\uaa02\uaa03", "Cham consonants"),
+    "cop": ("\u2c80\u2c81\u2c82\u2c83\u2c84\u2c85", "Coptic letters"),
     "khb": ("\u1980\u1981\u1982\u1983", "New Tai Lue consonants"),
-    "lis": ("\uA4D0\uA4D1\uA4D2\uA4D3", "Lisu Fraser letters"),
-    "mni": ("\uABC0\uABC1\uABC2\uABC3", "Meetei Mayek letters"),
-    "nod": ("\u1A20\u1A21\u1A22\u1A23", "Tai Tham Lanna consonants"),
-    "nqo": ("\u07C1\u07C2\u07C3\u07C4", "NKo digits"),
-    "sat": ("\u1C5A\u1C5B\u1C5C\u1C5D", "Ol Chiki letters"),
-    "su": ("\u1B83\u1B84\u1B85\u1B86", "Sundanese consonants"),
+    "lis": ("\ua4d0\ua4d1\ua4d2\ua4d3", "Lisu Fraser letters"),
+    "mni": ("\uabc0\uabc1\uabc2\uabc3", "Meetei Mayek letters"),
+    "nod": ("\u1a20\u1a21\u1a22\u1a23", "Tai Tham Lanna consonants"),
+    "nqo": ("\u07c1\u07c2\u07c3\u07c4", "NKo digits"),
+    "sat": ("\u1c5a\u1c5b\u1c5c\u1c5d", "Ol Chiki letters"),
+    "su": ("\u1b83\u1b84\u1b85\u1b86", "Sundanese consonants"),
     "syr": ("\u0710\u0712\u0713\u0715", "Syriac letters"),
     "tdd": ("\u1950\u1951\u1952\u1953", "Tai Le consonants"),
     "tl": ("\u1700\u1701\u1702\u1703", "Tagalog Baybayin"),
-    "tzm": ("\u2D30\u2D31\u2D33\u2D37", "Tifinagh Berber letters"),
-    "vai": ("\uA500\uA501\uA502\uA503", "Vai syllables"),
+    "tzm": ("\u2d30\u2d31\u2d33\u2d37", "Tifinagh Berber letters"),
+    "vai": ("\ua500\ua501\ua502\ua503", "Vai syllables"),
 }
 
 
@@ -1265,9 +1261,7 @@ class TestAllLanguagesProduceAscii:
     )
     def test_transliterate_produces_ascii(self, lang: str, sample: str, desc: str) -> None:
         result = transliterate(sample, lang=lang)
-        non_ascii = [
-            f"U+{ord(ch):04X} ({ch})" for ch in result if ord(ch) > 127
-        ]
+        non_ascii = [f"U+{ord(ch):04X} ({ch})" for ch in result if ord(ch) > 127]
         assert result.isascii(), (
             f"lang={lang!r} ({desc}): non-ASCII chars in output: {non_ascii}\n"
             f"Input:  {sample!r}\n"
@@ -1285,8 +1279,7 @@ class TestAllLanguagesProduceAscii:
         """Transliteration must produce non-empty output for non-empty input."""
         result = transliterate(sample, lang=lang)
         assert len(result.strip()) > 0, (
-            f"lang={lang!r} ({desc}): empty output for non-empty input\n"
-            f"Input: {sample!r}"
+            f"lang={lang!r} ({desc}): empty output for non-empty input\nInput: {sample!r}"
         )
 
     def test_all_registered_langs_have_samples(self) -> None:

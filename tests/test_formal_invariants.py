@@ -29,6 +29,7 @@ pytestmark = pytest.mark.formal
 
 # ── I1: ASCII Passthrough ───────────────────────────────────────────────
 
+
 class TestI1AsciiPassthrough:
     """I1: For all s where s.isascii(), transliterate(s) == s."""
 
@@ -50,6 +51,7 @@ class TestI1AsciiPassthrough:
 
 # ── I2: ASCII Output (ErrorMode::Ignore) ───────────────────────────────
 
+
 class TestI2AsciiOutput:
     """I2: For all s, transliterate(s, errors='ignore').isascii() == True."""
 
@@ -63,9 +65,9 @@ class TestI2AsciiOutput:
         """SMP characters (above U+FFFF) also produce ASCII with errors='ignore'."""
         smp_chars = [
             "\U00010000",  # Linear B Syllable B008 A
-            "\U0001F600",  # Grinning Face emoji
+            "\U0001f600",  # Grinning Face emoji
             "\U00020000",  # CJK Unified Ideograph Extension B
-            "\U0001D400",  # Mathematical Bold Capital A
+            "\U0001d400",  # Mathematical Bold Capital A
             "\U00010900",  # Phoenician Letter Alf
         ]
         for ch in smp_chars:
@@ -74,6 +76,7 @@ class TestI2AsciiOutput:
 
 
 # ── I3: Idempotence ────────────────────────────────────────────────────
+
 
 class TestI3Idempotence:
     """I3: For all s, transliterate(transliterate(s, errors='ignore'), errors='ignore')
@@ -89,6 +92,7 @@ class TestI3Idempotence:
 
 # ── I4: No Exceptions ──────────────────────────────────────────────────
 
+
 class TestI4NoExceptions:
     """I4: For all valid Unicode strings s with len(s) ≤ 10 MiB,
     transliterate(s) does not raise an exception."""
@@ -102,22 +106,23 @@ class TestI4NoExceptions:
     def test_edge_cases(self):
         """Specific edge cases that might trigger errors."""
         edge_cases = [
-            "",                          # empty string
-            "\x00",                      # null byte
-            "\uFEFF",                    # BOM
-            "\uFFFD",                    # replacement character
-            "\uFFFF",                    # non-character
-            "\U0010FFFF",               # max Unicode scalar
-            "\uD800"[0:0],              # empty (can't create surrogates in Python)
-            "a" * 1000,                  # long ASCII
-            "\u0300" * 100,             # combining marks only
-            "\U0001F1FA\U0001F1F8",     # flag sequence (US)
+            "",  # empty string
+            "\x00",  # null byte
+            "\ufeff",  # BOM
+            "\ufffd",  # replacement character
+            "\uffff",  # non-character
+            "\U0010ffff",  # max Unicode scalar
+            "\ud800"[0:0],  # empty (can't create surrogates in Python)
+            "a" * 1000,  # long ASCII
+            "\u0300" * 100,  # combining marks only
+            "\U0001f1fa\U0001f1f8",  # flag sequence (US)
         ]
         for text in edge_cases:
             translit.transliterate(text)  # should not raise
 
 
 # ── I5: Deterministic ──────────────────────────────────────────────────
+
 
 class TestI5Deterministic:
     """I5: For all s, n > 0: transliterate(s) called n times yields the same result."""
@@ -144,6 +149,7 @@ class TestI5Deterministic:
 
 # ── I6: Input Size Bounded ──────────────────────────────────────────────
 
+
 class TestI6InputSizeBound:
     """I6: Inputs exceeding 10 MiB are rejected with TranslitError.
 
@@ -169,6 +175,7 @@ class TestI6InputSizeBound:
 
 
 # ── I7: Output Length Bounded ───────────────────────────────────────────
+
 
 class TestI7OutputLengthBound:
     """I7: For ErrorMode::Ignore, len(output) ≤ len(input) * 4 + char_count.
