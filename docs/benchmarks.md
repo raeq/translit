@@ -85,7 +85,7 @@ Benchmark groups:
 - **filename** — translit vs pathvalidate for simple, Unicode, and adversarial inputs
 - **strip_accents** — translit vs pure-Python NFD + category filter
 - **fold_case** — translit vs `str.casefold()` (CPython C builtin)
-- **batch** — `transliterate_batch` and `slugify_batch` vs equivalent Python loops
+- **batch** — `transliterate(list)` and `slugify(list)` vs equivalent Python loops
 
 ```bash
 # Full suite (~15 min, high confidence)

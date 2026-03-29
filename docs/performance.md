@@ -136,17 +136,17 @@ property-based testing.
 ## Normalization
 
 `translit.normalize()` uses the Rust `unicode-normalization` crate
-(Unicode 16.0) for all calls — both standalone and batch. This ensures
+(Unicode 16.0) for all calls — both single strings and lists. This ensures
 consistent results across all code paths and avoids Unicode version
 mismatches between CPython's `unicodedata` (Unicode 15.1) and the Rust
 crate.
 
 `unicodedata.normalize()` is a CPython C extension that operates directly
 on Python's internal string representation with zero-copy fast-path
-semantics, so it is faster for standalone calls. The tradeoff is
+semantics, so it is faster for single-string calls. The tradeoff is
 correctness: using a single Unicode version throughout eliminates subtle
-bugs where `normalize()` and `normalize_batch()` produce different results
-for codepoints assigned between Unicode versions.
+bugs where different code paths produce different results for codepoints
+assigned between Unicode versions.
 
 
 ## Accent stripping
@@ -199,24 +199,25 @@ fullwidth Latin, and all Latin ligature expansions. Pure-ASCII strings take
 a branchless fast path that skips the PHF entirely.
 
 
-## Batch processing
+## List input (batch processing)
 
-`transliterate_batch()`, `slugify_batch()`, `normalize_batch()`, and
-`strip_accents_batch()` process a list of strings in a single PyO3
-boundary crossing, amortising the per-call overhead across N strings.
+`transliterate()`, `slugify()`, `normalize()`, and `strip_accents()` accept
+a `list[str]` in addition to a single `str`. When a list is passed, all
+strings are processed in a single PyO3 boundary crossing, amortising the
+per-call overhead across N strings.
 
 100 mixed-script strings (Latin, Cyrillic, CJK, mixed):
 
-| Operation | Batch | Loop | Speedup |
+| Operation | List | Loop | Speedup |
 |---|---|---|---|
 | transliterate | **18.1 µs** | 51.5 µs | **2.8×** |
 
-The batch API eliminates PyO3 boundary-crossing overhead per string for
-transliteration. The advantage grows linearly with batch size.
+Passing a list eliminates PyO3 boundary-crossing overhead per string.
+The advantage grows linearly with list size.
 
-Use the batch API whenever you have a list of strings to process — it is
-always at least as fast as the loop, and measurably faster for short strings
-where PyO3 overhead is a significant fraction of total work.
+Pass a list whenever you have multiple strings to process — it is always
+at least as fast as a loop, and measurably faster for short strings where
+PyO3 overhead is a significant fraction of total work.
 
 
 ## Precompiled pipelines
@@ -324,13 +325,13 @@ Rust. This makes the common case (already-ASCII text) effectively free:
 | `transliterate("hello")` | **71 ns** | 615 ns |
 | `strip_accents("hello")` | **36 ns** | 805 ns |
 
-### 3. Batch APIs
+### 3. List input (batch processing)
 
-`transliterate_batch()`, `slugify_batch()`, `normalize_batch()`, and
-`strip_accents_batch()` accept a list of strings and process them in a single
-PyO3 boundary crossing, amortising per-call overhead across N strings. For
-100 mixed-script strings, batch transliteration is **2.8× faster** than
-calling `transliterate()` in a Python loop.
+`transliterate()`, `slugify()`, `normalize()`, and `strip_accents()` accept
+a `list[str]` and process all strings in a single PyO3 boundary crossing,
+amortising per-call overhead across N strings. For 100 mixed-script strings,
+`transliterate(list_of_100)` is **2.8× faster** than calling
+`transliterate(s)` in a Python loop.
 
 ### 4. Range-dispatch in lookup_default()
 
@@ -346,11 +347,10 @@ that have dedicated, higher-quality tables.
 `translit.normalize()` uses the Rust `unicode-normalization` crate for all
 calls. While CPython's `unicodedata.normalize()` is faster for standalone calls
 (it operates directly on Python's internal string buffer with zero-copy
-semantics), using Rust throughout ensures Unicode version consistency: both
-`normalize()` and `normalize_batch()` use the same Unicode 16.0 tables,
-eliminating subtle version-mismatch bugs for codepoints assigned between Unicode
-15.1 and 16.0. The Rust implementation is used by all code paths — standalone
-calls, batch APIs, and precompiled pipelines (`security_clean`, `ml_normalize`,
+semantics), using Rust throughout ensures Unicode version consistency: all
+calls use the same Unicode 16.0 tables regardless of whether you pass a
+single string or a list. The Rust implementation is used by all code paths —
+single strings, list input, and precompiled pipelines (`security_clean`, `ml_normalize`,
 `catalog_key`, `TextPipeline`).
 
 ### 6. Full Unicode case folding via PHF

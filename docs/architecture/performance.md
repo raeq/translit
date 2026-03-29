@@ -47,26 +47,26 @@ The output buffer is pre-sized based on the first non-ASCII character's script:
 
 This heuristic eliminates reallocations for the two most common workload shapes. The cost of over-sizing (a few KB of unused capacity) is negligible compared to the cost of repeated reallocations that memcpy the entire buffer.
 
-## Optimization 6: Batch APIs
+## Optimization 6: List input (batch processing)
 
-`transliterate_batch()`, `slugify_batch()`, `normalize_batch()`, and `strip_accents_batch()` process a list of strings in a single PyO3 boundary crossing. For 100 strings, this saves ~24 µs of boundary overhead (240 ns × 100). The saving scales linearly with batch size.
+`transliterate()`, `slugify()`, `normalize()`, and `strip_accents()` accept a `list[str]` and process all strings in a single PyO3 boundary crossing. For 100 strings, this saves ~24 µs of boundary overhead (240 ns × 100). The saving scales linearly with list size.
 
-| Operation (100 strings) | Batch | Loop | Speedup |
+| Operation (100 strings) | List | Loop | Speedup |
 |---|---|---|---|
 | transliterate | 28.3 µs | 82.9 µs | 2.9× |
 
 ## Optimization 7: Consistent Rust-native normalization
 
 `normalize()` uses the Rust `unicode-normalization` crate (Unicode 16.0) for
-all calls — standalone, batch, and pipeline. This ensures consistent results
-across all code paths and eliminates Unicode version mismatches between
-CPython's `unicodedata` (Unicode 15.1) and the Rust crate's tables.
+all calls — single strings, lists, and pipelines. This ensures consistent
+results across all code paths and eliminates Unicode version mismatches
+between CPython's `unicodedata` (Unicode 15.1) and the Rust crate's tables.
 
-While CPython's `unicodedata.normalize()` is faster for standalone calls (it
-operates directly on PEP 393 compact strings with zero-copy semantics), the
-correctness tradeoff is worth the performance cost: using a single Unicode
-version prevents subtle bugs where `normalize()` and `normalize_batch()`
-produce different results for codepoints assigned between Unicode versions.
+While CPython's `unicodedata.normalize()` is faster for single-string calls
+(it operates directly on PEP 393 compact strings with zero-copy semantics),
+the correctness tradeoff is worth the performance cost: using a single
+Unicode version prevents subtle bugs where different code paths produce
+different results for codepoints assigned between Unicode versions.
 
 ## Optimization 8: PHF for specialized data
 
