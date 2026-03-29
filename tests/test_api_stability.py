@@ -17,15 +17,14 @@ from typing import get_type_hints
 import pytest
 
 import translit
-from translit import (
+from translit._enums import (
     LANG_META,
-    NF,
     SCRIPT_META,
-    EmojiProvider,
     LangMeta,
     Script,
     ScriptMeta,
 )
+from translit._types import NF, EmojiProvider
 
 # ---------------------------------------------------------------------------
 # __all__ completeness
@@ -234,6 +233,16 @@ def _param_names(fn) -> list[str]:
     """Extract parameter names from a callable (excluding 'self')."""
     sig = inspect.signature(fn)
     return [p for p in sig.parameters if p != "self"]
+
+
+def _param_defaults(fn) -> dict:
+    """Extract parameter defaults from a callable."""
+    sig = inspect.signature(fn)
+    return {
+        name: p.default
+        for name, p in sig.parameters.items()
+        if p.default is not inspect.Parameter.empty and name != "self"
+    }
 
 
 def _param_kinds(fn) -> dict[str, str]:
@@ -542,6 +551,14 @@ class TestClassAPIs:
             f"  expected: {expected_params}\n"
             f"  actual:   {actual}"
         )
+
+    @pytest.mark.parametrize(
+        "cls_name",
+        ["Text", "TextPipeline", "Slugifier", "UniqueSlugifier"],
+    )
+    def test_class_is_callable(self, cls_name: str):
+        cls = getattr(translit, cls_name)
+        assert callable(cls)
 
     def test_text_has_value_property(self):
         assert isinstance(inspect.getattr_static(translit.Text, "value"), property), (
