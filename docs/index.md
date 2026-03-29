@@ -109,8 +109,10 @@ catalog_key("ΩMEGA  café")        # → "omega cafe"
 # Web input: NFKC → strip zalgo → confusables → strip bidi → collapse whitespace
 sanitize_user_input("p\u0430ypal")  # → "paypal" (homoglyph neutralized)
 
-# Maximum deobfuscation: everything → clean lowercase ASCII
+# Maximum deobfuscation: homoglyphs, zalgo, invisible chars → clean text
+strip_obfuscation("p\u0440odu\u0441t")       # → "product" (Cyrillic р→p, с→c via TR39)
 strip_obfuscation("p\u0430yp\u0430l 🔥🔥")  # → "paypal fire fire"
+# Note: does NOT transliterate — chain with transliterate() if needed
 ```
 
 ## Text builder

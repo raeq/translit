@@ -1074,38 +1074,37 @@ def sanitize_user_input(text: str) -> str:
     return _sanitize_user_input(text)
 
 
-def strip_obfuscation(
-    text: str,
-    *,
-    lang: str | None = None,
-) -> str:
+def strip_obfuscation(text: str) -> str:
     """Maximum-strength text deobfuscation.
 
-    The most aggressive normalization preset. Strips ALL combining marks,
-    expands emoji to text, transliterates all scripts to ASCII, neutralizes
-    confusable homoglyphs, removes accents, and folds case. The result is
-    clean lowercase ASCII.
+    Neutralizes homoglyph spoofing, zalgo abuse, invisible character
+    injection, and bidi attacks. Uses TR39 confusable mapping (visual
+    similarity) — Cyrillic р→p, с→c, В→B — not phonetic transliteration.
 
-    Pipeline: ``NFKC → strip_zalgo(max_marks=0) → strip_bidi → strip_zero_width
-    → demojize → transliterate → confusables → strip_accents → fold_case
+    **Does not transliterate.** Non-Latin scripts that have no Latin
+    confusable equivalent pass through unchanged. Chain with
+    ``transliterate()`` explicitly if you also need romanization.
+
+    Pipeline: ``NFKC → strip_zalgo(max_marks=0) → confusables → strip_bidi
+    → strip_zero_width → demojize → strip_accents → fold_case
     → collapse_whitespace``
 
     Args:
         text: Input text (user-generated, adversarial, multilingual).
-        lang: Optional language code for transliteration (e.g. ``"de"``).
 
     Returns:
-        Clean lowercase ASCII string.
+        Deobfuscated string with homoglyphs resolved, zalgo stripped,
+        invisible characters removed, and case folded.
 
     Examples:
-        >>> strip_obfuscation("Москва ❤️ город!")
-        'moskva red heart gorod!'
-        >>> strip_obfuscation("p\\u0430ypal")  # Cyrillic а
+        >>> strip_obfuscation("p\\u0430ypal")  # Cyrillic а → Latin a
         'paypal'
+        >>> strip_obfuscation("\\u0440rodu\\u0441t")  # Cyrillic р→p, с→c
+        'product'
         >>> strip_obfuscation("H\\u0338a\\u0338t\\u0338e\\u0338 speech")
         'hate speech'
     """
-    return _strip_obfuscation(text, lang=lang)
+    return _strip_obfuscation(text)
 
 
 def is_zalgo(text: str, *, threshold: int = 3) -> bool:
@@ -1784,11 +1783,10 @@ PRESETS: dict[str, list[tuple[str, str | None]]] = {
     "strip_obfuscation": [
         ("normalize", "NFKC"),
         ("strip_zalgo", "max_marks=0"),
+        ("confusables", "latin"),
         ("strip_bidi", None),
         ("strip_zero_width", None),
         ("demojize", "cldr"),
-        ("transliterate", None),
-        ("confusables", "latin"),
         ("strip_accents", None),
         ("fold_case", None),
         ("collapse_whitespace", None),
