@@ -405,10 +405,10 @@ mod tests {
             step_names,
             vec![
                 "normalize",
-                "confusables",
                 "demojize",
                 "strip_accents",
                 "transliterate",
+                "confusables",
                 "fold_case",
                 "strip_control",
                 "strip_zero_width",
