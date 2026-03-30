@@ -93,6 +93,15 @@ def _transliterate(
     gost7034: bool,
     tones: bool = ...,
 ) -> str: ...
+def _transliterate_context(
+    text: str,
+    *,
+    lang: str | None = None,
+    errors: ErrorMode = ...,
+    replace_with: str = ...,
+    strict_iso9: bool = ...,
+    gost7034: bool = ...,
+) -> str: ...
 def _slugify(
     text: str,
     *,

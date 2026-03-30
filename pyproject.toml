@@ -74,6 +74,13 @@ docs = [
     "mkdocstrings[python]>=0.24",
     "pymdown-extensions>=10.0",
 ]
+# Context dictionaries for transliterate(context=True).
+# These extras are markers — the actual dictionary files are included
+# in the wheel via [tool.maturin] data configuration when present in data/.
+# Build dicts first: bash scripts/bootstrap_dicts.sh all
+arabic = []   # Arabic + Persian context dictionary (data/arabic_dict.bin + persian_dict.bin)
+hebrew = []   # Hebrew context dictionary (data/hebrew_dict.bin)
+context = []  # All context dictionaries
 
 [project.scripts]
 translit = "translit.__main__:main"
@@ -89,6 +96,12 @@ Changelog = "https://github.com/raeq/translit/blob/main/CHANGELOG.md"
 python-source = "python"
 module-name = "translit._translit"
 features = ["pyo3/abi3-py39"]
+# Include context dictionary data files in the wheel if they exist.
+# These are built offline via: bash scripts/bootstrap_dicts.sh all
+data = "data"
+include = [
+    { path = "data/*.bin", format = "wheel" },
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

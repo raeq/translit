@@ -156,9 +156,9 @@ from translit._translit import (
     _TextPipeline,
     # Core transforms (Rust implementations)
     _transliterate,
-    _transliterate_context,
     # Batch APIs (single PyO3 boundary crossing for N strings)
     _transliterate_batch,
+    _transliterate_context,
     _UniqueSlugifier,
 )
 from translit._types import NF, EmojiProvider, ErrorMode, NormalizationForm, Platform
@@ -286,6 +286,19 @@ def transliterate(
     # ── Batch path ──
     if isinstance(text, list):
         _validate_batch(text, "transliterate")
+        if context:
+            # Context-aware: process each string individually through the context engine
+            return [
+                _transliterate_context(
+                    t,
+                    lang=lang,
+                    errors=errors,
+                    replace_with=replace_with,
+                    strict_iso9=strict_iso9,
+                    gost7034=gost7034,
+                )
+                for t in text
+            ]
         if target is not None:
             if lang is not None:
                 raise ValueError("'lang' and 'target' are mutually exclusive")
