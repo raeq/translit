@@ -62,6 +62,13 @@ NEVER push directly to `main` — it will be rejected.
 
 **You MUST run all linters and tests locally and confirm they pass BEFORE pushing any commit.** Do not push first and wait for CI — catch failures locally.
 
+### Step 0: Sync with upstream
+
+```bash
+# 0. Pull and rebase from origin main (avoid pushing stale branches)
+git pull --rebase origin main
+```
+
 ### Rust
 
 ```bash
