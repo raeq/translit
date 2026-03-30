@@ -1113,24 +1113,27 @@ def strip_obfuscation(text: str) -> str:
     confusable equivalent pass through unchanged. Chain with
     ``transliterate()`` explicitly if you also need romanization.
 
+    **Preserves case.** Case is not deception — proper nouns, acronyms,
+    and sentence boundaries are meaningful. Chain with ``fold_case()``
+    if lowercasing is also needed.
+
     Pipeline: ``NFKC → strip_zalgo(max_marks=0) → confusables → strip_bidi
-    → strip_zero_width → demojize → strip_accents → fold_case
-    → collapse_whitespace``
+    → strip_zero_width → demojize → strip_accents → collapse_whitespace``
 
     Args:
         text: Input text (user-generated, adversarial, multilingual).
 
     Returns:
         Deobfuscated string with homoglyphs resolved, zalgo stripped,
-        invisible characters removed, and case folded.
+        invisible characters removed. Case is preserved.
 
     Examples:
-        >>> strip_obfuscation("p\\u0430ypal")  # Cyrillic а → Latin a
-        'paypal'
-        >>> strip_obfuscation("\\u0440rodu\\u0441t")  # Cyrillic р→p, с→c
-        'product'
+        >>> strip_obfuscation("P\\u0430yP\\u0430l")  # Cyrillic а → Latin a
+        'PayPal'
+        >>> strip_obfuscation("\\u0420rodu\\u0441t")  # Cyrillic Р→P, с→c
+        'Product'
         >>> strip_obfuscation("H\\u0338a\\u0338t\\u0338e\\u0338 speech")
-        'hate speech'
+        'Hate speech'
     """
     return _strip_obfuscation(text)
 
@@ -1816,7 +1819,6 @@ PRESETS: dict[str, list[tuple[str, str | None]]] = {
         ("strip_zero_width", None),
         ("demojize", "cldr"),
         ("strip_accents", None),
-        ("fold_case", None),
         ("collapse_whitespace", None),
     ],
 }
