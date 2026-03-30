@@ -258,7 +258,9 @@ pub fn tokenize(text: &str) -> Vec<Token> {
 /// A token from Arabic/Hebrew text tokenization.
 #[derive(Debug, Clone)]
 pub struct Token {
+    /// The token text (a word or whitespace/punctuation span).
     pub text: String,
+    /// True if this token is a word (Arabic/Hebrew script), false for non-word spans.
     pub is_word: bool,
 }
 

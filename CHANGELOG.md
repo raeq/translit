@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] — 2026-03-30
+
+### Added
+- **Context-aware transliteration** for abjad scripts (Arabic, Persian, Hebrew).
+  `transliterate(text, context=True)` uses dictionary-based vowel restoration
+  with bigram context disambiguation to produce readable romanized text instead
+  of consonant skeletons.
+  - **Arabic**: Tashkeela corpus (65.7M words), 182K unigrams + 200K bigrams.
+    Covers 99%+ of newspaper vocabulary.
+  - **Hebrew**: Project Ben Yehuda corpus (11.4M words), 227K unigrams + 200K
+    bigrams. Covers literary Hebrew.
+  - **Persian**: 266 curated common words + optional Wiktionary expansion
+    (14.9K entries available via harvester script).
+- **`list_context_langs()`**: returns language codes that support `context=True`
+  (currently `["ar", "fa", "he"]`).
+- **`LangMeta.context`** field: `"full"`, `"partial"`, or `"none"` — enables
+  web/WASM clients to show/hide a context toggle per language.
+- **`ScriptMeta.context_aware`** field: `bool` — enables toggle per detected script.
+- **Dictionary build tooling**:
+  - `scripts/build_arabic_dict.py` — corpus-based Arabic dictionary builder
+  - `scripts/build_hebrew_dict.py` — corpus-based Hebrew dictionary builder
+  - `scripts/build_persian_dict.py` — curated vocabulary Persian builder
+  - `scripts/harvest_wiktionary_persian.py` — Wiktionary Persian harvester
+  - `scripts/bootstrap_dicts.sh` — reproducible bootstrap from zero with
+    pinned checksums. All parameters auditable, no manual steps.
+- **Abjad transliteration documentation** (`docs/user-guide/abjad-transliteration.md`)
+  covering all three languages, standards used, comparison with other systems.
+- **pip extras**: `pip install translit-rs[arabic]`, `[hebrew]`, `[context]`
+  for optional context dictionary installation.
+- Rust context engine (`src/context.rs`): binary dictionary reader, Arabic/Hebrew
+  tokenizer, three-tier resolve (bigram → unigram → context-free fallback),
+  lazy-loaded global singletons via `OnceLock`.
+- 28 context-aware tests (8 Arabic, 14 Persian, 6 Hebrew).
+
 ## [0.4.0] — 2026-03-29
 
 ### Added

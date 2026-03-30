@@ -100,41 +100,36 @@ pub fn _transliterate_context(
     // Persian: try Persian dict first, fall back to Arabic (shared loanwords).
     let dict = match lang {
         Some("he") => crate::context::get_hebrew_dict(),
-        Some("fa") => {
-            crate::context::get_persian_dict().or_else(|| crate::context::get_arabic_dict())
-        }
+        Some("fa") => crate::context::get_persian_dict().or_else(crate::context::get_arabic_dict),
         _ => crate::context::get_arabic_dict(),
     };
 
-    match dict {
-        Some(d) => {
-            // Use context-aware transliteration
-            let result = crate::context::transliterate_context(text, lang, d, |word, lang| {
-                transliterate_impl(
-                    word,
-                    lang,
-                    error_mode,
-                    replace_with,
-                    strict_iso9,
-                    gost7034,
-                    false,
-                )
-                .into_owned()
-            });
-            Ok(result)
-        }
-        None => {
-            // Dictionary not loaded — return error telling user to install extras
-            let lang_name = match lang {
-                Some("he") => "Hebrew",
-                Some("fa") => "Arabic/Persian",
-                _ => "Arabic",
-            };
-            translit_err!(
-                "Context dictionary for {} not found. Install with: pip install translit-rs[arabic]",
-                lang_name
+    if let Some(d) = dict {
+        // Use context-aware transliteration
+        let result = crate::context::transliterate_context(text, lang, d, |word, lang| {
+            transliterate_impl(
+                word,
+                lang,
+                error_mode,
+                replace_with,
+                strict_iso9,
+                gost7034,
+                false,
             )
-        }
+            .into_owned()
+        });
+        Ok(result)
+    } else {
+        // Dictionary not loaded — return error telling user to install extras
+        let lang_name = match lang {
+            Some("he") => "Hebrew",
+            Some("fa") => "Arabic/Persian",
+            _ => "Arabic",
+        };
+        translit_err!(
+            "Context dictionary for {} not found. Install with: pip install translit-rs[arabic]",
+            lang_name
+        )
     }
 }
 
