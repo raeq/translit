@@ -87,6 +87,7 @@ EXPECTED_ALL = {
     # Language profiles
     "list_langs",
     "list_scripts",
+    "list_context_langs",
     "lang_info",
     "script_info",
     "LANG_META",
@@ -249,6 +250,7 @@ CORE_FUNCTION_PARAMS = {
         "strict_iso9",
         "gost7034",
         "tones",
+        "context",
     ],
     "slugify": [
         "text",
@@ -326,6 +328,7 @@ CORE_FUNCTION_PARAMS = {
     "list_profiles": [],
     "list_langs": [],
     "list_scripts": [],
+    "list_context_langs": [],
     "lang_info": ["code"],
     "script_info": ["script"],
     # Registration
@@ -628,11 +631,11 @@ class TestTypedDictStability:
 
     def test_lang_meta_fields(self):
         hints = get_type_hints(LangMeta)
-        assert set(hints.keys()) == {"name", "script", "region"}
+        assert set(hints.keys()) == {"name", "script", "region", "context"}
 
     def test_script_meta_fields(self):
         hints = get_type_hints(ScriptMeta)
-        assert set(hints.keys()) == {"name", "default_lang", "example"}
+        assert set(hints.keys()) == {"name", "default_lang", "example", "context_aware"}
 
 
 # ---------------------------------------------------------------------------

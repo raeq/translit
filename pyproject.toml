@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "translit-rs"
-version = "0.4.0"
+version = "0.5.0"
 description = "Fast Unicode transliteration (including CJK), slugification, and text normalization — Rust-powered Python library"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -74,6 +74,13 @@ docs = [
     "mkdocstrings[python]>=0.24",
     "pymdown-extensions>=10.0",
 ]
+# Context dictionaries for transliterate(context=True).
+# These extras are markers — the actual dictionary files are included
+# in the wheel via [tool.maturin] data configuration when present in data/.
+# Build dicts first: bash scripts/bootstrap_dicts.sh all
+arabic = []   # Arabic + Persian context dictionary (data/arabic_dict.bin + persian_dict.bin)
+hebrew = []   # Hebrew context dictionary (data/hebrew_dict.bin)
+context = []  # All context dictionaries
 
 [project.scripts]
 translit = "translit.__main__:main"
@@ -89,6 +96,10 @@ Changelog = "https://github.com/raeq/translit/blob/main/CHANGELOG.md"
 python-source = "python"
 module-name = "translit._translit"
 features = ["pyo3/abi3-py39"]
+# Context dictionary data files (data/*.bin) are loaded at runtime from
+# the filesystem, not embedded in the wheel. They are built offline via:
+#   bash scripts/bootstrap_dicts.sh all
+# and installed separately via pip extras (translit-rs[arabic], etc.).
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -127,6 +127,29 @@ git push
 
 If any step fails, fix it before pushing. No exceptions.
 
+## Context Dictionaries (Arabic/Persian/Hebrew)
+
+Context dictionaries enable `transliterate(text, context=True)` for abjad scripts.
+They are NOT committed to git — they are built reproducibly from source corpora.
+
+**Bootstrap from zero:**
+```bash
+bash scripts/bootstrap_dicts.sh        # download corpus + build + verify checksum
+bash scripts/bootstrap_dicts.sh verify # verify existing dictionaries match expected checksums
+```
+
+**Requirements:** `pip install kaggle` + Kaggle API credentials configured.
+
+**Reproducibility contract:** `scripts/bootstrap_dicts.sh` is the single source of truth
+for all dictionary production. All parameters (corpus source, build flags, expected
+checksums) are pinned in that script. The output is deterministic — same corpus +
+same parameters = same binary = same SHA256. No manual edits to dictionary files, ever.
+
+**Files (all gitignored):**
+- `data/corpora/` — downloaded corpus files
+- `data/arabic_dict.bin` — compiled Arabic unigrams + bigrams
+- `data/arabic_dict_stats.json` — corpus statistics
+
 ## Code Conventions
 
 - Crate name: `_translit` (PyO3 cdylib + lib)

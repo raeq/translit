@@ -175,11 +175,13 @@ class LangMeta(TypedDict):
     name: str
     script: str
     region: str
+    context: str
 
 class ScriptMeta(TypedDict):
     name: str
     default_lang: str | None
     example: str
+    context_aware: bool
 
 LANG_META: dict[str, LangMeta]
 SCRIPT_META: dict[str, ScriptMeta]

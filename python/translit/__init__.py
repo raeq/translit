@@ -158,6 +158,7 @@ from translit._translit import (
     _transliterate,
     # Batch APIs (single PyO3 boundary crossing for N strings)
     _transliterate_batch,
+    _transliterate_context,
     _UniqueSlugifier,
 )
 from translit._types import NF, EmojiProvider, ErrorMode, NormalizationForm, Platform
@@ -194,6 +195,7 @@ def transliterate(
     strict_iso9: bool = ...,
     gost7034: bool = ...,
     tones: bool = ...,
+    context: bool = ...,
 ) -> str: ...
 
 
@@ -208,6 +210,7 @@ def transliterate(
     strict_iso9: bool = ...,
     gost7034: bool = ...,
     tones: bool = ...,
+    context: bool = ...,
 ) -> list[str]: ...
 
 
@@ -221,6 +224,7 @@ def transliterate(
     strict_iso9: bool = False,
     gost7034: bool = False,
     tones: bool = False,
+    context: bool = False,
 ) -> str | list[str]:
     """Unicode → ASCII transliteration.
 
@@ -282,6 +286,19 @@ def transliterate(
     # ── Batch path ──
     if isinstance(text, list):
         _validate_batch(text, "transliterate")
+        if context:
+            # Context-aware: process each string individually through the context engine
+            return [
+                _transliterate_context(
+                    t,
+                    lang=lang,
+                    errors=errors,
+                    replace_with=replace_with,
+                    strict_iso9=strict_iso9,
+                    gost7034=gost7034,
+                )
+                for t in text
+            ]
         if target is not None:
             if lang is not None:
                 raise ValueError("'lang' and 'target' are mutually exclusive")
@@ -329,6 +346,17 @@ def transliterate(
             names = ", ".join(sorted(forward_only_s))
             raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
         return _reverse_transliterate(text, lang=target)
+
+    # Context-aware path: use dictionary-based vowel restoration for abjad scripts
+    if context:
+        return _transliterate_context(
+            text,
+            lang=lang,
+            errors=errors,
+            replace_with=replace_with,
+            strict_iso9=strict_iso9,
+            gost7034=gost7034,
+        )
 
     # Fast path: pure ASCII needs no transliteration (~30 ns vs ~240 ns PyO3 call).
     if text.isascii():
@@ -1919,6 +1947,25 @@ def list_scripts() -> list[str]:
     return sorted(s.value for s in Script)
 
 
+def list_context_langs() -> list[str]:
+    """Return language codes that support context-aware transliteration.
+
+    These languages benefit from ``context=True`` in :func:`transliterate`.
+    Each entry has a ``context`` field in its :func:`lang_info` metadata
+    indicating the level of support: ``"full"`` or ``"partial"``.
+
+    Returns:
+        Sorted list of language codes (e.g. ``["ar", "fa", "he"]``).
+
+    Examples:
+        >>> "ar" in list_context_langs()
+        True
+        >>> "de" in list_context_langs()
+        False
+    """
+    return sorted(code for code, meta in LANG_META.items() if meta["context"] != "none")
+
+
 def lang_info(code: str) -> LangMeta:
     """Return metadata for a language code.
 
@@ -2102,6 +2149,7 @@ __all__ = [
     # Language profiles
     "list_langs",
     "list_scripts",
+    "list_context_langs",
     "lang_info",
     "script_info",
     "LANG_META",
