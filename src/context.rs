@@ -314,34 +314,49 @@ static ARABIC_DICT: OnceLock<Option<ContextDict>> = OnceLock::new();
 static PERSIAN_DICT: OnceLock<Option<ContextDict>> = OnceLock::new();
 static HEBREW_DICT: OnceLock<Option<ContextDict>> = OnceLock::new();
 
-/// Try to load the Arabic context dictionary from the package data directory.
-///
-/// Returns None if the dictionary file is not found (not installed).
+// With embed-dicts, dictionaries are compiled into the binary.
+// Without it, they're loaded from the filesystem at runtime.
+#[cfg(feature = "embed-dicts")]
+static ARABIC_DATA: &[u8] = include_bytes!("../data/arabic_dict.bin");
+#[cfg(feature = "embed-dicts")]
+static PERSIAN_DATA: &[u8] = include_bytes!("../data/persian_dict.bin");
+#[cfg(feature = "embed-dicts")]
+static HEBREW_DATA: &[u8] = include_bytes!("../data/hebrew_dict.bin");
+
+/// Load a dictionary from the filesystem, checking standard locations.
+#[cfg(not(feature = "embed-dicts"))]
+fn load_dict_from_fs(name: &str) -> Option<ContextDict> {
+    let filename = format!("data/{name}_dict.bin");
+    let paths = [
+        std::path::PathBuf::from(&filename),
+        std::path::PathBuf::from(format!("{}/{}", env!("CARGO_MANIFEST_DIR"), filename)),
+    ];
+    for path in &paths {
+        if let Ok(data) = std::fs::read(path) {
+            match ContextDict::from_bytes(&data) {
+                Ok(dict) => return Some(dict),
+                Err(e) => {
+                    eprintln!("Warning: failed to load {name} dict: {e}");
+                    return None;
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Try to load the Arabic context dictionary.
 pub fn get_arabic_dict() -> Option<&'static ContextDict> {
     ARABIC_DICT
         .get_or_init(|| {
-            // Look for dictionary in standard locations
-            let paths = [
-                // Relative to executable (development)
-                std::path::PathBuf::from("data/arabic_dict.bin"),
-                // Package data directory
-                std::path::PathBuf::from(concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/data/arabic_dict.bin"
-                )),
-            ];
-            for path in &paths {
-                if let Ok(data) = std::fs::read(path) {
-                    match ContextDict::from_bytes(&data) {
-                        Ok(dict) => return Some(dict),
-                        Err(e) => {
-                            eprintln!("Warning: failed to load Arabic dict: {e}");
-                            return None;
-                        }
-                    }
-                }
+            #[cfg(feature = "embed-dicts")]
+            {
+                ContextDict::from_bytes(ARABIC_DATA).ok()
             }
-            None
+            #[cfg(not(feature = "embed-dicts"))]
+            {
+                load_dict_from_fs("arabic")
+            }
         })
         .as_ref()
 }
@@ -350,25 +365,14 @@ pub fn get_arabic_dict() -> Option<&'static ContextDict> {
 pub fn get_persian_dict() -> Option<&'static ContextDict> {
     PERSIAN_DICT
         .get_or_init(|| {
-            let paths = [
-                std::path::PathBuf::from("data/persian_dict.bin"),
-                std::path::PathBuf::from(concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/data/persian_dict.bin"
-                )),
-            ];
-            for path in &paths {
-                if let Ok(data) = std::fs::read(path) {
-                    match ContextDict::from_bytes(&data) {
-                        Ok(dict) => return Some(dict),
-                        Err(e) => {
-                            eprintln!("Warning: failed to load Persian dict: {e}");
-                            return None;
-                        }
-                    }
-                }
+            #[cfg(feature = "embed-dicts")]
+            {
+                ContextDict::from_bytes(PERSIAN_DATA).ok()
             }
-            None
+            #[cfg(not(feature = "embed-dicts"))]
+            {
+                load_dict_from_fs("persian")
+            }
         })
         .as_ref()
 }
@@ -377,25 +381,14 @@ pub fn get_persian_dict() -> Option<&'static ContextDict> {
 pub fn get_hebrew_dict() -> Option<&'static ContextDict> {
     HEBREW_DICT
         .get_or_init(|| {
-            let paths = [
-                std::path::PathBuf::from("data/hebrew_dict.bin"),
-                std::path::PathBuf::from(concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/data/hebrew_dict.bin"
-                )),
-            ];
-            for path in &paths {
-                if let Ok(data) = std::fs::read(path) {
-                    match ContextDict::from_bytes(&data) {
-                        Ok(dict) => return Some(dict),
-                        Err(e) => {
-                            eprintln!("Warning: failed to load Hebrew dict: {e}");
-                            return None;
-                        }
-                    }
-                }
+            #[cfg(feature = "embed-dicts")]
+            {
+                ContextDict::from_bytes(HEBREW_DATA).ok()
             }
-            None
+            #[cfg(not(feature = "embed-dicts"))]
+            {
+                load_dict_from_fs("hebrew")
+            }
         })
         .as_ref()
 }
