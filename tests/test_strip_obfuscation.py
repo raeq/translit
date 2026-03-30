@@ -57,7 +57,7 @@ class TestStripObfuscationZalgo:
 
     def test_zalgo_text(self):
         result = strip_obfuscation("H\u0300\u0301\u0302\u0303a\u0300\u0301\u0302\u0303te")
-        # All combining marks stripped, then lowercased
+        # All combining marks stripped, case preserved
         assert result == "Hate"
 
     def test_strikethrough_text(self):
@@ -82,7 +82,7 @@ class TestStripObfuscationInvisibleChars:
 
 
 class TestStripObfuscationAccentsAndCase:
-    """Accents stripped and case folded."""
+    """Accents stripped, case preserved."""
 
     def test_accented_text(self):
         result = strip_obfuscation("Café Résumé")

@@ -158,7 +158,7 @@ PERSIAN_VOCAB: list[tuple[str, str, int]] = [
     ("خواندن", f"خ{_SU}واند{_FA}ن", 3000),
     ("نوشتن", f"ن{_KA}و{_KA}ش{_SU}ت{_FA}ن", 2500),
     ("خوردن", f"خ{_DA}ر{_SU}د{_FA}ن", 2500),
-    ("دادن", f"داد{_FA}ن", 2500),
+    ("دادن", f"داد{_FA}ن", 3000),  # dadan (to give, Indo-European cognate)
     ("گرفتن", f"گ{_KA}ر{_KA}ف{_SU}ت{_FA}ن", 2500),
     ("دانستن", f"دان{_KA}س{_SU}ت{_FA}ن", 2000),
     ("توانستن", f"ت{_FA}وان{_KA}س{_SU}ت{_FA}ن", 2000),
@@ -203,9 +203,9 @@ PERSIAN_VOCAB: list[tuple[str, str, int]] = [
     ("خانواده", f"خان{_KA}واد{_KA}ه", 2500),
     ("دنیا", f"د{_DA}ن{_SU}یا", 3000),
     ("دوست", f"د{_DA}س{_SU}ت", 3000),
-    ("پدر", f"پ{_KA}د{_FA}ر", 3000),
-    ("مادر", f"ماد{_FA}ر", 3000),
-    ("برادر", f"ب{_FA}راد{_FA}ر", 2000),
+    ("پدر", f"پ{_KA}د{_FA}ر", 5000),  # pedar (father, Indo-European cognate)
+    ("مادر", f"ماد{_FA}ر", 5000),  # madar (mother, Indo-European cognate)
+    ("برادر", f"ب{_FA}راد{_FA}ر", 3000),  # baradar (brother, Indo-European cognate)
     ("خواهر", f"خ{_SU}واه{_FA}ر", 2000),
     ("فرزند", f"ف{_FA}ر{_SU}ز{_FA}ن{_SU}د", 2000),
     ("معلم", f"م{_DA}ع{_FA}ل{_KA}م", 2000),
@@ -228,7 +228,6 @@ PERSIAN_VOCAB: list[tuple[str, str, int]] = [
     ("زمین", f"ز{_FA}مین", 2000),
     ("درخت", f"د{_KA}ر{_FA}خ{_SU}ت", 1500),
     ("گل", f"گ{_DA}ل", 2000),
-    ("آب", "آب", 5000),
     ("هوا", f"ه{_FA}وا", 2500),
     ("باران", "باران", 1500),
     ("برف", f"ب{_FA}ر{_SU}ف", 1500),
@@ -310,12 +309,9 @@ PERSIAN_VOCAB: list[tuple[str, str, int]] = [
     ("پسر", f"پ{_KA}س{_FA}ر", 4000),  # pesar (son)
     ("خرد", f"خ{_KA}ر{_FA}د", 1500),  # kherad (wisdom)
     ("ستاره", f"س{_KA}تار{_KA}ه", 2000),  # setare (star)
-    ("نو", f"ن{_DA}", 2500),  # no/now (new)
-    ("نام", "نام", 5000),  # nam (name, cognate with English "name")
-    ("مادر", f"ماد{_FA}ر", 5000),  # madar (mother, cognate)
-    ("پدر", f"پ{_KA}د{_FA}ر", 5000),  # pedar (father, cognate)
-    ("برادر", f"ب{_FA}راد{_FA}ر", 3000),  # baradar (brother, cognate)
-    ("دادن", f"داد{_FA}ن", 3000),  # dadan (to give, cognate with Latin "dare")
+    # نو, نام — already listed above (adjectives, common nouns)
+    # مادر, پدر, برادر — already listed above (extended nouns)
+    # دادن — already listed above (extended verbs)
     # --- Additional high-frequency words ---
     ("وقتی", f"و{_FA}ق{_SU}تی", 3000),  # vaqti (when)
     ("همه", f"ه{_FA}م{_KA}ه", 5000),  # hame (all/everyone)
@@ -325,7 +321,7 @@ PERSIAN_VOCAB: list[tuple[str, str, int]] = [
     ("فقط", f"ف{_FA}ق{_FA}ط", 3000),  # faqat (only)
     ("اما", f"ا{_FA}م{_SH}ا", 4000),  # amma (but)
     ("اگر", f"ا{_FA}گ{_FA}ر", 4000),  # agar (if)
-    ("وقت", f"و{_FA}ق{_SU}ت", 3000),  # vaqt (time)
+    # وقت — already listed above (extended nouns)
     ("حال", "حال", 3000),  # hal (state/condition)
     ("جا", "جا", 3000),  # ja (place)
     ("پول", f"پ{_DA}ل", 2500),  # pul (money)
