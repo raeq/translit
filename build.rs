@@ -50,16 +50,27 @@ fn main() {
         "pub",
     );
 
-    // --- Confusables ---
+    // --- Confusables (Latin target) ---
     {
-        let entries = read_char_str_tsv(&data_dir.join("confusables.tsv"));
+        let entries = read_char_str_tsv(&data_dir.join("confusables_to_latin.tsv"));
         assert!(
             entries.len() >= 1_000,
-            "confusables.tsv: expected ≥1,000 entries, got {}",
+            "confusables_to_latin.tsv: expected ≥1,000 entries, got {}",
             entries.len()
         );
         let code = build_char_str_map(&entries, "TO_LATIN", "");
         fs::write(out_dir.join("confusables_phf.rs"), code).unwrap();
+    }
+
+    // --- Confusables (Cyrillic target) ---
+    {
+        let entries = read_char_str_tsv(&data_dir.join("confusables_to_cyrillic.tsv"));
+        assert!(
+            !entries.is_empty(),
+            "confusables_to_cyrillic.tsv: expected ≥1 entries, got 0",
+        );
+        let code = build_char_str_map(&entries, "TO_CYRILLIC", "");
+        fs::write(out_dir.join("confusables_to_cyrillic_phf.rs"), code).unwrap();
     }
 
     // --- Emoji ---
@@ -386,19 +397,52 @@ fn generate_translit_flat_array(tsv_path: &Path, out_path: &Path) {
 }
 
 /// Unescape Rust string escapes in TSV data values.
-/// The extraction script preserves Rust escapes like `\"` literally in the TSV.
+/// Handles `\"`, `\\`, `\n`, `\r`, `\t`, and `\u{XXXX}` Unicode escapes.
 fn unescape_rust_str(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
-    let mut chars = s.chars();
+    let mut chars = s.chars().peekable();
     while let Some(ch) = chars.next() {
         if ch == '\\' {
-            match chars.next() {
-                Some('"') => out.push('"'),
-                None | Some('\\') => out.push('\\'),
-                Some('n') => out.push('\n'),
-                Some('r') => out.push('\r'),
-                Some('t') => out.push('\t'),
-                Some(other) => {
+            match chars.peek() {
+                Some(&'u') => {
+                    chars.next(); // consume 'u'
+                    assert!(
+                        chars.peek() == Some(&'{'),
+                        "Malformed \\u escape in TSV: expected '{{' after \\u"
+                    );
+                    chars.next(); // consume '{'
+                    let hex: String = chars.by_ref().take_while(|&c| c != '}').collect();
+                    let cp = u32::from_str_radix(&hex, 16).unwrap_or_else(|e| {
+                        panic!("Invalid hex in \\u{{...}} escape: '{hex}': {e}");
+                    });
+                    let c = char::from_u32(cp).unwrap_or_else(|| {
+                        panic!("Invalid Unicode scalar value: U+{cp:04X}");
+                    });
+                    out.push(c);
+                }
+                Some(&'"') => {
+                    chars.next();
+                    out.push('"');
+                }
+                Some(&'\\') => {
+                    chars.next();
+                    out.push('\\');
+                }
+                Some(&'n') => {
+                    chars.next();
+                    out.push('\n');
+                }
+                Some(&'r') => {
+                    chars.next();
+                    out.push('\r');
+                }
+                Some(&'t') => {
+                    chars.next();
+                    out.push('\t');
+                }
+                None => out.push('\\'),
+                Some(&other) => {
+                    chars.next();
                     out.push('\\');
                     out.push(other);
                 }
