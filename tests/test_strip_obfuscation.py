@@ -49,7 +49,7 @@ class TestStripObfuscationHomoglyphs:
         # Greek Η (Eta) is visually confusable with Latin H (TR39)
         # Not transliterated to I (BGN/PCGN phonetic)
         result = strip_obfuscation("\u0397ello")  # Greek Η + Latin ello
-        assert result == "hello"
+        assert result == "Hello"
 
 
 class TestStripObfuscationZalgo:
@@ -58,11 +58,11 @@ class TestStripObfuscationZalgo:
     def test_zalgo_text(self):
         result = strip_obfuscation("H\u0300\u0301\u0302\u0303a\u0300\u0301\u0302\u0303te")
         # All combining marks stripped, then lowercased
-        assert result == "hate"
+        assert result == "Hate"
 
     def test_strikethrough_text(self):
         result = strip_obfuscation("H\u0338a\u0338t\u0338e\u0338 speech")
-        assert result == "hate speech"
+        assert result == "Hate speech"
 
 
 class TestStripObfuscationInvisibleChars:
@@ -86,16 +86,16 @@ class TestStripObfuscationAccentsAndCase:
 
     def test_accented_text(self):
         result = strip_obfuscation("Café Résumé")
-        assert result == "cafe resume"
+        assert result == "Cafe Resume"
 
-    def test_uppercase_folded(self):
+    def test_uppercase_preserved(self):
         result = strip_obfuscation("HELLO WORLD")
-        assert result == "hello world"
+        assert result == "HELLO WORLD"
 
     def test_german_with_lang_default(self):
         # Without lang=, ü→u (default table), not ü→ue (German override)
         result = strip_obfuscation("München")
-        assert result == "munchen"
+        assert result == "Munchen"
 
 
 class TestStripObfuscationWhitespace:

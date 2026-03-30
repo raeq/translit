@@ -325,12 +325,15 @@ pub fn _strip_bidi(text: &str) -> String {
 ///
 /// Pipeline: NFKC → strip_zalgo(max_marks=0) → normalize_confusables
 ///          → strip_bidi → strip_zero_width → demojize → strip_accents
-///          → fold_case → collapse_whitespace
+///          → collapse_whitespace
 ///
-/// This is the most aggressive normalization preset. It strips ALL combining
-/// marks (not just excessive ones), resolves homoglyph spoofing via TR39
-/// confusable mapping (visual similarity, not phonetic), expands emoji to
-/// text, removes accents, and folds case.
+/// Strips ALL combining marks, resolves homoglyph spoofing via TR39
+/// confusable mapping (visual similarity), expands emoji to text, removes
+/// accents, and collapses whitespace. **Preserves case** — case is not
+/// deception (proper nouns, acronyms, sentence boundaries are meaningful).
+/// Chain with `fold_case()` if lowercasing is also needed.
+///
+/// NFKC handles ligature decomposition (ﬁ→fi, ﬀ→ff) without case folding.
 ///
 /// **Does NOT transliterate.** Confusable normalization maps by visual
 /// similarity (Cyrillic р→p, с→c, В→B), not phonetic value (р→r, с→s, В→V).
@@ -348,8 +351,6 @@ pub fn _strip_obfuscation(text: &str) -> PyResult<String> {
     // 2. Strip ALL combining marks (max_marks=0) — removes zalgo AND accents early
     let buf = zalgo::_strip_zalgo(&buf, 0);
     // 3. Confusables → Latin (TR39 visual mapping: Cyrillic р→p, с→c, В→B)
-    //    Must run BEFORE stripping bidi/zero-width so the confusable context
-    //    is intact for multi-character sequence matching.
     let buf = confusables::_normalize_confusables(&buf, "latin")?;
     // 4. Strip bidi overrides, isolates, marks, and soft hyphens
     let buf = strip_bidi(&buf);
@@ -359,9 +360,7 @@ pub fn _strip_obfuscation(text: &str) -> PyResult<String> {
     let buf = emoji::demojize_rust(&buf, false);
     // 7. Strip accents (NFD decompose + strip combining marks)
     let buf = transliterate::_strip_accents(&buf);
-    // 8. Fold case
-    let buf = case_fold::fold_case_impl(&buf);
-    // 9. Collapse whitespace (final cleanup)
+    // 8. Collapse whitespace (final cleanup) — case is NOT folded
     Ok(whitespace::_collapse_whitespace(&buf, true, true))
 }
 

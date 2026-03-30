@@ -30,7 +30,7 @@ class TestHomoglyphResolution:
     def test_cyrillic_ve_looks_like_latin_b(self):
         # Cyrillic В (U+0412) visually = Latin B, phonetically = V
         result = strip_obfuscation("\u0412uy cheap")
-        assert result == "buy cheap", f"got {result!r}"
+        assert result == "Buy cheap", f"got {result!r}"
 
     def test_spoofed_product(self):
         result = strip_obfuscation("\u0440rodu\u0441t")
@@ -38,7 +38,7 @@ class TestHomoglyphResolution:
 
     def test_spoofed_scam(self):
         result = strip_obfuscation("This is a s\u0441\u0430m")
-        assert result == "this is a scam", f"got {result!r}"
+        assert result == "This is a scam", f"got {result!r}"
 
     def test_spoofed_free_prize(self):
         result = strip_obfuscation("fr\u0435e \u0440rize")
@@ -50,7 +50,7 @@ class TestHomoglyphResolution:
 
     def test_spoofed_buy_cheap(self):
         result = strip_obfuscation("\u0412uy \u0441h\u0435\u0430\u0440 Viаgrа \u043enlin\u0435")
-        assert "buy" in result
+        assert "Buy" in result
         assert "cheap" in result
 
 
