@@ -1947,6 +1947,25 @@ def list_scripts() -> list[str]:
     return sorted(s.value for s in Script)
 
 
+def list_context_langs() -> list[str]:
+    """Return language codes that support context-aware transliteration.
+
+    These languages benefit from ``context=True`` in :func:`transliterate`.
+    Each entry has a ``context`` field in its :func:`lang_info` metadata
+    indicating the level of support: ``"full"`` or ``"partial"``.
+
+    Returns:
+        Sorted list of language codes (e.g. ``["ar", "fa", "he"]``).
+
+    Examples:
+        >>> "ar" in list_context_langs()
+        True
+        >>> "de" in list_context_langs()
+        False
+    """
+    return sorted(code for code, meta in LANG_META.items() if meta["context"] != "none")
+
+
 def lang_info(code: str) -> LangMeta:
     """Return metadata for a language code.
 
@@ -2130,6 +2149,7 @@ __all__ = [
     # Language profiles
     "list_langs",
     "list_scripts",
+    "list_context_langs",
     "lang_info",
     "script_info",
     "LANG_META",
