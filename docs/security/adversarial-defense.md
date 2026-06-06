@@ -107,4 +107,3 @@ non-confusable characters). If you also need ASCII romanization, chain
 - [Security & Hostnames](../architecture/security.md) — implementation internals
 - [Migration from Unidecode](../migration/from-unidecode.md) — why `unidecode` is the wrong tool for defense
 - [Precompiled Pipelines](../api/pipelines.md) — the full pipeline reference
-</content>

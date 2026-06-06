@@ -274,5 +274,3 @@ Rust core with compile-time PHF (perfect hash function) tables for O(1) per-char
 ## License
 
 MIT
-</content>
-</invoke>
