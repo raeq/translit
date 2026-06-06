@@ -1,9 +1,9 @@
 """Tests for strip_obfuscation() preset pipeline.
 
-strip_obfuscation is the most aggressive text normalization preset:
+strip_obfuscation is the most aggressive *confusable*-normalization preset.
+It does NOT transliterate and does NOT fold case. Actual pipeline:
 NFKC → strip_zalgo(max_marks=0) → strip_bidi → strip_zero_width
-     → demojize → transliterate → confusables → strip_accents
-     → fold_case → collapse_whitespace
+     → demojize → confusables → strip_accents → collapse_whitespace
 """
 
 from __future__ import annotations

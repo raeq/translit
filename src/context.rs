@@ -119,6 +119,13 @@ impl ContextDict {
         let bigram_count = read_u32(data, 12)? as usize;
         let unigram_offset = read_u32(data, 16)? as usize;
         let bigram_offset = read_u32(data, 20)? as usize;
+        // Section offsets must point past the 24-byte header. Reads are already
+        // bounds-checked (no panic), but rejecting offsets that start inside the
+        // header avoids silently returning Ok(...) for a clearly malformed
+        // buffer whose sections would overlap the header fields.
+        if unigram_offset < 24 || bigram_offset < 24 {
+            return Err("Dictionary section offset overlaps header".into());
+        }
 
         // Capacity hints are clamped to data.len(): a record needs >=1 byte, so
         // the declared count can never legitimately exceed the buffer size. This
@@ -588,6 +595,14 @@ mod tests {
         // Point unigram_offset past the end of the buffer.
         let bad_offset = (data.len() as u32 + 100).to_le_bytes();
         data[16..20].copy_from_slice(&bad_offset);
+        assert!(ContextDict::from_bytes(&data).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_offset_inside_header_rejected() {
+        let mut data = build_valid_dict();
+        // Point unigram_offset inside the 24-byte header.
+        data[16..20].copy_from_slice(&8u32.to_le_bytes());
         assert!(ContextDict::from_bytes(&data).is_err());
     }
 }
