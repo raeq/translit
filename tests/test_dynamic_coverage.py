@@ -246,7 +246,7 @@ class TestEveryLangTransliterates:
             assert result is not None
 
     def test_batch_all_langs(self, all_langs):
-        """transliterate_batch with lang= for each language."""
+        """transliterate([...], lang=code) must work for every language."""
         for lang in all_langs:
             sample = LANG_SAMPLES[lang]
             results = transliterate([sample, sample], lang=lang)

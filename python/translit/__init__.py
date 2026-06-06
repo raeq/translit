@@ -230,7 +230,10 @@ def transliterate(
     """Unicode → ASCII transliteration.
 
     Accepts a single string or a list of strings. When a list is passed,
-    all strings are processed in a single Rust call for better throughput.
+    forward transliteration (the default) processes all strings in a single
+    Rust call for better throughput; reverse transliteration (``target=...``)
+    and context-aware transliteration (``context=True``) process the list item
+    by item.
 
     Args:
         text: Input Unicode string, or list of strings for batch processing.

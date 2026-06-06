@@ -58,9 +58,12 @@ This heuristic eliminates reallocations for the two most common workload shapes.
 ## Optimization 7: Consistent Rust-native normalization
 
 `normalize()` uses the Rust `unicode-normalization` crate (Unicode 16.0) for
-all calls — single strings, lists, and pipelines. This ensures consistent
-results across all code paths and eliminates Unicode version mismatches
-between CPython's `unicodedata` (Unicode 15.1) and the Rust crate's tables.
+all non-ASCII inputs — non-ASCII single strings, all list inputs, and
+pipelines. Pure-ASCII single strings take the Python-side `isascii()` fast-path
+from Optimization 1 and never enter Rust (ASCII is invariant under all four
+normalization forms). For everything else this ensures consistent results
+across code paths and eliminates Unicode version mismatches between CPython's
+`unicodedata` (Unicode 15.1) and the Rust crate's tables.
 
 While CPython's `unicodedata.normalize()` is faster for single-string calls
 (it operates directly on PEP 393 compact strings with zero-copy semantics),

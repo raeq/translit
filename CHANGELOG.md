@@ -206,7 +206,9 @@ Versions follow [Semantic Versioning](https://semver.org/).
   excluded (~4s vs ~46s), CodeQL moved to workflow file with path filtering,
   benchmarks split to own workflow.
 - Pinned `ruff==0.15.4` in CI and `pyproject.toml` to prevent format drift.
-- Python 3.9 dropped from release CI matrix (PEP 604 syntax incompatible).
+- Python 3.9 remains a supported runtime (`requires-python = ">=3.9"`, abi3-py39)
+  but was removed from the release CI matrix; CI runs on Python 3.10+ because
+  tests use PEP 604 (`X | Y`) syntax without `from __future__ import annotations`.
 
 ## [0.3.0] — 2026-03-28
 

@@ -136,7 +136,10 @@ property-based testing.
 ## Normalization
 
 `translit.normalize()` uses the Rust `unicode-normalization` crate
-(Unicode 16.0) for all calls — both single strings and lists. This ensures
+(Unicode 16.0) for all non-ASCII inputs — pure-ASCII single strings take a
+Python `isascii()` fast-path and return unchanged without entering Rust (ASCII
+is invariant under all four normalization forms), while non-ASCII strings and
+all list inputs are normalized in Rust. This ensures
 consistent results across all code paths and avoids Unicode version
 mismatches between CPython's `unicodedata` (Unicode 15.1) and the Rust
 crate.
@@ -345,7 +348,8 @@ that have dedicated, higher-quality tables.
 ### 5. Consistent Rust-native normalization
 
 `translit.normalize()` uses the Rust `unicode-normalization` crate for all
-calls. While CPython's `unicodedata.normalize()` is faster for standalone calls
+non-ASCII inputs (pure-ASCII single strings short-circuit in Python via
+`isascii()`). While CPython's `unicodedata.normalize()` is faster for standalone calls
 (it operates directly on Python's internal string buffer with zero-copy
 semantics), using Rust throughout ensures Unicode version consistency: all
 calls use the same Unicode 16.0 tables regardless of whether you pass a

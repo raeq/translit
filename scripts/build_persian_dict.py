@@ -359,10 +359,13 @@ VERSION = 1
 def load_wiktionary_tsv(path: Path) -> list[tuple[str, str, int]]:
     """Load Wiktionary-harvested Persian romanizations as vocab entries.
 
-    Converts romanization back to diacritized form by applying tashkeel marks
-    based on the romanization. This is an approximation — the romanization
-    provides the vowel information, and we encode it as Arabic diacritics
-    on the original Persian word.
+    The romanization is used only to validate/filter rows (ASCII, length); it
+    is NOT decoded back into diacritics. Each kept row is stored as
+    ``(persian, persian, freq)`` — the undiacritized word as both skeleton and
+    "diacritized" form. Consequently these entries produce the same output as
+    context-free transliteration (no vowel restoration); they exist mainly to
+    register the word as known vocabulary. Restoring vowels from the
+    romanization is a possible future improvement.
     """
     entries: list[tuple[str, str, int]] = []
     if not path.exists():
