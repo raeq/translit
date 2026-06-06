@@ -350,14 +350,17 @@ pub fn _strip_obfuscation(text: &str) -> PyResult<String> {
     let buf: String = text.nfkc().collect();
     // 2. Strip ALL combining marks (max_marks=0) — removes zalgo AND accents early
     let buf = zalgo::_strip_zalgo(&buf, 0);
-    // 3. Confusables → Latin (TR39 visual mapping: Cyrillic р→p, с→c, В→B)
-    let buf = confusables::_normalize_confusables(&buf, "latin")?;
-    // 4. Strip bidi overrides, isolates, marks, and soft hyphens
+    // 3. Strip bidi overrides, isolates, marks, and soft hyphens
     let buf = strip_bidi(&buf);
-    // 5. Strip zero-width chars (ZWS, ZWNJ, ZWJ, WJ, BOM)
+    // 4. Strip zero-width chars (ZWS, ZWNJ, ZWJ, WJ, BOM)
     let buf = whitespace::strip_zero_width_chars(&buf);
-    // 6. Demojize — expand emoji to text names with spacing
+    // 5. Demojize — expand emoji to text names with spacing
     let buf = emoji::demojize_rust(&buf, false);
+    // 6. Confusables → Latin (TR39 visual mapping: Cyrillic р→p, с→c, В→B).
+    //    Runs AFTER demojize so that typographic punctuation in emoji names
+    //    (e.g. the ’ in "woman’s hat") is folded too; otherwise a second pass
+    //    would fold it and strip_obfuscation would not be idempotent.
+    let buf = confusables::_normalize_confusables(&buf, "latin")?;
     // 7. Strip accents (NFD decompose + strip combining marks)
     let buf = transliterate::_strip_accents(&buf);
     // 8. Collapse whitespace (final cleanup) — case is NOT folded
@@ -613,5 +616,74 @@ mod tests {
         // Cyrillic а in "pаypal" → Latin a
         let result = _sanitize_user_input("p\u{0430}ypal").unwrap();
         assert_eq!(result, "paypal");
+    }
+
+    /// Property-based security invariants for the defense pipelines.
+    ///
+    /// Asserts the THREAT_MODEL.md guarantees across the full Unicode input
+    /// space: no panic on any input, idempotence (a stable fixed point), and
+    /// that bidi/format controls never survive a pipeline whose definition
+    /// includes a bidi-stripping step.
+    mod proptest_properties {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// Compare under NFC: NFKC can reorder combining marks of equal
+        /// canonical combining class, which is canonically equivalent.
+        fn nfc(s: &str) -> String {
+            s.nfc().collect()
+        }
+
+        proptest! {
+            #![proptest_config(ProptestConfig::with_cases(1000))]
+
+            #[test]
+            fn security_clean_idempotent(s in "\\PC*") {
+                let once = _security_clean(&s).unwrap();
+                let twice = _security_clean(&once).unwrap();
+                prop_assert_eq!(nfc(&once), nfc(&twice));
+            }
+
+            #[test]
+            fn strip_obfuscation_idempotent(s in "\\PC*") {
+                let once = _strip_obfuscation(&s).unwrap();
+                let twice = _strip_obfuscation(&once).unwrap();
+                prop_assert_eq!(nfc(&once), nfc(&twice));
+            }
+
+            #[test]
+            fn sanitize_user_input_idempotent(s in "\\PC*") {
+                let once = _sanitize_user_input(&s).unwrap();
+                let twice = _sanitize_user_input(&once).unwrap();
+                prop_assert_eq!(nfc(&once), nfc(&twice));
+            }
+
+            #[test]
+            fn strip_bidi_idempotent(s in "\\PC*") {
+                let once = _strip_bidi(&s);
+                prop_assert_eq!(&once, &_strip_bidi(&once));
+            }
+
+            // No bidi/format control survives a pipeline that strips bidi.
+            #[test]
+            fn no_bidi_after_strip_bidi(s in "\\PC*") {
+                prop_assert!(!_strip_bidi(&s).chars().any(is_bidi_or_format));
+            }
+
+            #[test]
+            fn no_bidi_after_security_clean(s in "\\PC*") {
+                prop_assert!(!_security_clean(&s).unwrap().chars().any(is_bidi_or_format));
+            }
+
+            #[test]
+            fn no_bidi_after_strip_obfuscation(s in "\\PC*") {
+                prop_assert!(!_strip_obfuscation(&s).unwrap().chars().any(is_bidi_or_format));
+            }
+
+            #[test]
+            fn no_bidi_after_sanitize_user_input(s in "\\PC*") {
+                prop_assert!(!_sanitize_user_input(&s).unwrap().chars().any(is_bidi_or_format));
+            }
+        }
     }
 }

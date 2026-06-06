@@ -7,7 +7,22 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **`strip_obfuscation` is now idempotent.** Emoji whose CLDR name contains
+  typographic punctuation (e.g. `👒` → `woman’s hat`, with U+2019 `’`) were not
+  folded because the confusables step ran *before* demojize; a second pass folded
+  `’`→`'`, so the output was not a fixed point. Confusables now runs after demojize.
+  Found by the new property tests.
+
 ### Added
+- **Security-invariant property tests + fuzzing.** `proptest` invariants in Rust
+  (`src/presets.rs`) assert no-panic, idempotence, and "no bidi/format control
+  survives" for `strip_obfuscation` / `security_clean` / `sanitize_user_input` /
+  `strip_bidi` across the Unicode input space; a deterministic, CI-gating
+  adversarial **attack-corpus regression** (`tests/test_attack_corpus.py`:
+  homoglyph / zalgo / invisible / bidi / combined, XMR-style); and a **`cargo-fuzz`
+  harness** (`fuzz/`) for continuous coverage-guided fuzzing of the defense
+  pipelines.
 - **Confusable coverage for intra-Latin homoglyphs of basic ASCII letters**
   (e.g. `þ→p`, `ſ→f`, `ı→i`, `ƒ→f`, `Ɩ→l`, `ꜱ→s`). The TR39 generator previously
   skipped all Latin-script sources for the Latin target, dropping ~83 genuine
