@@ -9,7 +9,8 @@ limitation**.
 
 ## Supported versions
 
-Only the latest release on PyPI is actively maintained for security fixes.
+Security fixes are released against the latest `0.5.x` release on PyPI. Older minor
+series are not maintained.
 
 | Version | Supported |
 |---------|-----------|

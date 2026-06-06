@@ -43,8 +43,11 @@ Each is a *mechanism*, defined by its data and algorithm, not by an outcome prom
 - After `normalize_confusables(text, target)`, the output contains no code point that the
   **bundled** table maps to `target`.
 - Transliteration output is ASCII (enforced at compile time).
-- No transform panics or exhibits super-linear blowup on any input (no `unsafe`, no regex
-  in the core path).
+- No transform panics on any input. The confusable / normalization / bidi-stripping
+  transforms are table-driven and linear-time (no regex). `unsafe` is forbidden
+  crate-wide (`unsafe_code = "forbid"`). (Note: `slugify` accepts a *caller-supplied*
+  separator regex — bounded by an input-size cap — which is the one regex path and is not
+  part of the security transforms; see the DoS item under *Out of scope*.)
 
 ## Out of scope — by design, not bugs
 
