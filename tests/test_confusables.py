@@ -110,16 +110,14 @@ class TestNormalizeConfusables:
 
     def test_cyrillic_target_basic(self) -> None:
         """Latin → Cyrillic confusable normalization."""
-        # p → р (Cyrillic Er), a → а (Cyrillic A)
         result = normalize_confusables("paypal", target_script="cyrillic")
-        assert "\u0440" in result  # Cyrillic р
-        assert "\u0430" in result  # Cyrillic а
+        # p->р a->а y->у p->р a->а l->ӏ (U+04CF palochka); full equality
+        assert result == "раураӏ"  # раураӏ
 
     def test_cyrillic_target_case_preserved(self) -> None:
         """Uppercase Latin maps to uppercase Cyrillic."""
         result = normalize_confusables("PA", target_script="cyrillic")
-        assert result[0] == "\u0420"  # Cyrillic Р (uppercase)
-        assert result[1] == "\u0410"  # Cyrillic А (uppercase)
+        assert result == "РА"  # РА — full equality, same length
 
     def test_cyrillic_target_no_equivalent_passes_through(self) -> None:
         """Characters without Cyrillic equivalents pass through."""

@@ -12,8 +12,11 @@ classes. To generate mappings *to* a target script, we:
   3. Map all non-target members to the target-script member
 
 Output files (written to src/tables/data/):
-  confusables_to_latin.tsv    — non-Latin → Latin (~2,063 mappings)
-  confusables_to_cyrillic.tsv — non-Cyrillic → Cyrillic (~19+ mappings)
+  confusables_to_latin.tsv    — non-Latin → Latin
+  confusables_to_cyrillic.tsv — non-Cyrillic → Cyrillic
+
+(Exact mapping counts vary with the Unicode version; the script prints the
+per-file totals it wrote on completion.)
 
 Usage:
     python scripts/gen_confusables.py
@@ -231,6 +234,12 @@ def filter_via_classes(
 
         for m in members:
             if is_target(m):
+                # Never accept a combining mark as a target: it is invisible on
+                # its own and folding a visible source onto one would itself be
+                # an obfuscation vector. Skipping drops classes whose only
+                # target-script member is a combining mark.
+                if is_combining_mark(m):
+                    continue
                 cat = unicodedata.category(chr(m))
                 if cat == "Lu":
                     target_members_upper.append(m)
