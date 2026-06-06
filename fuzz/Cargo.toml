@@ -1,0 +1,48 @@
+[package]
+name = "translit-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+unicode-normalization = "0.1"
+
+# Pure-Rust build of the core (no PyO3 extension-module linkage).
+[dependencies.translit]
+path = ".."
+default-features = false
+
+[[bin]]
+name = "strip_obfuscation"
+path = "fuzz_targets/strip_obfuscation.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "security_clean"
+path = "fuzz_targets/security_clean.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "sanitize_user_input"
+path = "fuzz_targets/sanitize_user_input.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "normalize_confusables"
+path = "fuzz_targets/normalize_confusables.rs"
+test = false
+doc = false
+bench = false
+
+[profile.release]
+debug = 1

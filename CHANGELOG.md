@@ -24,6 +24,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
   BitAbuse 2025).
 - `SECURITY.md` rewritten on real footing: supported versions corrected to 0.5.x, triage
   scope defined, and linked to the threat model.
+- **Security-invariant property tests + fuzzing.** `proptest` invariants in Rust
+  (`src/presets.rs`) assert no-panic, idempotence, and "no bidi/format control
+  survives" for `strip_obfuscation` / `security_clean` / `sanitize_user_input` /
+  `strip_bidi` across the Unicode input space; a deterministic, CI-gating
+  adversarial **attack-corpus regression** (`tests/test_attack_corpus.py`:
+  homoglyph / zalgo / invisible / bidi / combined, XMR-style); and a **`cargo-fuzz`
+  harness** (`fuzz/`) for continuous coverage-guided fuzzing of the defense
+  pipelines.
 - **Confusable coverage for intra-Latin homoglyphs of basic ASCII letters**
   (e.g. `þ→p`, `ſ→f`, `ı→i`, `ƒ→f`, `Ɩ→l`, `ꜱ→s`). The TR39 generator previously
   skipped all Latin-script sources for the Latin target, dropping ~83 genuine
@@ -32,6 +40,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Pinned `data/confusables.txt` (UTS#39 17.0.0) as the reproducible, version-
   controlled input for `scripts/gen_confusables.py` (`--download` refreshes it),
   and a `tests/test_confusable_coverage.py` gate against Unicode-version drift.
+
+### Fixed
+- **Defense pipelines are now idempotent** (both bugs found by the new property tests):
+  - `strip_obfuscation`: emoji whose CLDR name contains typographic punctuation
+    (e.g. `👒` → `woman’s hat`, U+2019 `’`) weren't folded because confusables ran
+    *before* demojize; a second pass folded `’`→`'`. Confusables now runs after demojize.
+  - `sanitize_user_input`: an invisible char between combining marks
+    (e.g. soft-hyphen) split a mark-run, so removing it *after* zalgo-capping merged
+    runs that a second pass then capped differently. Bidi/zero-width are now stripped
+    *before* zalgo-capping.
 
 ## [0.5.0] — 2026-06-06
 
