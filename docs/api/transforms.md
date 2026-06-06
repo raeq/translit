@@ -90,6 +90,8 @@ strip_zalgo("café", max_marks=0)  # => "cafe"
 
 `transliterate`, `slugify`, `normalize`, and `strip_accents` accept either a single `str` or a `list[str]`. When a list is passed, all strings are processed in a single Rust call, amortizing the Python → Rust boundary overhead. The return type matches the input type.
 
+Two `transliterate` modes are the exception and instead process a list item by item: reverse transliteration (`target=...`) and context-aware transliteration (`context=True`).
+
 ```python
 from translit import transliterate, slugify
 

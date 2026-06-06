@@ -1,9 +1,9 @@
 """Tests for strip_obfuscation() preset pipeline.
 
-strip_obfuscation is the most aggressive text normalization preset:
+strip_obfuscation is the most aggressive *confusable*-normalization preset.
+It does NOT transliterate and does NOT fold case. Actual pipeline:
 NFKC → strip_zalgo(max_marks=0) → strip_bidi → strip_zero_width
-     → demojize → transliterate → confusables → strip_accents
-     → fold_case → collapse_whitespace
+     → demojize → confusables → strip_accents → collapse_whitespace
 """
 
 from __future__ import annotations
@@ -18,9 +18,14 @@ class TestStripObfuscationBasic:
         # strip_obfuscation does NOT transliterate — only resolves confusables
         # Pure Cyrillic with no Latin confusables passes through (then fold_case)
         result = strip_obfuscation("Москва")
-        # Confusables maps some chars to Latin (о→o, а→a) but not all
-        # The result is NOT "moskva" — that would require transliteration
-        assert isinstance(result, str)
+        # Confusables maps some chars to Latin (о→o, а→a) but not all.
+        # The result is NOT "moskva" — that would require transliteration — and
+        # at least one non-ASCII char survives (chars without a Latin confusable
+        # stay Cyrillic), proving no transliteration happened.
+        assert result != "moskva"
+        assert any(ord(ch) > 127 for ch in result), (
+            f"expected surviving non-ASCII (no transliteration), got {result!r}"
+        )
 
     def test_emoji_expanded(self):
         result = strip_obfuscation("hello 🔥 world")

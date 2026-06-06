@@ -19,8 +19,11 @@ def _has_arabic_dict() -> bool:
     try:
         transliterate("\u0643\u062a\u0628", context=True)
         return True
-    except Exception:
-        return False
+    except Exception as e:
+        # Only a missing dictionary is a skip condition; re-raise real bugs.
+        if "not found" in str(e).lower():
+            return False
+        raise
 
 
 needs_arabic_dict = pytest.mark.skipif(

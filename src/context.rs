@@ -62,13 +62,48 @@ const MAGIC: &[u8; 4] = b"TRLD";
 pub struct ContextDict {
     /// Skeleton → list of (diacritized form, frequency), sorted by frequency desc.
     unigrams: HashMap<String, Vec<(String, u32)>>,
-    /// (prev_skeleton, curr_skeleton) → best diacritized form.
-    bigrams: HashMap<(String, String), String>,
+    /// prev_skeleton → (curr_skeleton → best diacritized form). Nested so that
+    /// `resolve` can look up with `&str` keys and avoid allocating an owned
+    /// `(String, String)` tuple on every token in the hot path.
+    bigrams: HashMap<String, HashMap<String, String>>,
+}
+
+/// Read a little-endian u16 at `pos`, returning an error rather than panicking
+/// if the slice is too short. (`forbid(unsafe_code)` is in force, so an OOB
+/// index would panic and abort the process — these helpers turn a malformed or
+/// truncated dictionary into a recoverable `Err`.)
+fn read_u16(data: &[u8], pos: usize) -> Result<u16, String> {
+    let end = pos.checked_add(2).ok_or("dictionary offset overflow")?;
+    let slice = data
+        .get(pos..end)
+        .ok_or("unexpected end of dictionary data")?;
+    Ok(u16::from_le_bytes(slice.try_into().unwrap()))
+}
+
+/// Read a little-endian u32 at `pos`, bounds-checked (see [`read_u16`]).
+fn read_u32(data: &[u8], pos: usize) -> Result<u32, String> {
+    let end = pos.checked_add(4).ok_or("dictionary offset overflow")?;
+    let slice = data
+        .get(pos..end)
+        .ok_or("unexpected end of dictionary data")?;
+    Ok(u32::from_le_bytes(slice.try_into().unwrap()))
+}
+
+/// Read a UTF-8 string of `len` bytes at `pos`, bounds-checked (see [`read_u16`]).
+fn read_str(data: &[u8], pos: usize, len: usize) -> Result<String, String> {
+    let end = pos.checked_add(len).ok_or("dictionary offset overflow")?;
+    let slice = data
+        .get(pos..end)
+        .ok_or("unexpected end of dictionary data")?;
+    String::from_utf8(slice.to_vec()).map_err(|e| e.to_string())
 }
 
 impl ContextDict {
     /// Load a context dictionary from the binary format produced by
     /// `scripts/build_arabic_dict.py`.
+    ///
+    /// Every read is bounds-checked: a truncated or malformed buffer yields an
+    /// `Err` instead of an out-of-bounds panic.
     pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
         if data.len() < 24 {
             return Err("Dictionary too small".into());
@@ -76,36 +111,43 @@ impl ContextDict {
         if &data[0..4] != MAGIC {
             return Err("Invalid dictionary magic".into());
         }
-        let version = u32::from_le_bytes(data[4..8].try_into().unwrap());
+        let version = read_u32(data, 4)?;
         if version != 1 {
             return Err(format!("Unsupported dictionary version: {version}"));
         }
-        let unigram_count = u32::from_le_bytes(data[8..12].try_into().unwrap()) as usize;
-        let bigram_count = u32::from_le_bytes(data[12..16].try_into().unwrap()) as usize;
-        let unigram_offset = u32::from_le_bytes(data[16..20].try_into().unwrap()) as usize;
-        let bigram_offset = u32::from_le_bytes(data[20..24].try_into().unwrap()) as usize;
+        let unigram_count = read_u32(data, 8)? as usize;
+        let bigram_count = read_u32(data, 12)? as usize;
+        let unigram_offset = read_u32(data, 16)? as usize;
+        let bigram_offset = read_u32(data, 20)? as usize;
+        // Section offsets must point past the 24-byte header. Reads are already
+        // bounds-checked (no panic), but rejecting offsets that start inside the
+        // header avoids silently returning Ok(...) for a clearly malformed
+        // buffer whose sections would overlap the header fields.
+        if unigram_offset < 24 || bigram_offset < 24 {
+            return Err("Dictionary section offset overlaps header".into());
+        }
 
-        // Parse unigrams
-        let mut unigrams = HashMap::with_capacity(unigram_count);
+        // Capacity hints are clamped to data.len(): a record needs >=1 byte, so
+        // the declared count can never legitimately exceed the buffer size. This
+        // stops a bogus count (e.g. u32::MAX) from triggering a huge allocation.
+        let mut unigrams = HashMap::with_capacity(unigram_count.min(data.len()));
         let mut pos = unigram_offset;
         for _ in 0..unigram_count {
-            let skel_len = u16::from_le_bytes(data[pos..pos + 2].try_into().unwrap()) as usize;
+            let skel_len = read_u16(data, pos)? as usize;
             pos += 2;
-            let skeleton =
-                String::from_utf8(data[pos..pos + skel_len].to_vec()).map_err(|e| e.to_string())?;
+            let skeleton = read_str(data, pos, skel_len)?;
             pos += skel_len;
 
-            let num_forms = u16::from_le_bytes(data[pos..pos + 2].try_into().unwrap()) as usize;
+            let num_forms = read_u16(data, pos)? as usize;
             pos += 2;
 
-            let mut forms = Vec::with_capacity(num_forms);
+            let mut forms = Vec::with_capacity(num_forms.min(data.len()));
             for _ in 0..num_forms {
-                let form_len = u16::from_le_bytes(data[pos..pos + 2].try_into().unwrap()) as usize;
+                let form_len = read_u16(data, pos)? as usize;
                 pos += 2;
-                let form = String::from_utf8(data[pos..pos + form_len].to_vec())
-                    .map_err(|e| e.to_string())?;
+                let form = read_str(data, pos, form_len)?;
                 pos += form_len;
-                let freq = u32::from_le_bytes(data[pos..pos + 4].try_into().unwrap());
+                let freq = read_u32(data, pos)?;
                 pos += 4;
                 forms.push((form, freq));
             }
@@ -113,28 +155,26 @@ impl ContextDict {
         }
 
         // Parse bigrams
-        let mut bigrams = HashMap::with_capacity(bigram_count);
+        let mut bigrams: HashMap<String, HashMap<String, String>> =
+            HashMap::with_capacity(bigram_count.min(data.len()));
         pos = bigram_offset;
         for _ in 0..bigram_count {
-            let prev_len = u16::from_le_bytes(data[pos..pos + 2].try_into().unwrap()) as usize;
+            let prev_len = read_u16(data, pos)? as usize;
             pos += 2;
-            let prev =
-                String::from_utf8(data[pos..pos + prev_len].to_vec()).map_err(|e| e.to_string())?;
+            let prev = read_str(data, pos, prev_len)?;
             pos += prev_len;
 
-            let curr_len = u16::from_le_bytes(data[pos..pos + 2].try_into().unwrap()) as usize;
+            let curr_len = read_u16(data, pos)? as usize;
             pos += 2;
-            let curr =
-                String::from_utf8(data[pos..pos + curr_len].to_vec()).map_err(|e| e.to_string())?;
+            let curr = read_str(data, pos, curr_len)?;
             pos += curr_len;
 
-            let form_len = u16::from_le_bytes(data[pos..pos + 2].try_into().unwrap()) as usize;
+            let form_len = read_u16(data, pos)? as usize;
             pos += 2;
-            let form =
-                String::from_utf8(data[pos..pos + form_len].to_vec()).map_err(|e| e.to_string())?;
+            let form = read_str(data, pos, form_len)?;
             pos += form_len;
 
-            bigrams.insert((prev, curr), form);
+            bigrams.entry(prev).or_default().insert(curr, form);
         }
 
         Ok(ContextDict { unigrams, bigrams })
@@ -144,12 +184,9 @@ impl ContextDict {
     ///
     /// Returns the best diacritized form, or None if not in dictionary.
     pub fn resolve(&self, prev_skeleton: Option<&str>, curr_skeleton: &str) -> Option<&str> {
-        // Tier 1: bigram lookup
+        // Tier 1: bigram lookup (borrowed &str keys — no per-token allocation)
         if let Some(prev) = prev_skeleton {
-            if let Some(form) = self
-                .bigrams
-                .get(&(prev.to_owned(), curr_skeleton.to_owned()))
-            {
+            if let Some(form) = self.bigrams.get(prev).and_then(|m| m.get(curr_skeleton)) {
                 return Some(form.as_str());
             }
         }
@@ -165,9 +202,10 @@ impl ContextDict {
         None
     }
 
-    /// Return dictionary statistics.
+    /// Return dictionary statistics: (unigram count, total bigram count).
     pub fn stats(&self) -> (usize, usize) {
-        (self.unigrams.len(), self.bigrams.len())
+        let bigram_count = self.bigrams.values().map(HashMap::len).sum();
+        (self.unigrams.len(), bigram_count)
     }
 }
 
@@ -457,9 +495,9 @@ mod tests {
             ],
         );
 
-        let mut bigrams = HashMap::new();
-        bigrams.insert(
-            ("ال".to_string(), "كتب".to_string()),
+        let mut bigrams: HashMap<String, HashMap<String, String>> = HashMap::new();
+        bigrams.entry("ال".to_string()).or_default().insert(
+            "كتب".to_string(),
             "كُتُب".to_string(), // after article → kutub (books)
         );
 
@@ -473,5 +511,98 @@ mod tests {
 
         // Unknown word
         assert_eq!(dict.resolve(None, "xyz"), None);
+    }
+
+    /// Build a minimal but valid dictionary buffer: one unigram ("ab" → [("AB", 5)])
+    /// and one bigram (("ab", "cd") → "X").
+    fn build_valid_dict() -> Vec<u8> {
+        let mut unigram_section = Vec::new();
+        unigram_section.extend_from_slice(&2u16.to_le_bytes()); // skel_len
+        unigram_section.extend_from_slice(b"ab");
+        unigram_section.extend_from_slice(&1u16.to_le_bytes()); // num_forms
+        unigram_section.extend_from_slice(&2u16.to_le_bytes()); // form_len
+        unigram_section.extend_from_slice(b"AB");
+        unigram_section.extend_from_slice(&5u32.to_le_bytes()); // freq
+
+        let mut bigram_section = Vec::new();
+        bigram_section.extend_from_slice(&2u16.to_le_bytes()); // prev_len
+        bigram_section.extend_from_slice(b"ab");
+        bigram_section.extend_from_slice(&2u16.to_le_bytes()); // curr_len
+        bigram_section.extend_from_slice(b"cd");
+        bigram_section.extend_from_slice(&1u16.to_le_bytes()); // form_len
+        bigram_section.extend_from_slice(b"X");
+
+        let unigram_offset = 24u32;
+        let bigram_offset = 24 + unigram_section.len() as u32;
+
+        let mut data = Vec::new();
+        data.extend_from_slice(MAGIC);
+        data.extend_from_slice(&1u32.to_le_bytes()); // version
+        data.extend_from_slice(&1u32.to_le_bytes()); // unigram_count
+        data.extend_from_slice(&1u32.to_le_bytes()); // bigram_count
+        data.extend_from_slice(&unigram_offset.to_le_bytes());
+        data.extend_from_slice(&bigram_offset.to_le_bytes());
+        data.extend_from_slice(&unigram_section);
+        data.extend_from_slice(&bigram_section);
+        data
+    }
+
+    #[test]
+    fn test_from_bytes_valid_roundtrip() {
+        let dict = ContextDict::from_bytes(&build_valid_dict()).expect("valid dict should parse");
+        assert_eq!(dict.resolve(None, "ab"), Some("AB"));
+        assert_eq!(dict.resolve(Some("ab"), "cd"), Some("X"));
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_small_and_bad_magic() {
+        assert!(ContextDict::from_bytes(&[]).is_err());
+        assert!(ContextDict::from_bytes(&[0u8; 10]).is_err());
+        let mut bad = build_valid_dict();
+        bad[0] = b'X'; // corrupt magic
+        assert!(ContextDict::from_bytes(&bad).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_truncation_never_panics() {
+        // A truncated buffer at any prefix length must return Err, never panic
+        // (regression: the parser previously indexed data[pos..pos+N] directly).
+        let full = build_valid_dict();
+        for n in 0..full.len() {
+            let _ = ContextDict::from_bytes(&full[..n]); // must not panic
+        }
+        // Full buffer still parses.
+        assert!(ContextDict::from_bytes(&full).is_ok());
+    }
+
+    #[test]
+    fn test_from_bytes_bogus_counts_do_not_panic() {
+        // Declare an absurd unigram_count with no backing data: must Err, not
+        // panic or OOM via a giant capacity allocation.
+        let mut data = Vec::new();
+        data.extend_from_slice(MAGIC);
+        data.extend_from_slice(&1u32.to_le_bytes()); // version
+        data.extend_from_slice(&u32::MAX.to_le_bytes()); // unigram_count = 4 billion
+        data.extend_from_slice(&0u32.to_le_bytes()); // bigram_count
+        data.extend_from_slice(&24u32.to_le_bytes()); // unigram_offset
+        data.extend_from_slice(&24u32.to_le_bytes()); // bigram_offset
+        assert!(ContextDict::from_bytes(&data).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_offset_out_of_range() {
+        let mut data = build_valid_dict();
+        // Point unigram_offset past the end of the buffer.
+        let bad_offset = (data.len() as u32 + 100).to_le_bytes();
+        data[16..20].copy_from_slice(&bad_offset);
+        assert!(ContextDict::from_bytes(&data).is_err());
+    }
+
+    #[test]
+    fn test_from_bytes_offset_inside_header_rejected() {
+        let mut data = build_valid_dict();
+        // Point unigram_offset inside the 24-byte header.
+        data[16..20].copy_from_slice(&8u32.to_le_bytes());
+        assert!(ContextDict::from_bytes(&data).is_err());
     }
 }

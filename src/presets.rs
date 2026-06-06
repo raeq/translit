@@ -296,12 +296,17 @@ pub fn _sanitize_user_input(text: &str) -> PyResult<String> {
     check_preset_input(text, "sanitize_user_input")?;
     // 1. NFKC normalization
     let buf: String = text.nfkc().collect();
-    // 2. Strip invisibles FIRST (bidi/format + zero-width) so they cannot split
-    //    a run of combining marks; otherwise removing them later would merge two
-    //    short runs into one long run that a second pass would cap differently
-    //    (zalgo-capping would not be idempotent).
+    // 2. Strip invisibles FIRST (bidi/format + zero-width + control) so they
+    //    cannot split a run of combining marks; otherwise removing them later
+    //    would merge two short runs into one long run that a second pass would
+    //    cap differently (zalgo-capping would not be idempotent). Control chars
+    //    other than \n/\t are removed at the final cleanup step regardless, so
+    //    removing them here too is behaviour-preserving and keeps the cap
+    //    idempotent — e.g. "\u{301}\u{301}\0\u{301}" must not become a longer
+    //    contiguous run once the NUL is stripped.
     let buf = strip_bidi(&buf);
     let buf = whitespace::strip_zero_width_chars(&buf);
+    let buf = whitespace::strip_control_chars(&buf);
     // 3. Cap combining marks at 2 per base character (zalgo)
     let buf = zalgo::_strip_zalgo(&buf, 2);
     // 4. Confusables → Latin (neutralizes cross-script homoglyphs)

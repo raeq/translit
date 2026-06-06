@@ -431,7 +431,7 @@ def add_strip_accents_benchmarks(runner: pyperf.Runner) -> None:
     )
 
 
-def add_batch_benchmarks(runner: pyperf.Runner) -> None:
+def add_list_input_benchmarks(runner: pyperf.Runner) -> None:
     """List input vs loop-of-calls for N strings."""
     import translit
 
@@ -440,7 +440,7 @@ def add_batch_benchmarks(runner: pyperf.Runner) -> None:
 
     # --- transliterate(list) vs loop ---
     runner.timeit(
-        "batch:transliterate(list):100",
+        "batch:transliterate_list:100",
         "transliterate(texts)",
         globals={
             "transliterate": translit.transliterate,
@@ -455,7 +455,7 @@ def add_batch_benchmarks(runner: pyperf.Runner) -> None:
 
     # --- slugify(list) vs loop ---
     runner.timeit(
-        "batch:slugify(list):100",
+        "batch:slugify_list:100",
         "slugify(texts)",
         globals={"slugify": translit.slugify, "texts": batch_100},
     )
@@ -513,7 +513,7 @@ def main() -> None:
     add_filename_benchmarks(runner)
     add_strip_accents_benchmarks(runner)
     add_fold_case_benchmarks(runner)
-    add_batch_benchmarks(runner)
+    add_list_input_benchmarks(runner)
 
 
 if __name__ == "__main__":

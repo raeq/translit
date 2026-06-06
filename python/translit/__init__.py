@@ -230,7 +230,10 @@ def transliterate(
     """Unicode → ASCII transliteration.
 
     Accepts a single string or a list of strings. When a list is passed,
-    all strings are processed in a single Rust call for better throughput.
+    forward transliteration (the default) processes all strings in a single
+    Rust call for better throughput; reverse transliteration (``target=...``)
+    and context-aware transliteration (``context=True``) process the list item
+    by item.
 
     Args:
         text: Input Unicode string, or list of strings for batch processing.
@@ -312,6 +315,8 @@ def transliterate(
                 forward_only["strict_iso9"] = strict_iso9
             if gost7034:
                 forward_only["gost7034"] = gost7034
+            if tones:
+                forward_only["tones"] = tones
             if forward_only:
                 names = ", ".join(sorted(forward_only))
                 raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
@@ -323,6 +328,7 @@ def transliterate(
             replace_with=replace_with,
             strict_iso9=strict_iso9,
             gost7034=gost7034,
+            tones=tones,
         )
 
     # ── Single-string path ──
