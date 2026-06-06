@@ -312,6 +312,8 @@ def transliterate(
                 forward_only["strict_iso9"] = strict_iso9
             if gost7034:
                 forward_only["gost7034"] = gost7034
+            if tones:
+                forward_only["tones"] = tones
             if forward_only:
                 names = ", ".join(sorted(forward_only))
                 raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
@@ -323,6 +325,7 @@ def transliterate(
             replace_with=replace_with,
             strict_iso9=strict_iso9,
             gost7034=gost7034,
+            tones=tones,
         )
 
     # ── Single-string path ──

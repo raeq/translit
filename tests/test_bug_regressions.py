@@ -310,3 +310,26 @@ class TestEmojiProviderWarnings:
         )
         # Falls back to CLDR table
         assert "grinning face" in result
+
+
+# ---------------------------------------------------------------------------
+# Batch (list-input) parameter parity with the scalar path
+# Regression: tones= was dropped on the list path, and tones= with target=
+# was not rejected (PRs #14/#15 review comments).
+# ---------------------------------------------------------------------------
+
+
+class TestBatchParameterParity:
+    """List input must honour (and validate) the same params as scalar input."""
+
+    def test_tones_forwarded_to_batch(self) -> None:
+        # Previously transliterate(['北京'], tones=True) silently returned
+        # toneless pinyin while the scalar path returned toned.
+        assert transliterate(["北京"], tones=True) == [transliterate("北京", tones=True)]
+        assert transliterate(["北京"], tones=True) == ["běi jīng"]
+
+    def test_tones_with_target_raises_on_batch(self) -> None:
+        # The scalar path rejects forward-only params with target=; the list
+        # path must too, instead of silently ignoring tones.
+        with pytest.raises(ValueError, match=r"forward-only parameters .*tones.* 'target'"):
+            transliterate(["Moskva"], target="ru", tones=True)
