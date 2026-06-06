@@ -62,8 +62,10 @@ const MAGIC: &[u8; 4] = b"TRLD";
 pub struct ContextDict {
     /// Skeleton → list of (diacritized form, frequency), sorted by frequency desc.
     unigrams: HashMap<String, Vec<(String, u32)>>,
-    /// (prev_skeleton, curr_skeleton) → best diacritized form.
-    bigrams: HashMap<(String, String), String>,
+    /// prev_skeleton → (curr_skeleton → best diacritized form). Nested so that
+    /// `resolve` can look up with `&str` keys and avoid allocating an owned
+    /// `(String, String)` tuple on every token in the hot path.
+    bigrams: HashMap<String, HashMap<String, String>>,
 }
 
 /// Read a little-endian u16 at `pos`, returning an error rather than panicking
@@ -146,7 +148,8 @@ impl ContextDict {
         }
 
         // Parse bigrams
-        let mut bigrams = HashMap::with_capacity(bigram_count.min(data.len()));
+        let mut bigrams: HashMap<String, HashMap<String, String>> =
+            HashMap::with_capacity(bigram_count.min(data.len()));
         pos = bigram_offset;
         for _ in 0..bigram_count {
             let prev_len = read_u16(data, pos)? as usize;
@@ -164,7 +167,7 @@ impl ContextDict {
             let form = read_str(data, pos, form_len)?;
             pos += form_len;
 
-            bigrams.insert((prev, curr), form);
+            bigrams.entry(prev).or_default().insert(curr, form);
         }
 
         Ok(ContextDict { unigrams, bigrams })
@@ -174,12 +177,9 @@ impl ContextDict {
     ///
     /// Returns the best diacritized form, or None if not in dictionary.
     pub fn resolve(&self, prev_skeleton: Option<&str>, curr_skeleton: &str) -> Option<&str> {
-        // Tier 1: bigram lookup
+        // Tier 1: bigram lookup (borrowed &str keys — no per-token allocation)
         if let Some(prev) = prev_skeleton {
-            if let Some(form) = self
-                .bigrams
-                .get(&(prev.to_owned(), curr_skeleton.to_owned()))
-            {
+            if let Some(form) = self.bigrams.get(prev).and_then(|m| m.get(curr_skeleton)) {
                 return Some(form.as_str());
             }
         }
@@ -195,9 +195,10 @@ impl ContextDict {
         None
     }
 
-    /// Return dictionary statistics.
+    /// Return dictionary statistics: (unigram count, total bigram count).
     pub fn stats(&self) -> (usize, usize) {
-        (self.unigrams.len(), self.bigrams.len())
+        let bigram_count = self.bigrams.values().map(HashMap::len).sum();
+        (self.unigrams.len(), bigram_count)
     }
 }
 
@@ -487,9 +488,9 @@ mod tests {
             ],
         );
 
-        let mut bigrams = HashMap::new();
-        bigrams.insert(
-            ("ال".to_string(), "كتب".to_string()),
+        let mut bigrams: HashMap<String, HashMap<String, String>> = HashMap::new();
+        bigrams.entry("ال".to_string()).or_default().insert(
+            "كتب".to_string(),
             "كُتُب".to_string(), // after article → kutub (books)
         );
 
