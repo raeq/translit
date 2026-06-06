@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Keep third-party GitHub Actions (pinned to commit SHAs) up to date.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Python dependencies (dev/docs/test/bench extras; the package has no runtime deps).
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      uv:
+        patterns: ["*"]
