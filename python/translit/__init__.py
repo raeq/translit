@@ -365,8 +365,10 @@ def transliterate(
             gost7034=gost7034,
         )
 
-    # Fast path: pure ASCII needs no transliteration (~30 ns vs ~240 ns PyO3 call).
-    if text.isascii():
+    # Fast path: pure ASCII needs no transliteration (~30 ns vs ~240 ns PyO3
+    # call). Skipped when global replacements may be registered, since an
+    # ASCII-keyed replacement (e.g. "@" -> "(at)") must still be applied in Rust.
+    if text.isascii() and not _has_global_replacements:
         return text
     return _transliterate(
         text,
@@ -2030,6 +2032,15 @@ def script_info(script: str | Script) -> ScriptMeta:
 # by make_cached_transliterator can detect staleness and self-invalidate.
 _mutation_generation: int = 0
 
+# Conservative gate for the pure-ASCII fast path in transliterate(): False means
+# *definitely no* global replacements are registered (so an ASCII string can be
+# returned without crossing into Rust); True means there *may* be some, so the
+# call must go through Rust where apply_replacements() runs. clear_replacements()
+# resets it to False; remove_replacement() leaves it True (we can't cheaply tell
+# from Python whether the table is now empty — staying True only costs a Rust
+# round-trip that finds an empty table, never correctness).
+_has_global_replacements: bool = False
+
 
 def _bump_mutation_generation() -> None:
     global _mutation_generation
@@ -2063,14 +2074,26 @@ def register_replacements(replacements: dict[str, str]) -> None:
     silently overwritten. Use :func:`clear_replacements` to wipe the
     table, or :func:`remove_replacement` to remove a single key.
 
+    Replacements are applied to the input as a left-to-right pre-pass *before*
+    the main transliteration tables, using longest-match-at-each-position
+    semantics (the longest registered key matching at a position wins, and its
+    output is not re-scanned, so replacements never cascade). Keys may be
+    multi-character and may be ASCII.
+
     Args:
         replacements: Dict of source→replacement string mappings, applied
             before the main transliteration tables.
 
     Examples:
-        >>> register_replacements({"©": "(c)", "®": "(r)"})
+        >>> register_replacements({"™": "(tm)"})
+        >>> transliterate("hello™")
+        'hello(tm)'
+        >>> clear_replacements()
     """
+    global _has_global_replacements
     _register_replacements(replacements)
+    if replacements:
+        _has_global_replacements = True
     _bump_mutation_generation()
 
 
@@ -2103,7 +2126,9 @@ def clear_replacements() -> None:
         >>> register_replacements({"©": "(c)", "®": "(r)"})
         >>> clear_replacements()
     """
+    global _has_global_replacements
     _clear_replacements()
+    _has_global_replacements = False
     _bump_mutation_generation()
 
 

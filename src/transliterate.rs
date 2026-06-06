@@ -61,8 +61,12 @@ pub fn _transliterate(
         );
     }
     let error_mode = ErrorMode::from_str(errors)?;
+    // Apply global pre-transliteration replacements (no-op unless any are
+    // registered). Runs before transliterate_impl — and thus before its ASCII
+    // fast path — so ASCII-keyed replacements take effect too.
+    let text = tables::apply_replacements(text);
     Ok(transliterate_impl(
-        text,
+        &text,
         lang,
         error_mode,
         replace_with,
@@ -101,6 +105,11 @@ pub fn _transliterate_context(
         );
     }
     let error_mode = ErrorMode::from_str(errors)?;
+    // Global pre-transliteration replacements (no-op unless registered), applied
+    // before context tokenisation so forward transliteration behaves the same
+    // with and without context=True.
+    let text = tables::apply_replacements(text);
+    let text = text.as_ref();
 
     // Try to get the appropriate context dictionary.
     // Persian: try Persian dict first, fall back to Arabic (shared loanwords).
@@ -830,8 +839,12 @@ pub fn _transliterate_batch(
     Ok(texts
         .iter()
         .map(|text| {
+            // Global pre-transliteration replacements (no-op unless registered),
+            // applied per item before transliterate_impl — parity with the
+            // scalar path.
+            let text = tables::apply_replacements(text);
             transliterate_impl(
-                text,
+                &text,
                 lang,
                 error_mode,
                 replace_with,
