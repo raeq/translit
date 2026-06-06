@@ -62,8 +62,11 @@ class TestNonHomoglyphCyrillicUnchanged:
         # strip_obfuscation does NOT transliterate — only confusables.
         # Chars with Latin confusables map (о→o, а→a), others stay Cyrillic.
         result = strip_obfuscation("Москва")
-        assert isinstance(result, str)
-        # NOT "moskva" — that requires transliterate()
+        # NOT "moskva" — that requires transliterate(); some non-ASCII survives.
+        assert result != "moskva", f"pure Cyrillic word was transliterated: {result!r}"
+        assert any(ord(ch) > 127 for ch in result), (
+            f"expected surviving non-ASCII (no transliteration), got {result!r}"
+        )
 
     def test_identical_homoglyphs_still_work(self):
         # Cyrillic а (U+0430) = Latin a — same visual AND phonetic

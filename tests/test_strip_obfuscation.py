@@ -18,9 +18,14 @@ class TestStripObfuscationBasic:
         # strip_obfuscation does NOT transliterate — only resolves confusables
         # Pure Cyrillic with no Latin confusables passes through (then fold_case)
         result = strip_obfuscation("Москва")
-        # Confusables maps some chars to Latin (о→o, а→a) but not all
-        # The result is NOT "moskva" — that would require transliteration
-        assert isinstance(result, str)
+        # Confusables maps some chars to Latin (о→o, а→a) but not all.
+        # The result is NOT "moskva" — that would require transliteration — and
+        # at least one non-ASCII char survives (chars without a Latin confusable
+        # stay Cyrillic), proving no transliteration happened.
+        assert result != "moskva"
+        assert any(ord(ch) > 127 for ch in result), (
+            f"expected surviving non-ASCII (no transliteration), got {result!r}"
+        )
 
     def test_emoji_expanded(self):
         result = strip_obfuscation("hello 🔥 world")

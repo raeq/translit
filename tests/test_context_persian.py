@@ -14,8 +14,11 @@ def _has_persian_dict() -> bool:
     try:
         transliterate("\u0633\u0644\u0627\u0645", lang="fa", context=True)
         return True
-    except Exception:
-        return False
+    except Exception as e:
+        # Only a missing dictionary is a skip condition; re-raise real bugs.
+        if "not found" in str(e).lower():
+            return False
+        raise
 
 
 needs_persian_dict = pytest.mark.skipif(
@@ -93,9 +96,13 @@ class TestPersianFallback:
         assert result == "hello"
 
     def test_unknown_word_falls_back(self):
-        result = transliterate("\u0633\u0644\u0627\u0645", lang="fa", context=True)
-        assert isinstance(result, str)
-        assert len(result) > 0
+        # "\u0633\u0644\u0627\u0645" (salam) is the first curated vocab entry, so it
+        # never exercised the fallback. Use a synthetic token absent from the dict:
+        # context-aware output must then equal context-free.
+        unknown = "\u062a\u0633\u062a\u0627\u062c\u0633\u0631"
+        assert transliterate(unknown, lang="fa", context=True) == transliterate(
+            unknown, lang="fa", context=False
+        )
 
 
 @needs_persian_dict

@@ -14,8 +14,12 @@ def _has_hebrew_dict() -> bool:
     try:
         transliterate("\u05e9\u05dc\u05d5\u05dd", lang="he", context=True)
         return True
-    except Exception:
-        return False
+    except Exception as e:
+        # Only a missing dictionary is a skip condition; re-raise real bugs so
+        # they fail loudly instead of silently skipping the whole module.
+        if "not found" in str(e).lower():
+            return False
+        raise
 
 
 needs_hebrew_dict = pytest.mark.skipif(
@@ -57,6 +61,11 @@ class TestHebrewFallback:
         assert result == "hello"
 
     def test_unknown_word_falls_back(self):
-        # Rare/made-up consonant sequence — should fall back gracefully
-        result = transliterate("\u05e9\u05dc\u05d5\u05dd", lang="he", context=True)
-        assert isinstance(result, str)
+        # A genuinely unknown consonant skeleton ("\u05e9\u05dc\u05d5\u05dd"/shalom,
+        # the previous input, is actually IN the dictionary, so it never exercised
+        # the fallback). For a word absent from the dict, context-aware output
+        # must equal context-free.
+        unknown = "\u05e6\u05e7\u05da\u05dd"  # synthetic skeleton, not in dict
+        assert transliterate(unknown, lang="he", context=True) == transliterate(
+            unknown, lang="he", context=False
+        )
