@@ -1,5 +1,5 @@
 [build-system]
-requires = ["maturin>=1.7,<2"]
+requires = ["maturin>=1.13.3,<2"]
 build-backend = "maturin"
 
 [project]
@@ -59,8 +59,8 @@ test = [
 ]
 dev = [
     "translit-rs[test]",
-    "ruff==0.15.4",
-    "maturin>=1.7,<2",
+    "ruff==0.15.16",
+    "maturin>=1.13.3,<2",
     "pre-commit>=3.0",
 ]
 bench = [
@@ -73,7 +73,7 @@ bench = [
 ]
 docs = [
     "mkdocs>=1.6",
-    "mkdocstrings[python]>=0.24",
+    "mkdocstrings[python]>=0.30.1",
     "pymdown-extensions>=10.0",
 ]
 # Context dictionaries for transliterate(context=True).
