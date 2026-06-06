@@ -411,7 +411,23 @@ fn unescape_rust_str(s: &str) -> String {
                         "Malformed \\u escape in TSV: expected '{{' after \\u"
                     );
                     chars.next(); // consume '{'
-                    let hex: String = chars.by_ref().take_while(|&c| c != '}').collect();
+
+                    // Collect hex digits up to the closing brace, asserting it is
+                    // actually present — `take_while` would silently accept a
+                    // truncated `\u{XXXX` (no closing '}') by consuming to EOL.
+                    let mut hex = String::new();
+                    let mut closed = false;
+                    for c in chars.by_ref() {
+                        if c == '}' {
+                            closed = true;
+                            break;
+                        }
+                        hex.push(c);
+                    }
+                    assert!(
+                        closed,
+                        "Malformed \\u escape in TSV: missing closing '}}' (got '\\u{{{hex}')"
+                    );
                     let cp = u32::from_str_radix(&hex, 16).unwrap_or_else(|e| {
                         panic!("Invalid hex in \\u{{...}} escape: '{hex}': {e}");
                     });
