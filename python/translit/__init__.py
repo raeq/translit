@@ -5,9 +5,9 @@ from __future__ import annotations
 import sys as _sys
 import types as _stdlib_types
 import warnings as _warnings
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from functools import lru_cache, wraps
-from typing import Any, overload
+from typing import Any, Protocol, cast, overload
 
 from translit._enums import (
     LANG_AM,
@@ -2085,7 +2085,8 @@ def remove_replacement(key: str) -> bool:
         False
     """
     result = _remove_replacement(key)
-    _bump_mutation_generation()
+    if result:  # only a real removal changes the tables
+        _bump_mutation_generation()
     return result
 
 
@@ -2120,8 +2121,10 @@ def dedup_batch(
     Equivalent in result to ``transliterate(texts, ...)`` but each unique input
     crosses into Rust a single time and the result is mapped back. This is a
     large win when values repeat — categorical columns such as city, author,
-    publisher, or country — and is **stateless** (no cache to invalidate, so it
-    is unaffected by :func:`register_lang` / :func:`register_replacements`).
+    publisher, or country — and is **stateless**: it holds no cache, so there is
+    nothing to invalidate and every call reflects the *current* global tables.
+    (Its output still depends on :func:`register_lang` /
+    :func:`register_replacements` like any call — it simply cannot go stale.)
 
     Unique values are batched in chunks of 100,000 (the batch-size cap), so this
     also works for unique sets larger than a single ``transliterate`` call allows.
@@ -2160,6 +2163,22 @@ def dedup_batch(
     return [mapping[t] for t in texts]
 
 
+class CachedTransliterator(Protocol):
+    """A cached single-string transliterator (the result of
+    :func:`make_cached_transliterator`) that also exposes the underlying
+    ``functools.lru_cache`` controls."""
+
+    def __call__(self, text: str) -> str: ...
+
+    def cache_clear(self) -> None:
+        """Empty the cache."""
+        ...
+
+    def cache_info(self) -> Any:
+        """Return the underlying ``functools.lru_cache`` ``CacheInfo``."""
+        ...
+
+
 def make_cached_transliterator(
     maxsize: int | None = 4096,
     *,
@@ -2171,7 +2190,7 @@ def make_cached_transliterator(
     gost7034: bool = False,
     tones: bool = False,
     context: bool = False,
-) -> Callable[[str], str]:
+) -> CachedTransliterator:
     """Return an opt-in, LRU-cached single-string transliterator (fixed options).
 
     The returned callable takes one string and caches its result (bounded by
@@ -2224,7 +2243,7 @@ def make_cached_transliterator(
 
     cached.cache_clear = _cached.cache_clear  # type: ignore[attr-defined]
     cached.cache_info = _cached.cache_info  # type: ignore[attr-defined]
-    return cached
+    return cast(CachedTransliterator, cached)
 
 
 # --- Compatibility aliases ---
@@ -2250,6 +2269,7 @@ __all__ = [
     "transliterate",
     "dedup_batch",
     "make_cached_transliterator",
+    "CachedTransliterator",
     "slugify",
     "normalize",
     "normalize_confusables",

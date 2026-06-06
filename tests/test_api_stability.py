@@ -36,6 +36,7 @@ EXPECTED_ALL = {
     "transliterate",
     "dedup_batch",
     "make_cached_transliterator",
+    "CachedTransliterator",
     "slugify",
     "normalize",
     "normalize_confusables",

@@ -35,10 +35,12 @@ def test_kwargs_passthrough() -> None:
     assert dedup_batch(["Юрий"], strict_iso9=True) == [transliterate("Юрий", strict_iso9=True)]
 
 
-def test_chunking_over_batch_cap() -> None:
-    # > 100,000 distinct values must be chunked at the batch cap and still align.
-    data = [f"café{i}" for i in range(100_005)]
-    out = dedup_batch(data)
-    assert len(out) == len(data)
-    assert out[0] == transliterate(data[0])
-    assert out[-1] == transliterate(data[-1])
+def test_chunking_over_batch_cap(monkeypatch) -> None:
+    # Exercise the chunk loop deterministically by shrinking the cap, rather than
+    # materializing >100k strings.
+    import translit
+
+    monkeypatch.setattr(translit, "_MAX_BATCH_SIZE", 3)
+    data = ["café", "café", "naïve", "Москва", "北京市", "café", "Düsseldorf", "São"]
+    # 7 distinct values, cap 3 -> 3 chunks; result must still align 1:1.
+    assert dedup_batch(data) == [transliterate(x) for x in data]
