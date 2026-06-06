@@ -7,7 +7,23 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- **External wording: capability, not promise.** Security-relevant features are now
+  described as mechanisms (TR39 confusable *mapping*, bidi/zalgo *stripping*, hostname
+  *analysis*) rather than outcome guarantees. Package descriptions, README, and docs no
+  longer claim to "prevent"/"neutralize" attacks or achieve "perfect" recovery; the XMR
+  benchmark figure is always stated with its tested-pairs scope. Engineering rigor is held
+  to a high internal bar (see below); the external surface promises nothing it cannot
+  measure.
+
 ### Added
+- **`THREAT_MODEL.md`** — defines in-scope mechanisms, explicit out-of-scope items
+  (confusables outside the bundled TR39 table, whole-script and multi-character
+  confusables, Unicode-version skew, semantic attacks, DoS), and a vulnerability-vs-
+  known-limitation policy, grounded in the literature (Holgers 2006, Deng 2020,
+  BitAbuse 2025).
+- `SECURITY.md` rewritten on real footing: supported versions corrected to 0.5.x, triage
+  scope defined, and linked to the threat model.
 - **Confusable coverage for intra-Latin homoglyphs of basic ASCII letters**
   (e.g. `þ→p`, `ſ→f`, `ı→i`, `ƒ→f`, `Ɩ→l`, `ꜱ→s`). The TR39 generator previously
   skipped all Latin-script sources for the Latin target, dropping ~83 genuine
