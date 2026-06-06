@@ -398,7 +398,7 @@ def main() -> None:
         text = args.input.read_text(encoding="utf-8")
     elif args.download:
         print("Downloading confusables.txt...", file=sys.stderr)
-        with urllib.request.urlopen(CONFUSABLES_URL) as resp:  # noqa: S310
+        with urllib.request.urlopen(CONFUSABLES_URL, timeout=30) as resp:  # noqa: S310
             text = resp.read().decode("utf-8")
     else:
         print(f"Using bundled {BUNDLED_CONFUSABLES}", file=sys.stderr)

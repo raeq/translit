@@ -14,8 +14,6 @@ from __future__ import annotations
 
 import pathlib
 
-import pytest
-
 from translit import normalize_confusables
 
 CONFUSABLES = pathlib.Path(__file__).resolve().parent.parent / "data" / "confusables.txt"
@@ -24,8 +22,12 @@ _ASCII_LETTERS = set(range(0x41, 0x5B)) | set(range(0x61, 0x7B))
 
 def _latin_letter_confusables() -> list[str]:
     """Source chars whose official prototype is a single basic ASCII letter."""
-    if not CONFUSABLES.exists():
-        pytest.skip("bundled data/confusables.txt not present")
+    # Fail hard, never skip: the pinned source is committed and required for the
+    # gate to mean anything. Its absence is itself a regression to surface.
+    assert CONFUSABLES.exists(), (
+        f"pinned confusables source missing: {CONFUSABLES} — the coverage gate "
+        f"cannot run without it"
+    )
     out: list[str] = []
     for raw in CONFUSABLES.read_text(encoding="utf-8").splitlines():
         line = raw.split("#", 1)[0].strip()
