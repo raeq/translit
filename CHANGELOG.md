@@ -51,6 +51,15 @@ invisible characters** — see *Upgrade notes*.
   string. Validation now runs before the fast-path in `normalize()` and
   `transliterate()`.
 
+### Performance
+
+- **#70** — the batch entry points (`transliterate`, `slugify`, `normalize`,
+  `strip_accents` on `list[str]`) now **release the GIL** around their pure-Rust
+  compute loop via `py.allow_threads`. Multi-threaded callers processing large
+  batches now get real parallelism (~1.8× wall-clock with two threads) instead
+  of serialising on the interpreter lock. Output is unchanged. Documented in the
+  new "Concurrency (GIL)" section of `docs/performance.md`.
+
 ### Documentation
 
 - **#94** — `strict_iso9` is no longer described as "ISO 9:1995". It emits ASCII
