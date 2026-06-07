@@ -371,12 +371,15 @@ fn strip_modifier_suffix(name: &str, strip_modifiers: bool) -> &str {
 
 /// Insert emoji replacement text with leading space padding.
 ///
-/// Adds a leading space if the result doesn't already end with a space.
-/// The caller must set `last_was_emoji = true` so that the next non-emoji
-/// alphanumeric character also gets a leading space.
+/// Adds a leading space only if the result is non-empty and doesn't already end
+/// with whitespace. Checking for any whitespace (not just `' '`) avoids a
+/// double separator when the preceding char is a tab or newline: `"a\t😀"`
+/// becomes `"a\tgrinning face"`, not `"a\t grinning face"`. The caller must set
+/// `last_was_emoji = true` so the next non-emoji alphanumeric also gets a space.
 #[inline]
 fn pad_emoji_replacement(result: &mut String, text: &str) {
-    if !result.is_empty() && !result.ends_with(' ') {
+    let ends_with_ws = result.chars().next_back().is_some_and(char::is_whitespace);
+    if !result.is_empty() && !ends_with_ws {
         result.push(' ');
     }
     result.push_str(text);

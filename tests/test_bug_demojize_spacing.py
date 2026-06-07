@@ -60,3 +60,20 @@ class TestSingleEmojiUnchanged:
     def test_no_emoji(self):
         result = demojize("hello world")
         assert result == "hello world"
+
+
+class TestEmojiAfterWhitespace:
+    """When the preceding char is already whitespace, no extra space is added."""
+
+    def test_no_double_space_after_tab(self):
+        # A tab already separates; the emoji name must not get an extra leading space.
+        assert demojize("hello\t\U0001f600") == "hello\tgrinning face"
+
+    def test_no_double_space_after_newline(self):
+        assert demojize("hello\n\U0001f600") == "hello\ngrinning face"
+
+    def test_single_space_preserved(self):
+        assert demojize("hello \U0001f600") == "hello grinning face"
+
+    def test_space_inserted_after_non_whitespace(self):
+        assert demojize("hi\U0001f600") == "hi grinning face"

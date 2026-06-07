@@ -303,7 +303,8 @@ fn detect_char_script(ch: char) -> &'static str {
     }
 }
 
-/// Map a detected script name to a default ISO 639-1 language code.
+/// Map a detected script name to a default language code (ISO 639-1 where one
+/// exists, otherwise ISO 639-3 — e.g. `chr`, `cop`, `vai`, `tzm`).
 ///
 /// For scripts that serve a single language (Thai, Georgian, etc.) the mapping
 /// is unambiguous.  For multi-language scripts (Cyrillic → Russian, Han → Chinese)
@@ -1113,6 +1114,41 @@ mod tests {
     #[test]
     fn test_resolve_auto_lang_thai() {
         assert_eq!(resolve_auto_lang("ภาษาไทย"), Some("th".to_owned()));
+    }
+
+    #[test]
+    fn test_resolve_auto_lang_new_scripts() {
+        // One representative LETTER per script added in v0.3.0+, asserting the
+        // SCRIPT_RANGES entry and script_to_lang() arm agree end to end. Without
+        // this, a typo in either table for a new script would go undetected.
+        let cases: &[(char, &str)] = &[
+            ('\u{0710}', "syr"), // Syriac letter alaph
+            ('\u{07CA}', "nqo"), // NKo letter a
+            ('\u{13A0}', "chr"), // Cherokee letter a
+            ('\u{1700}', "tl"),  // Tagalog letter a
+            ('\u{1950}', "tdd"), // Tai Le letter ka
+            ('\u{1980}', "khb"), // New Tai Lue letter high qa
+            ('\u{1A00}', "bug"), // Buginese letter ka
+            ('\u{1A20}', "nod"), // Tai Tham letter high ka
+            ('\u{1B05}', "ban"), // Balinese letter akara
+            ('\u{1B83}', "su"),  // Sundanese letter a
+            ('\u{1C5A}', "sat"), // Ol Chiki letter la
+            ('\u{2C80}', "cop"), // Coptic capital letter alfa
+            ('\u{2D30}', "tzm"), // Tifinagh letter ya
+            ('\u{A4D0}', "lis"), // Lisu letter ba
+            ('\u{A500}', "vai"), // Vai syllable ee
+            ('\u{A6A0}', "bax"), // Bamum letter a
+            ('\u{AA00}', "cjm"), // Cham letter a
+            ('\u{AAE0}', "mni"), // Meetei Mayek letter e
+        ];
+        for &(ch, lang) in cases {
+            assert_eq!(
+                resolve_auto_lang(&ch.to_string()),
+                Some(lang.to_owned()),
+                "U+{:04X} should resolve to {lang}",
+                ch as u32
+            );
+        }
     }
 
     #[test]
