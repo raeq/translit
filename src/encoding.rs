@@ -105,7 +105,7 @@ pub fn _detect_encoding(data: &Bound<'_, PyBytes>) -> (String, f64) {
 /// Supported encodings: all WHATWG encodings (UTF-8, windows-1252,
 /// ISO-8859-1, Shift_JIS, EUC-JP, EUC-KR, Big5, GB18030, etc.).
 #[pyfunction]
-#[pyo3(signature = (data, encoding=None, min_confidence=0.0))]
+#[pyo3(signature = (data, encoding=None, min_confidence=0.5))]
 pub fn _decode_to_utf8(
     data: &Bound<'_, PyBytes>,
     encoding: Option<&str>,

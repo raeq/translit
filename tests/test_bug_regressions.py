@@ -347,3 +347,77 @@ class TestContextParameterValidation:
     def test_context_batch_rejects_iso9_and_gost_together(self) -> None:
         with pytest.raises(ValueError, match="mutually exclusive"):
             transliterate(["كتب"], lang="ar", context=True, strict_iso9=True, gost7034=True)
+
+
+class TestNFKCCompatibilityFallback:
+    """transliterate recovers NFKC-compatible Latin instead of emitting [?] (#81)."""
+
+    def test_mathematical_alphanumerics(self):
+        assert transliterate("𝕳𝖊𝖑𝖑𝖔 𝟙𝟚𝟛") == "Hello 123"
+
+    def test_presentation_ligatures(self):
+        assert transliterate("ﬁ ﬂ") == "fi fl"
+
+    def test_superscripts_recovered(self):
+        assert transliterate("x²") == "x2"
+
+    def test_emoji_still_replaced(self):
+        # Emoji do not NFKC-decompose to ASCII, so they remain [?] (by design).
+        assert transliterate("😀") == "[?]"
+
+    def test_strip_obfuscation_folds_fancy_text(self):
+        # Anti-obfuscation: "fancy text" math alphanumerics must fold, not survive.
+        from translit import strip_obfuscation
+
+        assert strip_obfuscation("𝕳𝖊𝖑𝖑𝖔") == "Hello"  # case preserved
+
+
+class TestUnknownLangRaises:
+    """Unknown lang codes raise instead of silently falling back (#68)."""
+
+    @pytest.mark.parametrize("bad", ["RU", "russian", "zz", "EN"])
+    def test_unknown_lang_raises(self, bad):
+        with pytest.raises((ValueError, Exception), match="unknown language code"):
+            transliterate("Москва", lang=bad)
+
+    def test_valid_and_special_codes_accepted(self):
+        assert transliterate("Москва", lang="ru") == "Moskva"
+        assert transliterate("Москва", lang="auto") == "Moskva"
+        assert transliterate("Næss", lang="nb") == transliterate("Næss", lang="no")  # alias
+
+
+class TestSealRegistrations:
+    """seal_registrations() freezes the global registration tables (#64).
+
+    Run in a subprocess: sealing is an irreversible process-global latch, so an
+    in-process test would contaminate the rest of the session.
+    """
+
+    def test_seal_blocks_all_mutators_but_keeps_registrations(self):
+        import subprocess
+        import sys
+
+        code = (
+            "import translit as t\n"
+            "t.register_lang('xx', {'\\u00c4': 'Ae'})\n"
+            "t.register_replacements({'@': '(at)'})\n"
+            "assert not t.registrations_sealed()\n"
+            "t.seal_registrations()\n"
+            "assert t.registrations_sealed()\n"
+            "blocked = 0\n"
+            "for fn, args in [(t.register_lang, ('yy', {})),\n"
+            "                 (t.register_replacements, ({'#': 'h'},)),\n"
+            "                 (t.remove_replacement, ('@',)),\n"
+            "                 (t.clear_replacements, ())]:\n"
+            "    try:\n"
+            "        fn(*args)\n"
+            "    except t.TranslitError:\n"
+            "        blocked += 1\n"
+            "assert blocked == 4, blocked\n"
+            # reads still work after sealing
+            "assert t.transliterate('\\u00c4', lang='xx') == 'Ae'\n"
+            "assert t.transliterate('a@b') == 'a(at)b'\n"
+            "print('OK')\n"
+        )
+        r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+        assert r.returncode == 0 and "OK" in r.stdout, f"stdout={r.stdout!r} stderr={r.stderr!r}"

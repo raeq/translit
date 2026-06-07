@@ -9,13 +9,13 @@ limitation**.
 
 ## Supported versions
 
-Security fixes are released against the latest `0.5.x` release on PyPI. Older minor
+Security fixes are released against the latest `0.6.x` release on PyPI. Older minor
 series are not maintained.
 
 | Version | Supported |
 |---------|-----------|
-| 0.5.x   | Yes       |
-| < 0.5   | No        |
+| 0.6.x   | Yes       |
+| < 0.6   | No        |
 
 ## Reporting a vulnerability
 

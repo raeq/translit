@@ -1,17 +1,46 @@
 use pyo3::prelude::*;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use unicode_normalization::UnicodeNormalization;
 
 use crate::tables;
 use crate::unicode_ranges as ur;
 use crate::ErrorMode;
 
-/// Maximum input size for transliteration, in bytes.
+/// Maximum size, in bytes, of the text produced by the global *replacement
+/// pre-pass* (`register_replacements`).
 ///
-/// Transliteration may expand CJK characters to multi-word ASCII (e.g.
-/// 你→"ni "), so worst-case output can be several times larger than input.
-/// This cap prevents excessive allocation on adversarial input.
-const MAX_TRANSLITERATE_INPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MiB
+/// translit does not cap raw input size — bounding untrusted input is the
+/// caller's responsibility (all operations are linear time/memory; see #80).
+/// This bound is the one exception: registered replacement *values* are
+/// caller-supplied and unbounded, so a tiny input can expand to an enormous
+/// string via a separately-registered value (an amplification a caller's own
+/// input-size check cannot foresee). The pre-pass output is therefore capped.
+const MAX_REPLACEMENT_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MiB
+
+/// Validate a `lang` argument eagerly (#68).
+///
+/// An unknown code (typo like `"RU"` or `"russian"`) would otherwise silently
+/// fall back to the default tables and produce quietly-wrong output — unlike
+/// `errors=`/`form=`, which reject bad values. Returns an error listing the
+/// valid codes. The special `"auto"` detection mode, the BCP-47 aliases
+/// (`nb`/`nn`/`da`), and any `register_lang()` additions are also accepted.
+pub fn validate_lang(lang: Option<&str>) -> PyResult<()> {
+    if let Some(l) = lang {
+        if l != "auto" && !tables::is_valid_lang(l) {
+            // `list_langs()` already includes any `register_lang()` codes, so
+            // we only need to call out the extras it omits: the "auto" mode and
+            // the BCP-47 aliases accepted by `is_valid_lang`.
+            return translit_err!(
+                "unknown language code {:?}; expected \"auto\", a BCP-47 alias \
+                 (nb, nn, da), or one of: {}",
+                l,
+                tables::list_langs().join(", ")
+            );
+        }
+    }
+    Ok(())
+}
 
 /// Script class for tracking inter-script word spacing.
 ///
@@ -53,26 +82,20 @@ pub fn _transliterate(
             "strict_iso9 and gost7034 are mutually exclusive",
         ));
     }
-    if text.len() > MAX_TRANSLITERATE_INPUT_BYTES {
-        return translit_err!(
-            "input too large ({} bytes); maximum for transliterate() is {} bytes",
-            text.len(),
-            MAX_TRANSLITERATE_INPUT_BYTES
-        );
-    }
+    validate_lang(lang)?;
     let error_mode = ErrorMode::from_str(errors)?;
     // Apply global pre-transliteration replacements (no-op unless any are
     // registered). Runs before transliterate_impl — and thus before its ASCII
-    // fast path — so ASCII-keyed replacements take effect too. Re-bounds the
-    // result: replacement values are caller-controlled and can expand the input
-    // past the size cap checked above.
-    let text = match tables::apply_replacements(text, MAX_TRANSLITERATE_INPUT_BYTES) {
+    // fast path — so ASCII-keyed replacements take effect too. The output of the
+    // replacement pre-pass is bounded (amplification guard); raw input size is
+    // not capped (#80).
+    let text = match tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES) {
         Ok(t) => t,
         Err(size) => {
             return translit_err!(
-                "input too large after replacements ({} bytes); maximum for transliterate() is {} bytes",
+                "registered replacements expanded the input to {} bytes, exceeding the {} byte limit",
                 size,
-                MAX_TRANSLITERATE_INPUT_BYTES
+                MAX_REPLACEMENT_OUTPUT_BYTES
             );
         }
     };
@@ -108,24 +131,19 @@ pub fn _transliterate_context(
             "strict_iso9 and gost7034 are mutually exclusive",
         ));
     }
-    if text.len() > MAX_TRANSLITERATE_INPUT_BYTES {
-        return translit_err!(
-            "input too large ({} bytes); maximum for transliterate() is {} bytes",
-            text.len(),
-            MAX_TRANSLITERATE_INPUT_BYTES
-        );
-    }
+    validate_lang(lang)?;
     let error_mode = ErrorMode::from_str(errors)?;
     // Global pre-transliteration replacements (no-op unless registered), applied
     // before context tokenisation so forward transliteration behaves the same
-    // with and without context=True. Re-bounds the result against the size cap.
-    let text = match tables::apply_replacements(text, MAX_TRANSLITERATE_INPUT_BYTES) {
+    // with and without context=True. Output of the pre-pass is bounded
+    // (amplification guard); raw input size is not capped (#80).
+    let text = match tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES) {
         Ok(t) => t,
         Err(size) => {
             return translit_err!(
-                "input too large after replacements ({} bytes); maximum for transliterate() is {} bytes",
+                "registered replacements expanded the input to {} bytes, exceeding the {} byte limit",
                 size,
-                MAX_TRANSLITERATE_INPUT_BYTES
+                MAX_REPLACEMENT_OUTPUT_BYTES
             );
         }
     };
@@ -155,18 +173,20 @@ pub fn _transliterate_context(
         });
         Ok(result)
     } else {
-        // Dictionary not loaded — return error telling user to install extras.
-        // Derive the extra name from the language so the hint points at the
-        // right one (Hebrew has its own extra).
-        let (lang_name, extra) = match lang {
-            Some("he") => ("Hebrew", "hebrew"),
-            Some("fa") => ("Arabic/Persian", "arabic"),
-            _ => ("Arabic", "arabic"),
+        // Dictionary not loaded — point the user at a remedy that actually works
+        // (#60). Context dictionaries are not shipped in the wheel; build them
+        // and expose them via TRANSLIT_DICT_DIR.
+        let lang_name = match lang {
+            Some("he") => "Hebrew",
+            Some("fa") => "Arabic/Persian",
+            _ => "Arabic",
         };
         translit_err!(
-            "Context dictionary for {} not found. Install with: pip install translit-rs[{}]",
-            lang_name,
-            extra
+            "Context dictionary for {} not found. Context-aware transliteration needs \
+             the prebuilt dictionaries: run `bash scripts/bootstrap_dicts.sh` (from a \
+             source checkout) and set the TRANSLIT_DICT_DIR environment variable to the \
+             output directory. See docs/user-guide/abjad-transliteration.md.",
+            lang_name
         )
     }
 }
@@ -322,6 +342,45 @@ pub fn transliterate_impl<'a>(
             }
             prev_class = char_class;
         } else {
+            // #81: before the error fallback, try NFKC compatibility
+            // decomposition. Mathematical Alphanumerics (𝕳→H) and presentation
+            // ligatures (ﬁ→fi) are pure-Latin content NFKC folds to ASCII —
+            // both unidecode and anyascii recover them, and they are a real
+            // filter-evasion vector. Only reached for chars with no table
+            // mapping, so this is purely additive: a char whose NFKC form is
+            // itself falls straight through to the error handler below.
+            // Peek the NFKC iterator without allocating: the overwhelmingly
+            // common case on this path is a char whose NFKC form is itself
+            // (emoji, unmapped CJK, symbols). Collecting into a String there
+            // would add a per-codepoint allocation to the unmapped hot path,
+            // so only allocate when NFKC actually changes the character.
+            let mut nfkc = ch.nfkc();
+            let nfkc_unchanged = matches!((nfkc.next(), nfkc.next()), (Some(c), None) if c == ch);
+            let nfkc_recovered = if nfkc_unchanged {
+                false
+            } else {
+                let decomposed: String = ch.nfkc().collect();
+                let sub = transliterate_impl(
+                    &decomposed,
+                    lang,
+                    error_mode,
+                    replace_with,
+                    strict_iso9,
+                    gost7034,
+                    tones,
+                );
+                if sub.is_empty() {
+                    false
+                } else {
+                    result.push_str(&sub);
+                    last_appended = sub.chars().next_back();
+                    prev_class = ScriptClass::Latin;
+                    true
+                }
+            };
+            if nfkc_recovered {
+                continue;
+            }
             match error_mode {
                 ErrorMode::Replace => {
                     // An empty replace_with is intentionally equivalent to
@@ -771,10 +830,38 @@ pub fn _list_langs() -> Vec<String> {
     tables::list_langs()
 }
 
+/// Reject a registration mutation once the tables have been sealed (#64).
+fn check_not_sealed(op: &str) -> PyResult<()> {
+    if tables::registrations_sealed() {
+        return translit_err!(
+            "{op}: registration tables are sealed (seal_registrations() was called); \
+             register/remove/clear are not permitted after sealing"
+        );
+    }
+    Ok(())
+}
+
+/// Seal the global registration tables: subsequent register/remove/clear calls
+/// fail. Irreversible. Call after startup configuration to prevent later code
+/// from mutating the process-global canonicalization every caller shares.
+#[pyfunction]
+#[pyo3(signature = ())]
+pub fn _seal_registrations() {
+    tables::seal_registrations();
+}
+
+/// True if `seal_registrations()` has been called.
+#[pyfunction]
+#[pyo3(signature = ())]
+pub fn _registrations_sealed() -> bool {
+    tables::registrations_sealed()
+}
+
 /// Register or override a transliteration mapping for a language code.
 #[pyfunction]
 #[pyo3(signature = (code, mappings))]
 pub fn _register_lang(code: &str, mappings: HashMap<String, String>) -> PyResult<()> {
+    check_not_sealed("register_lang")?;
     // Guard against unbounded growth of the global language table.
     let current = tables::registered_lang_count();
     if current >= tables::MAX_REGISTERED_LANGS {
@@ -804,6 +891,7 @@ pub fn _register_lang(code: &str, mappings: HashMap<String, String>) -> PyResult
 #[pyfunction]
 #[pyo3(signature = (replacements,))]
 pub fn _register_replacements(replacements: HashMap<String, String>) -> PyResult<()> {
+    check_not_sealed("register_replacements")?;
     tables::register_replacements(replacements).map_err(|projected| {
         pyo3::exceptions::PyValueError::new_err(format!(
             "register_replacements(): table would exceed the maximum of {} entries \
@@ -820,6 +908,7 @@ pub fn _register_replacements(replacements: HashMap<String, String>) -> PyResult
 #[pyfunction]
 #[pyo3(signature = (key,))]
 pub fn _remove_replacement(key: &str) -> PyResult<bool> {
+    check_not_sealed("remove_replacement")?;
     Ok(tables::remove_replacement(key))
 }
 
@@ -827,6 +916,7 @@ pub fn _remove_replacement(key: &str) -> PyResult<bool> {
 #[pyfunction]
 #[pyo3(signature = ())]
 pub fn _clear_replacements() -> PyResult<()> {
+    check_not_sealed("clear_replacements")?;
     tables::clear_replacements();
     Ok(())
 }
@@ -855,17 +945,18 @@ pub fn _transliterate_batch(
             crate::MAX_BATCH_SIZE
         );
     }
+    validate_lang(lang)?;
     let error_mode = ErrorMode::from_str(errors)?;
     texts
         .iter()
         .map(|text| -> PyResult<String> {
             // Global pre-transliteration replacements (no-op unless registered),
             // applied per item before transliterate_impl — parity with the
-            // scalar path, including the post-replacement size cap.
-            let replaced = tables::apply_replacements(text, MAX_TRANSLITERATE_INPUT_BYTES)
+            // scalar path, including the replacement-output amplification bound.
+            let replaced = tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES)
                 .map_err(|size| {
                     crate::TranslitError::new_err(format!(
-                        "input too large after replacements ({size} bytes); maximum for transliterate() is {MAX_TRANSLITERATE_INPUT_BYTES} bytes"
+                        "registered replacements expanded the input to {size} bytes, exceeding the {MAX_REPLACEMENT_OUTPUT_BYTES} byte limit"
                     ))
                 })?;
             Ok(transliterate_impl(

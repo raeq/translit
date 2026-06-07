@@ -7,7 +7,61 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-06-07
+
+A hardening and bug-fix release. Two new opt-in helpers (`dedup_batch`,
+`make_cached_transliterator`) make this a **minor** bump; no public API was
+removed. **Several fixes change output for specific inputs** — read *Upgrade
+notes* before upgrading if you cache or persist transliterator/normalizer output.
+
+### Upgrade notes (output-affecting fixes)
+
+Each of these was a bug; the new output is the correct one. If you store or cache
+results that were keyed on the old (buggy) behaviour, regenerate them:
+
+- **`register_replacements()` now actually applies.** It was a silent no-op — the
+  registered table was never consulted. Registered replacements now take effect
+  across `transliterate()` (scalar, list, and `context=True`). If you registered
+  replacements and (knowingly or not) relied on them being ignored, output changes.
+- **`transliterate(list, tones=True)`** now returns toned pinyin (was silently
+  toneless on the list path); **`transliterate(list, target=…, tones=True)`** now
+  raises `ValueError` for the forward-only parameter (was silently ignored).
+- **`normalize_confusables(text, target="cyrillic")`** no longer maps characters
+  onto *invisible combining marks* (28 such mappings removed).
+- **`strip_obfuscation`** now folds intra-Latin ASCII homoglyphs (`þ→p`, `ſ→f`,
+  `ı→i`, …) and is idempotent; **`sanitize_user_input`** is idempotent for
+  control/invisible characters between combining marks; **`demojize`** no longer
+  inserts a stray space after a tab/newline that precedes an emoji.
+- **Context-aware transliteration (`context=True`, ar/fa/he) distribution
+  changed.** The empty `arabic`/`hebrew`/`context` pip extras have been **removed**
+  (they never installed anything). The ~37 MB dictionaries are no longer tracked
+  in git, and are not shipped in the wheel. Context mode now loads dictionaries
+  from `$TRANSLIT_DICT_DIR` (build them with `scripts/bootstrap_dicts.sh`), or use
+  the `embed-dicts` Cargo feature for a self-contained build. A packaged
+  pip-installable distribution is tracked in #56/#60.
+- **`decode_to_utf8` default `min_confidence` changed `0.0` → `0.5`.** Low-confidence
+  encoding guesses are now rejected by default instead of silently accepted; pass
+  `min_confidence=0.0` to restore the old behaviour. (#66)
+- **Unknown `lang` codes now raise instead of silently falling back** (#68). A
+  typo'd code (`lang="RU"`, `lang="russian"`) used to behave exactly like
+  `lang=None` — quietly-wrong output — while `errors=`/`form=` rejected bad
+  values. `transliterate`, `slugify`, `sanitize_filename`, `catalog_key`,
+  `search_key`, `sort_key`, and `ml_normalize` now raise `TranslitError` listing
+  the valid codes. `"auto"`, the `nb`/`nn`/`da` aliases, and `register_lang()`
+  codes are accepted. (`target=` already validated.)
+
 ### Changed
+- **No library-imposed input-size limit** (#80, #65). The 10 MiB input cap on
+  `transliterate`, `normalize`, `fold_case`, and the preset pipelines has been
+  **removed** — it was paternalistic, inconsistently applied (the ASCII fast
+  path bypassed it; `slugify`/`normalize_confusables`/`strip_zalgo` never had it),
+  and the threat model already disclaims DoS. All operations are linear time and
+  memory; **bounding untrusted input is the caller's responsibility**, documented
+  in the threat model and docstrings. The single retained size guard is the
+  `register_replacements` output amplification bound (a tiny input can expand to
+  an enormous string via a caller-registered value — an amplification a caller's
+  own input check cannot foresee). Backward-compatible: only previously-rejected
+  large inputs now succeed.
 - **External wording: capability, not promise.** Security-relevant features are now
   described as mechanisms (TR39 confusable *mapping*, bidi/zalgo *stripping*, hostname
   *analysis*) rather than outcome guarantees. Package descriptions, README, and docs no
@@ -31,7 +85,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
   confusables, Unicode-version skew, semantic attacks, DoS), and a vulnerability-vs-
   known-limitation policy, grounded in the literature (Holgers 2006, Deng 2020,
   BitAbuse 2025).
-- `SECURITY.md` rewritten on real footing: supported versions corrected to 0.5.x, triage
+- `SECURITY.md` rewritten on real footing: supported-version policy stated, triage
   scope defined, and linked to the threat model.
 - **Security-invariant property tests + fuzzing.** `proptest` invariants in Rust
   (`src/presets.rs`) assert no-panic, idempotence, and "no bidi/format control
@@ -51,14 +105,115 @@ Versions follow [Semantic Versioning](https://semver.org/).
   and a `tests/test_confusable_coverage.py` gate against Unicode-version drift.
 
 ### Fixed
-- **Defense pipelines are now idempotent** (both bugs found by the new property tests):
+- **`register_replacements()` was a silent no-op** — the global table was stored
+  but never consulted by `transliterate()`. It now applies as a longest-match
+  pre-pass (no cascade) across the scalar, list, and `context=True` forward paths,
+  including ASCII-keyed replacements that previously bypassed Rust via the Python
+  fast path. (#51)
+- **`tones=` on the list/batch path** was dropped: `transliterate(["北京"],
+  tones=True)` returned toneless pinyin while the scalar path returned toned, and
+  `transliterate([...], target=…, tones=True)` silently ignored the forward-only
+  parameter instead of raising. Both now match the scalar path. (#14, #15)
+- **`normalize_confusables(target="cyrillic")` emitted invisible combining marks** —
+  28 mappings folded a visible character onto a combining Cyrillic-Extended mark (an
+  obfuscation vector). The generator now excludes combining-mark targets. (#24)
+- **`script_info("CanadianAboriginal")["context_aware"]` raised `KeyError`** — the
+  entry omitted a required `ScriptMeta` field; a completeness guard now prevents
+  recurrence. (#18)
+- **Context path skipped `strict_iso9`/`gost7034` mutual-exclusion validation** —
+  `transliterate(text, context=True, strict_iso9=True, gost7034=True)` now raises
+  `ValueError` like the non-context path; the missing-dictionary error hint is now
+  language-specific (`he`→`hebrew`). (#18)
+- **`demojize` inserted a stray space** after a tab/newline preceding an emoji
+  (`"a\t😀"` → `"a\t grinning face"`); it now checks for any whitespace. (#12)
+- **Compatibility digit variants fold to digits, not letters** (#89). The
+  confusables table mapped Mathematical Alphanumeric digits `𝟎`/`𝟏` (and the
+  other four families, plus superscripts) to the look-alike letters `O`/`l`, so
+  `normalize_confusables("𝟏𝟎")` gave `"lO"` and `strip_obfuscation` corrupted
+  digit runs. The generator now folds any character whose NFKC form is an ASCII
+  digit to that digit. They remain *detected* as confusable (`is_confusable`),
+  but canonicalize to the correct number. (ASCII `0`/`1` were already unaffected.)
+- **NFKC-compatible Latin is recovered instead of dropped to `[?]`** (#81).
+  Mathematical Alphanumeric Symbols (`𝕳𝖊𝖑𝖑𝖔 𝟙𝟚𝟛` → `Hello 123`), presentation
+  ligatures (`ﬁ`/`ﬂ` → `fi`/`fl`), and superscripts (`x²` → `x2`) now
+  transliterate: an unmapped non-ASCII char is NFKC-decomposed and re-tried
+  before the error fallback. This matches unidecode/anyascii and closes a
+  filter-evasion ("fancy text") gap. Purely additive — only chars that were
+  previously `[?]` are affected; emoji (no ASCII decomposition) still map to `[?]`.
+- **Defense pipelines are now idempotent** (bugs found by the property tests):
   - `strip_obfuscation`: emoji whose CLDR name contains typographic punctuation
     (e.g. `👒` → `woman’s hat`, U+2019 `’`) weren't folded because confusables ran
     *before* demojize; a second pass folded `’`→`'`. Confusables now runs after demojize.
-  - `sanitize_user_input`: an invisible char between combining marks
-    (e.g. soft-hyphen) split a mark-run, so removing it *after* zalgo-capping merged
-    runs that a second pass then capped differently. Bidi/zero-width are now stripped
-    *before* zalgo-capping.
+  - `sanitize_user_input`: an invisible *or control* character between combining
+    marks (e.g. soft-hyphen, NUL) split a mark-run, so removing it *after*
+    zalgo-capping merged runs that a second pass then capped differently. Bidi,
+    zero-width, **and control characters** are now stripped *before* zalgo-capping.
+- Build-time and doc corrections: `build.rs` now rejects malformed `\u{…}` escapes
+  in TSV data; embedded-dictionary parse errors are logged (not silently dropped);
+  and numerous stale docstrings/comments were corrected (`script_to_lang` returns
+  ISO 639-1 *or* 639-3; `normalize()` ASCII fast-path; list single-Rust-call caveats).
+
+### Security
+- **`seal_registrations()` / `registrations_sealed()`** (#64, high). The
+  `register_lang`/`register_replacements` APIs mutate *process-global* tables
+  consulted by every `transliterate`/`slugify`/`catalog_key`/… call, so in a
+  multi-tenant or web process one import or request handler could silently alter
+  everyone's canonicalization. `seal_registrations()` is a one-way latch: after
+  it is called, register/remove/clear raise `TranslitError`. The registration
+  APIs are now documented as startup-only/single-writer. Separately, a poisoned
+  lock no longer **resets** registrations to defaults (a panic in one thread
+  could previously wipe another caller's registered languages) — it now recovers
+  the data as-is.
+- **`is_safe_hostname` now decodes IDN/`xn--` labels** (#63, high). Previously an
+  `xn--` ACE label was pure ASCII → single-script → reported **safe**, so the
+  on-the-wire form of the IDN homograph attack (a Cyrillic `xn--80ak6aa92e.com`
+  "apple" spoof) sailed through — the exact blind spot for a library marketing
+  `idn`/`anti-spoofing`. ACE labels are now UTS#46-decoded (via the `idna` crate)
+  before script/confusable analysis; a malformed ACE label is treated as unsafe.
+  Non-`xn--` labels are untouched (no false positives on, e.g., `my_host.local`).
+- **`is_safe_hostname` fails closed** (#67.1). A confusable-check error no longer
+  silently degrades to "not confusable" (`unwrap_or(false)`) → "safe"; it now
+  marks the hostname unsafe.
+- **`strip_bidi`/`display_clean` now also strip deprecated format controls
+  (U+206A–U+206F) and interlinear annotation marks (U+FFF9–U+FFFB)** (#67.2),
+  which were previously only handled as transliteration-table entries.
+- **NFKC×confusables composition pinned** (#67.3). Added a regression test fixing
+  the exact set of NFKC-ASCII results that `normalize_confusables` re-maps
+  (`` ` ``→`'`, `"`→`''`, `|`→`l`) so a data/ordering change — e.g. reintroducing
+  digit→letter — fails loudly; and that presets resolve NFKC/TR39 conflicts
+  (`ſ`→`s`) via NFKC.
+- **Context dictionaries are no longer loaded from a CWD-relative path** (#61).
+  `load_dict_from_fs` previously probed `./data/{name}_dict.bin` *first*, so a
+  process whose working directory an attacker influences (or where they can drop
+  `./data/`) could inject a substitute dictionary and silently change ar/fa/he
+  output. Dictionaries now load only from `$TRANSLIT_DICT_DIR` (explicit opt-in)
+  or the crate's own absolute `data/` path in source builds.
+- **Supply-chain: corpus inputs are verified/pinned** (#62). The Tashkeela corpus
+  archive is now checksum-verified before it feeds the builders (fail-closed — an
+  unpinned checksum aborts unless `ALLOW_UNVERIFIED_CORPUS=1`), and the Project
+  Ben Yehuda corpus is fetched at a pinned commit instead of an unpinned live HEAD.
+- **`ContextDict::from_bytes` is fully bounds-checked.** A malformed or truncated
+  context dictionary previously caused an out-of-bounds **panic** (the crate is
+  `unsafe_code = forbid`, so a panic aborts the process). Every read is now
+  bounds-checked and section offsets are validated; capacity hints are clamped.
+  Added truncation/bogus-offset/`u32::MAX`-count unit tests. (#18)
+- **`register_replacements` expansion is bounded.** Replacement *values* are
+  caller-controlled and unbounded; a small input with a large value could expand
+  past the transliterate input cap. Output is now bounded during construction and
+  rejected once it would exceed `MAX_TRANSLITERATE_INPUT_BYTES`. (#51)
+
+### Internal / tests
+- **170 deterministic tests were excluded from CI.** A module-level
+  `pytestmark = pytest.mark.hypothesis` in `test_filename_regressions.py` and
+  `test_case_folding.py` (filename-security and case-folding regressions) deselected
+  the *entire* files under CI's `-m "not hypothesis"` filter; only ~10 were actual
+  property tests. The mark is now scoped to the property-test class in each file, so
+  the deterministic tests run in CI. (#12)
+- New tests: `register_replacements` (unit + Hypothesis property), context-dict
+  parser robustness, `resolve_auto_lang` for all 18 scripts added in v0.3.0+, and a
+  `SCRIPT_META` field-completeness guard.
+- CI/workflow hygiene: concurrency group on secret-scan, `uv.lock` in the benchmark
+  path filter, and CodeQL no longer triggered by Rust-only changes.
 
 ## [0.5.0] — 2026-06-06
 

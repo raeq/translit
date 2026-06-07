@@ -32,10 +32,16 @@ fn is_ipv6_literal(normalized: &str) -> bool {
 
 /// Check if a hostname is safe from Unicode homoglyph attacks.
 ///
+/// `xn--` (ACE) labels are decoded to their Unicode form via UTS#46 before
+/// analysis, so the on-the-wire IDN homograph attack is examined rather than
+/// passed through as inert ASCII (#63). A malformed ACE label is treated as
+/// unsafe (fail closed).
+///
 /// A hostname is considered unsafe if:
 /// - It contains characters from multiple scripts (mixed-script)
 ///   AND at least one script pair is high-risk (Cyrillic+Latin, Greek+Latin)
 /// - It contains confusable characters that map to different Latin characters
+/// - An ACE label fails to decode, or a confusable check errors (fail closed)
 ///
 /// Returns a tuple of (is_safe, details) where details is a dict with:
 /// - "safe": bool
@@ -74,17 +80,42 @@ pub fn _is_safe_hostname(hostname: &str) -> PyResult<(bool, SafeHostnameDetails)
     let mut seen_scripts: std::collections::HashSet<&str> = std::collections::HashSet::new();
     let mut has_mixed = false;
     let mut has_confusables = false;
+    let mut decoded_labels: Vec<String> = Vec::new();
 
-    for label in normalized.split('.') {
+    for raw_label in normalized.split('.') {
         // Empty labels arise from leading, trailing, or consecutive dots
         // (e.g. "a..b" or "example.com.").  These are structurally
-        // malformed but not a homoglyph attack vector — skip them.
-        if label.is_empty() {
+        // malformed but not a homoglyph attack vector — skip them (but keep a
+        // placeholder so the canonical form preserves dot structure).
+        if raw_label.is_empty() {
+            decoded_labels.push(String::new());
             continue;
         }
 
-        // Check scripts in this label
-        let label_scripts = scripts::_detect_scripts(label);
+        // Decode `xn--` ACE labels to their Unicode form (UTS#46, #63) so the
+        // on-the-wire IDN homograph attack is analysed instead of passing as
+        // inert ASCII. A malformed ACE label cannot be verified → fail closed.
+        // Byte comparison (not `raw_label[..4]`, which would panic on a
+        // non-ASCII label where byte 4 is not a char boundary). ACE labels are
+        // pure ASCII, so a byte-prefix match is exactly right. `>= 4` (not
+        // `> 4`) so a bare, malformed `"xn--"` is still recognised as ACE and
+        // routed through the fail-closed decode below rather than slipping past
+        // as an inert ASCII label.
+        let is_ace =
+            raw_label.len() >= 4 && raw_label.as_bytes()[..4].eq_ignore_ascii_case(b"xn--");
+        let label: String = if is_ace {
+            let (unicode, result) = idna::domain_to_unicode(raw_label);
+            if result.is_err() {
+                overall_safe = false;
+            }
+            unicode.nfkc().collect()
+        } else {
+            raw_label.to_string()
+        };
+        decoded_labels.push(label.clone());
+
+        // Check scripts in this (decoded) label
+        let label_scripts = scripts::_detect_scripts(&label);
 
         // Track all scripts seen (O(1) dedup via HashSet)
         for s in &label_scripts {
@@ -115,16 +146,25 @@ pub fn _is_safe_hostname(hostname: &str) -> PyResult<(bool, SafeHostnameDetails)
             }
         }
 
-        // Check confusables in this label
-        if confusables::_is_confusable(label, "latin").unwrap_or(false) {
-            has_confusables = true;
-            overall_safe = false;
+        // Check confusables in this label. Fail CLOSED (#67.1): if the check
+        // errors we cannot prove the label safe, so treat it as unsafe rather
+        // than silently degrading to "not confusable".
+        match confusables::_is_confusable(&label, "latin") {
+            Ok(true) => {
+                has_confusables = true;
+                overall_safe = false;
+            }
+            Ok(false) => {}
+            Err(_) => {
+                overall_safe = false;
+            }
         }
     }
 
-    // Generate canonical Latin form
-    let canonical = confusables::_normalize_confusables(&normalized, "latin")
-        .unwrap_or_else(|_| normalized.clone());
+    // Generate canonical Latin form from the decoded labels.
+    let decoded_hostname = decoded_labels.join(".");
+    let canonical =
+        confusables::_normalize_confusables(&decoded_hostname, "latin").unwrap_or(decoded_hostname);
 
     Ok((
         overall_safe,
@@ -185,10 +225,33 @@ mod tests {
     }
 
     #[test]
-    fn test_punycode_safe() {
-        // Pure ASCII punycode is safe
+    fn test_punycode_non_homograph_safe() {
+        // xn--n3h.com decodes to ☃.com (a snowman) — a single-script non-Latin
+        // label, not a homoglyph spoof, so it is correctly reported safe. The
+        // point of #63 is that the label is now *decoded and analysed*, not that
+        // every xn-- label is flagged.
         let (safe, _) = _is_safe_hostname("xn--n3h.com").unwrap();
         assert!(safe);
+    }
+
+    #[test]
+    fn test_punycode_homograph_unsafe() {
+        // #63: the on-the-wire ACE form of a Cyrillic homograph must be decoded
+        // and flagged. Build the xn-- form of a Cyrillic "apple" spoof, then
+        // assert _is_safe_hostname rejects it (it used to pass as safe ASCII).
+        let spoof = "\u{0430}\u{0440}\u{0440}\u{04CF}\u{0435}"; // аррӏе (Cyrillic)
+        let ace = idna::domain_to_ascii(spoof).expect("encode Cyrillic spoof to ACE");
+        assert!(
+            ace.starts_with("xn--"),
+            "expected an xn-- label, got {ace:?}"
+        );
+        let hostname = format!("{ace}.com");
+        let (safe, details) = _is_safe_hostname(&hostname).unwrap();
+        assert!(
+            !safe,
+            "Cyrillic homograph in ACE form {hostname:?} must be unsafe"
+        );
+        assert!(details.has_confusables);
     }
 
     #[test]

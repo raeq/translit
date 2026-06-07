@@ -60,6 +60,30 @@ static GLOBAL_REPLACEMENTS: LazyLock<RwLock<HashMap<String, String>>> =
 /// transliterate call. Kept in sync by every mutator below.
 static HAS_REPLACEMENTS: AtomicBool = AtomicBool::new(false);
 
+/// Once sealed, the registration tables (langs + replacements) are frozen so an
+/// application can configure registrations at startup and then prevent any later
+/// code (a request handler, an imported library) from mutating the
+/// process-global canonicalization that every caller shares (#64). One-way latch.
+///
+/// Enforcement note: this flag is the *state*; rejection of register/remove/
+/// clear is currently performed by the PyO3 entry points (`check_not_sealed` in
+/// `transliterate.rs`), which are the only callers of the mutators below. The
+/// `tables::` mutators themselves do **not** consult this flag, so a future
+/// direct-Rust API (the core split, #38) must add the seal check at that new
+/// boundary — do not assume sealing is enforced at this layer.
+static REGISTRATIONS_SEALED: AtomicBool = AtomicBool::new(false);
+
+/// Seal the global registration tables: subsequent register/remove/clear calls
+/// fail. Idempotent and irreversible (by design — sealing is a security latch).
+pub fn seal_registrations() {
+    REGISTRATIONS_SEALED.store(true, Ordering::Release);
+}
+
+/// True if [`seal_registrations`] has been called.
+pub fn registrations_sealed() -> bool {
+    REGISTRATIONS_SEALED.load(Ordering::Acquire)
+}
+
 /// Maximum number of entries allowed in `GLOBAL_REPLACEMENTS`.
 ///
 /// Prevents unbounded memory growth from untrusted callers supplying very
@@ -81,6 +105,19 @@ pub fn registered_lang_count() -> usize {
 /// True if the given language code has been user-registered.
 pub fn has_registered_lang(code: &str) -> bool {
     crate::recover_lock(LANG_TABLES.read()).contains_key(code)
+}
+
+/// Accepted BCP-47 language aliases that resolve to a built-in table but are not
+/// listed by `list_langs()` (Norwegian Bokmål/Nynorsk and Danish share the
+/// Norwegian overrides — see `lookup_lang`). Must be kept in sync with the alias
+/// arms there.
+const LANG_ALIASES: &[&str] = &["nb", "nn", "da"];
+
+/// True if `code` is a known language: a built-in profile, an accepted alias, or
+/// a user-registered one. Does not include the special `"auto"` detection mode
+/// (callers handle it).
+pub fn is_valid_lang(code: &str) -> bool {
+    BUILTIN_LANGS.contains(&code) || LANG_ALIASES.contains(&code) || has_registered_lang(code)
 }
 
 /// All built-in language codes, sorted.
@@ -335,7 +372,7 @@ pub fn register_lang(code: &str, mappings: HashMap<String, String>) -> Result<()
     if !bad_keys.is_empty() {
         return Err(bad_keys);
     }
-    let mut table = crate::recover_lock_or_clear(LANG_TABLES.write());
+    let mut table = crate::recover_lock(LANG_TABLES.write());
     table.insert(code.to_owned(), char_map);
     Ok(())
 }
@@ -356,7 +393,7 @@ pub fn register_lang(code: &str, mappings: HashMap<String, String>) -> Result<()
 /// silently overwritten with the new value.  Use [`clear_replacements`]
 /// to wipe the table, or [`remove_replacement`] to remove a single key.
 pub fn register_replacements(replacements: HashMap<String, String>) -> Result<(), usize> {
-    let mut table = crate::recover_lock_or_clear(GLOBAL_REPLACEMENTS.write());
+    let mut table = crate::recover_lock(GLOBAL_REPLACEMENTS.write());
     // Compute worst-case size after merge: existing + all-new (ignoring overlap).
     // This is conservative but avoids the cost of set-difference computation.
     let new_keys: usize = replacements
@@ -380,7 +417,7 @@ pub fn register_replacements(replacements: HashMap<String, String>) -> Result<()
 ///
 /// Returns `true` if the key was present and removed, `false` otherwise.
 pub fn remove_replacement(key: &str) -> bool {
-    let mut table = crate::recover_lock_or_clear(GLOBAL_REPLACEMENTS.write());
+    let mut table = crate::recover_lock(GLOBAL_REPLACEMENTS.write());
     let removed = table.remove(key).is_some();
     HAS_REPLACEMENTS.store(!table.is_empty(), Ordering::Release);
     removed
@@ -388,7 +425,7 @@ pub fn remove_replacement(key: &str) -> bool {
 
 /// Clear all global pre-transliteration replacements.
 pub fn clear_replacements() {
-    let mut table = crate::recover_lock_or_clear(GLOBAL_REPLACEMENTS.write());
+    let mut table = crate::recover_lock(GLOBAL_REPLACEMENTS.write());
     table.clear();
     HAS_REPLACEMENTS.store(false, Ordering::Release);
 }
