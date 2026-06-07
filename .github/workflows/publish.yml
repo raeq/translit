@@ -147,3 +147,6 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # Required so the called docker.yml can upload the Trivy SARIF (#132): a
+      # reusable workflow can only request permissions its caller grants.
+      security-events: write
