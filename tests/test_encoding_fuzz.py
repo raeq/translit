@@ -64,7 +64,14 @@ def test_decode_explicit_encoding_never_panics(data: bytes, encoding: str) -> No
     assert isinstance(had_errors, bool)
 
 
-@given(data=st.binary(max_size=4096), mc=st.floats(min_value=0.0, max_value=1.0))
+@given(
+    data=st.binary(max_size=4096),
+    # Valid threshold domain is [0.0, 1.0]; exclude NaN/inf explicitly. (Bounded
+    # st.floats already defaults allow_nan/allow_infinity to False, but being
+    # explicit keeps the test's domain correct and version-independent — a NaN
+    # would raise ValueError, not the TranslitError this property expects.)
+    mc=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
+)
 def test_min_confidence_gate_is_total(data: bytes, mc: float) -> None:
     # For any byte sequence and any threshold, the auto path either returns a
     # valid (str, bool) or raises TranslitError on the confidence gate — never
