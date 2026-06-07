@@ -2268,11 +2268,15 @@ def seal_registrations() -> None:
     registrations at startup, then call ``seal_registrations()``.
 
     Examples:
-        >>> register_lang("xx", {"Ä": "Ae"})
-        >>> seal_registrations()
+        >>> register_lang("xx", {"Ä": "Ae"})  # doctest: +SKIP
+        >>> seal_registrations()  # doctest: +SKIP
         >>> register_lang("yy", {"Ö": "Oe"})  # doctest: +SKIP
         Traceback (most recent call last):
         translit.TranslitError: register_lang: registration tables are sealed ...
+
+    Note: the example is ``+SKIP``-ped because sealing is a one-way,
+    process-global latch — executing it in the doctest run would seal the shared
+    interpreter and make every later registration/provider doctest fail.
     """
     _seal_registrations()
 
