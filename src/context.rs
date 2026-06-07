@@ -10,6 +10,7 @@
 //! 2. Unigram lookup: current_word_skeleton → most frequent form
 //! 3. Context-free: existing character-by-character transliteration
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
@@ -255,50 +256,51 @@ fn is_hebrew_char(c: char) -> bool {
 }
 
 /// Tokenize text into words and non-word spans (whitespace, punctuation).
-pub fn tokenize(text: &str) -> Vec<Token> {
-    let mut tokens = Vec::new();
-    let mut current = String::new();
-    let mut in_word = false;
-
-    for c in text.chars() {
-        // #108: replaced O(N) slice scans with O(1) codepoint range/mask checks.
+pub fn tokenize(text: &str) -> Vec<Token<'_>> {
+    // #115: each token is a contiguous run of same-class characters, so it is a
+    // borrowed slice of the input — no per-token String allocation. We track the
+    // current run's start byte offset and emit `Cow::Borrowed(&text[start..i])`
+    // when the class flips.
+    #[inline]
+    fn is_word_char(c: char) -> bool {
+        // #108: O(1) codepoint range/mask checks (not O(N) slice scans).
         // Arabic diacritics are exactly U+064B–U+0655 plus U+0670 (SUPERSCRIPT ALEF).
         // Hebrew niqqud are U+05B0–U+05C5 minus U+05BE (MAQAF), U+05C0 (PASEQ), U+05C3 (SOF PASUQ).
         let is_arabic_diacritic = matches!(c as u32, 0x064B..=0x0655 | 0x0670);
         let is_hebrew_niqqud =
             matches!(c as u32, 0x05B0..=0x05C5) && !matches!(c as u32, 0x05BE | 0x05C0 | 0x05C3);
-        let is_word_char = is_arabic_char(c)
+        is_arabic_char(c)
             || is_hebrew_char(c)
             || is_arabic_diacritic
             || is_hebrew_niqqud
-            || c == TATWEEL;
+            || c == TATWEEL
+    }
 
-        if is_word_char {
-            if !in_word && !current.is_empty() {
-                // #109: mem::take moves the buffer (no clone + separate clear).
-                tokens.push(Token {
-                    text: std::mem::take(&mut current),
-                    is_word: false,
-                });
-            }
-            in_word = true;
-            current.push(c);
-        } else {
-            if in_word && !current.is_empty() {
-                // #109: mem::take moves the buffer (no clone + separate clear).
-                tokens.push(Token {
-                    text: std::mem::take(&mut current),
-                    is_word: true,
-                });
-            }
-            in_word = false;
-            current.push(c);
+    let mut tokens = Vec::new();
+    let mut span_start = 0usize;
+    let mut in_word = false;
+    let mut started = false;
+
+    for (i, c) in text.char_indices() {
+        let word = is_word_char(c);
+        if !started {
+            span_start = i;
+            in_word = word;
+            started = true;
+        } else if word != in_word {
+            // Class flip — emit the completed run [span_start..i) as a borrowed slice.
+            tokens.push(Token {
+                text: Cow::Borrowed(&text[span_start..i]),
+                is_word: in_word,
+            });
+            span_start = i;
+            in_word = word;
         }
     }
 
-    if !current.is_empty() {
+    if started {
         tokens.push(Token {
-            text: current,
+            text: Cow::Borrowed(&text[span_start..]),
             is_word: in_word,
         });
     }
@@ -307,10 +309,16 @@ pub fn tokenize(text: &str) -> Vec<Token> {
 }
 
 /// A token from Arabic/Hebrew text tokenization.
+///
+/// `text` is a `Cow<str>`: [`tokenize`] always returns `Cow::Borrowed` slices of
+/// the input (#115) — tokenization never rewrites characters, so it allocates
+/// nothing per token — but the type also lets callers construct or transform a
+/// `Token` holding `Cow::Owned` text when needed.
 #[derive(Debug, Clone)]
-pub struct Token {
-    /// The token text (a word or whitespace/punctuation span).
-    pub text: String,
+pub struct Token<'a> {
+    /// The token text — a word or whitespace/punctuation span. Borrowed from the
+    /// input by [`tokenize`]; may be owned if a caller constructs the token.
+    pub text: Cow<'a, str>,
     /// True if this token is a word (Arabic/Hebrew script), false for non-word spans.
     pub is_word: bool,
 }
