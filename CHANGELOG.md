@@ -7,6 +7,73 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.2] — 2026-06-07
+
+A correctness, security, performance and maintenance release triaged from a
+post-0.6.1 issue sweep (#101–#132). No public API removed; one small new public
+behaviour (`slugify(save_order=True)` now functions). **Two output-affecting
+fixes** — see *Upgrade notes*.
+
+### Upgrade notes (output-affecting)
+
+- **`slugify(save_order=True)`** was an accepted no-op; it now strips only
+  leading/trailing stopwords (preserving interior word order), matching
+  python-slugify (#118). If you passed `save_order=True`, slug output changes.
+- **`decode_to_utf8` default `min_confidence` `0.5` → `0.95`** (#103). The old
+  default was inert (the detector only reports `0.50`/`0.95`, and `0.50 < 0.50`
+  is false), so it never rejected. It now requires high confidence by default;
+  pass `min_confidence=0.0` to accept any guess. (No practical change today —
+  the detector currently always reports `0.95`.)
+
+### Fixed
+
+- **#102** — `UniqueSlugify` no longer panics across the FFI boundary on a
+  multibyte separator + small `max_length` (byte slice landed mid-codepoint;
+  now uses `floor_char_boundary`).
+- **#101** — context bigram disambiguation tier was unreachable (it reset on
+  every inter-word space); it now resets only on hard boundaries, so the tier
+  fires in normal prose.
+- **#104** — `set_emoji_provider` now obeys `seal_registrations()` (the provider
+  swap previously defeated the seal).
+- **#103** — `decode_to_utf8` default confidence now actually gates (see notes).
+- **#107** — a corrupt context dictionary now reports a distinct "corrupt" error
+  instead of the misleading "not found" remedy (`DictState` enum).
+- **#121** — `PRESETS["sanitize_user_input"]` now reflects the real pipeline
+  order (strip invisibles before zalgo); Python registry and Rust doc aligned.
+- **#129** — `Text.transliterate()` stub now declares the `tones`/`context`
+  parameters the implementation accepts.
+- **#131** — `Slugify(uids=...)` emits a correct wrong-class warning rather than
+  a spurious deprecation warning.
+- **#122** — disambiguated the `_compat` `should_warn` nested ternary.
+
+### Security
+
+- **#105** — added a `cargo audit` (RustSec advisory) CI job and a `cargo`
+  Dependabot ecosystem.
+- **#132** — added a Trivy CVE scan of the published image to the release
+  workflow (SARIF → Security tab, fails on fixable HIGH/CRITICAL) + `.trivyignore`.
+- **#106** — Rust diagnostics now route through Python `warnings` instead of
+  bare `eprintln!`, so applications can capture/suppress them.
+
+### Performance (output-preserving)
+
+- **#108** codepoint-range diacritic checks in `tokenize()`; **#109** `mem::take`
+  per token boundary; **#110** single `ch.nfkc()` pass on the NFKC fallback;
+  **#111** lowered `MAX_CAPACITY_HINT` 256 MiB → 8 MiB; **#112/#113** emoji
+  matching uses stack buffers + a fixed sliding window (no per-char `Vec`/`String`);
+  **#114** slugify uses `Cow` (no eager `to_owned`); **#116** clamped the
+  `ContextDict` capacity hint.
+
+### Maintenance
+
+- **#118** implemented `slugify(save_order=True)`; **#119** `SlugConfig::from_pyargs`
+  dedupes the four slugify PyO3 entrypoints; **#120** `_build_slug_kwargs` helper;
+  **#123** seal-enforcement docs on each `tables::` mutator; **#124**
+  infallibility comments; **#125** typed `_CallableModule.__call__` kwargs;
+  **#126** corrected `recover_lock` doc; **#127** documented the lazy-import
+  workaround; **#128** renamed `_mutation_generation` → `_registration_generation`;
+  **#130** annotated the defence-in-depth conflict check.
+
 ## [0.6.1] — 2026-06-07
 
 A bug-fix and test-hardening release. No public API was removed and no new
