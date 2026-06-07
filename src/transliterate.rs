@@ -61,8 +61,23 @@ pub fn _transliterate(
         );
     }
     let error_mode = ErrorMode::from_str(errors)?;
+    // Apply global pre-transliteration replacements (no-op unless any are
+    // registered). Runs before transliterate_impl — and thus before its ASCII
+    // fast path — so ASCII-keyed replacements take effect too. Re-bounds the
+    // result: replacement values are caller-controlled and can expand the input
+    // past the size cap checked above.
+    let text = match tables::apply_replacements(text, MAX_TRANSLITERATE_INPUT_BYTES) {
+        Ok(t) => t,
+        Err(size) => {
+            return translit_err!(
+                "input too large after replacements ({} bytes); maximum for transliterate() is {} bytes",
+                size,
+                MAX_TRANSLITERATE_INPUT_BYTES
+            );
+        }
+    };
     Ok(transliterate_impl(
-        text,
+        &text,
         lang,
         error_mode,
         replace_with,
@@ -101,6 +116,20 @@ pub fn _transliterate_context(
         );
     }
     let error_mode = ErrorMode::from_str(errors)?;
+    // Global pre-transliteration replacements (no-op unless registered), applied
+    // before context tokenisation so forward transliteration behaves the same
+    // with and without context=True. Re-bounds the result against the size cap.
+    let text = match tables::apply_replacements(text, MAX_TRANSLITERATE_INPUT_BYTES) {
+        Ok(t) => t,
+        Err(size) => {
+            return translit_err!(
+                "input too large after replacements ({} bytes); maximum for transliterate() is {} bytes",
+                size,
+                MAX_TRANSLITERATE_INPUT_BYTES
+            );
+        }
+    };
+    let text = text.as_ref();
 
     // Try to get the appropriate context dictionary.
     // Persian: try Persian dict first, fall back to Arabic (shared loanwords).
@@ -827,11 +856,20 @@ pub fn _transliterate_batch(
         );
     }
     let error_mode = ErrorMode::from_str(errors)?;
-    Ok(texts
+    texts
         .iter()
-        .map(|text| {
-            transliterate_impl(
-                text,
+        .map(|text| -> PyResult<String> {
+            // Global pre-transliteration replacements (no-op unless registered),
+            // applied per item before transliterate_impl — parity with the
+            // scalar path, including the post-replacement size cap.
+            let replaced = tables::apply_replacements(text, MAX_TRANSLITERATE_INPUT_BYTES)
+                .map_err(|size| {
+                    crate::TranslitError::new_err(format!(
+                        "input too large after replacements ({size} bytes); maximum for transliterate() is {MAX_TRANSLITERATE_INPUT_BYTES} bytes"
+                    ))
+                })?;
+            Ok(transliterate_impl(
+                &replaced,
                 lang,
                 error_mode,
                 replace_with,
@@ -839,9 +877,9 @@ pub fn _transliterate_batch(
                 gost7034,
                 tones,
             )
-            .into_owned()
+            .into_owned())
         })
-        .collect())
+        .collect()
 }
 
 /// Batch accent stripping: process a list of strings in a single PyO3 boundary crossing.
