@@ -46,6 +46,13 @@ the compiled Rust code is faster across all scripts and input sizes.
 Sustained throughput: **450M chars/sec** (Latin), **130M chars/sec** (Cyrillic),
 **92.9B chars/sec** (ASCII passthrough via `isascii()` fast-path).
 
+!!! note "Hardware variance"
+    These are from the maintainer's machine. On a commodity 4‑vCPU x86‑64
+    runner the non‑ASCII figures run lower — Cyrillic ~106M chars/sec and
+    slugify ~712K slugs/sec (≈15–18% below) — which is why the README quotes
+    the conservative commodity numbers. All figures are directional and
+    hardware‑dependent; re‑run the benchmark scripts for your environment.
+
 ### vs. competitors
 
 | Library | Latin (short) | Cyrillic (short) | Mixed (50 chars) |

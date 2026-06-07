@@ -7,6 +7,63 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.1] — 2026-06-07
+
+A bug-fix and test-hardening release. No public API was removed and no new
+public names were added. **One fix changes key output for inputs containing
+invisible characters** — see *Upgrade notes*.
+
+### Upgrade notes (output-affecting fix)
+
+- **`search_key` / `catalog_key` / `sort_key` now strip bidi overrides and
+  soft-hyphen / format characters** (#93). Previously a value stored with an
+  invisible character (e.g. `"pass­word"`, `"user‮txt"`) produced a
+  *different* key from its clean equivalent, so dedup and lookup silently
+  missed. The new key is the correct one; if you persist these keys, regenerate
+  any that were computed over text that could contain invisible characters.
+
+### Fixed
+
+- **#93** — key functions (`search_key`/`catalog_key`/`sort_key`) leaked bidi
+  and soft-hyphen characters, so visually-identical inputs produced
+  non-colliding keys. They now `strip_bidi` after NFKC, matching the other
+  canonicalization presets.
+- **#82** — Greek reverse transliteration (`transliterate(text, target="el")`)
+  left literal Latin letters in the output (`"psychi"` → `"ψyχη"`). The forward
+  direction romanizes Υ/υ as `Y`/`y` (including the ου/αυ/ευ diphthongs), so the
+  `el` reverse table now maps `Y`/`y` back to Greek; round-trips no longer leak
+  Latin letters.
+- **#69** — `transliterate()` resolved conflicting kwargs differently for `str`
+  vs `list` input (one path silently dropped `target`, the other `context`).
+  Conflicts are now checked once, before the dispatch, so both raise identically:
+  `context`+`target` and `context`+`tones` raise `ValueError`.
+- **#72** — `translit.unidecode()` now mirrors the Unidecode 1.3 signature
+  `unidecode(string, errors="ignore", replace_str="?")`, mapping Unidecode's
+  `errors` modes (`ignore`/`replace`/`preserve`/`strict`) onto the native error
+  handling, instead of raising `TypeError` on those kwargs.
+
+### Documentation
+
+- **#84** — corrected the README throughput table (Cyrillic ~106M chars/sec,
+  slugify ~712K slugs/sec on commodity 4-vCPU hardware) and added a
+  hardware/methodology footnote; added a matching variance note to
+  `docs/performance.md`.
+- **#77** — fixed the `Text` fluent-builder docstring example (`normalize` is
+  keyword-only: `.normalize(form="NFC")`), reconciled the language-profile count
+  (README now agrees with the docs at 83), and documented the `context` kwarg in
+  the `transliterate()` docstring.
+
+### Internal / tests
+
+- **#78** — added adversarial coverage for the raw-bytes decode path
+  (`detect_encoding` / `decode_to_utf8`): deterministic hostile-byte cases in
+  CI plus a Hypothesis `st.binary()` fuzz suite proving no-panic and
+  invariant-preservation. Documented in `THREAT_MODEL.md` that the decode path
+  has no input-size cap (caller's responsibility, per the 0.6.0 cap removal).
+- **#79** — added a single-vs-batch kwarg parity regression test across the full
+  kwarg matrix and a multi-script corpus (the `tones` batch drop fixed in 0.6.0
+  can no longer recur silently).
+
 ## [0.6.0] — 2026-06-07
 
 A hardening and bug-fix release. Two new opt-in helpers (`dedup_batch`,

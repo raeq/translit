@@ -187,6 +187,54 @@ def _validate_batch(texts: object, func_name: str) -> None:
 # --- Core transforms ---
 
 
+def _check_transliterate_conflicts(
+    *,
+    lang: str | None,
+    target: str | None,
+    errors: ErrorMode,
+    replace_with: str,
+    strict_iso9: bool,
+    gost7034: bool,
+    tones: bool,
+    context: bool,
+) -> None:
+    """Reject conflicting ``transliterate()`` kwarg combinations (#69).
+
+    A single conflict matrix, applied identically before the str/list dispatch
+    so scalar and batch inputs raise the same error instead of one silently
+    dropping a parameter the other honours.
+
+    ``target`` selects *reverse* transliteration; ``context`` and ``tones`` are
+    *forward-only*, so combining either with ``target`` is an error. ``context``
+    (abjad vowel restoration) has no toned-pinyin output, so ``context`` +
+    ``tones`` is rejected too.
+    """
+    if target is not None and lang is not None:
+        raise ValueError("'lang' and 'target' are mutually exclusive")
+    if context and target is not None:
+        raise ValueError("'context' and 'target' are mutually exclusive")
+    if context and tones:
+        raise ValueError(
+            "'tones' cannot be used with 'context' — context-aware "
+            "transliteration does not produce toned pinyin"
+        )
+    if target is not None:
+        forward_only: dict[str, object] = {}
+        if errors != "replace":
+            forward_only["errors"] = errors
+        if replace_with != "[?]":
+            forward_only["replace_with"] = replace_with
+        if strict_iso9:
+            forward_only["strict_iso9"] = strict_iso9
+        if gost7034:
+            forward_only["gost7034"] = gost7034
+        if tones:
+            forward_only["tones"] = tones
+        if forward_only:
+            names = ", ".join(sorted(forward_only))
+            raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
+
+
 @overload
 def transliterate(
     text: str,
@@ -266,7 +314,14 @@ def transliterate(
         tones: Output toned pinyin (with diacritics) for CJK characters.
                e.g. "běi jīng" instead of "bei jing". Coverage includes
                the ~2000 most common characters; others fall through to
-               toneless pinyin.
+               toneless pinyin. Forward-only: cannot be combined with *target*
+               or *context*.
+        context: Use dictionary-based vowel restoration for abjad scripts
+                 (Arabic/Persian/Hebrew), producing more readable output than
+                 the context-free tables. Requires the prebuilt context
+                 dictionaries (see ``bootstrap_dicts.sh`` / ``TRANSLIT_DICT_DIR``).
+                 Forward-only: mutually exclusive with *target*, and cannot be
+                 combined with *tones*.
 
     Returns:
         ASCII transliteration of the input. Returns ``str`` when given ``str``,
@@ -277,6 +332,8 @@ def transliterate(
             ``errors`` value passed at runtime).
         ValueError: If both *strict_iso9* and *gost7034* are True.
         ValueError: If both *lang* and *target* are set.
+        ValueError: If *context* and *target* are both set.
+        ValueError: If *context* and *tones* are both set.
         ValueError: If *target* is set with forward-only parameters.
 
     Examples:
@@ -289,6 +346,19 @@ def transliterate(
         >>> transliterate("Moskva", target="ru")
         'Москва'
     """
+    # Resolve conflicting kwargs once, before the str/list dispatch, so scalar
+    # and batch inputs behave identically (#69).
+    _check_transliterate_conflicts(
+        lang=lang,
+        target=target,
+        errors=errors,
+        replace_with=replace_with,
+        strict_iso9=strict_iso9,
+        gost7034=gost7034,
+        tones=tones,
+        context=context,
+    )
+
     # ── Batch path ──
     if isinstance(text, list):
         _validate_batch(text, "transliterate")
@@ -306,22 +376,6 @@ def transliterate(
                 for t in text
             ]
         if target is not None:
-            if lang is not None:
-                raise ValueError("'lang' and 'target' are mutually exclusive")
-            forward_only: dict[str, object] = {}
-            if errors != "replace":
-                forward_only["errors"] = errors
-            if replace_with != "[?]":
-                forward_only["replace_with"] = replace_with
-            if strict_iso9:
-                forward_only["strict_iso9"] = strict_iso9
-            if gost7034:
-                forward_only["gost7034"] = gost7034
-            if tones:
-                forward_only["tones"] = tones
-            if forward_only:
-                names = ", ".join(sorted(forward_only))
-                raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
             return [_reverse_transliterate(t, lang=target) for t in text]
         return _transliterate_batch(
             text,
@@ -338,22 +392,6 @@ def transliterate(
         raise TypeError(f"transliterate() expects str or list[str], got {type(text).__name__}")
 
     if target is not None:
-        if lang is not None:
-            raise ValueError("'lang' and 'target' are mutually exclusive")
-        forward_only_s: dict[str, object] = {}
-        if errors != "replace":
-            forward_only_s["errors"] = errors
-        if replace_with != "[?]":
-            forward_only_s["replace_with"] = replace_with
-        if strict_iso9:
-            forward_only_s["strict_iso9"] = strict_iso9
-        if gost7034:
-            forward_only_s["gost7034"] = gost7034
-        if tones:
-            forward_only_s["tones"] = tones
-        if forward_only_s:
-            names = ", ".join(sorted(forward_only_s))
-            raise ValueError(f"forward-only parameters ({names}) cannot be used with 'target'")
         return _reverse_transliterate(text, lang=target)
 
     # Context-aware path: use dictionary-based vowel restoration for abjad scripts
@@ -445,7 +483,11 @@ def slugify(
     Full pipeline: decode entities → transliterate → lowercase →
     strip non-alphanumeric → collapse separators → apply stopwords/max_length.
 
-    Parameter-compatible with python-slugify.
+    Shares python-slugify's core keyword parameters (``separator``,
+    ``max_length``, ``word_boundary``, ``save_order``, ``stopwords``,
+    ``lowercase``, etc.), so ``slugify(text, ...)`` calls port directly. Note
+    that translit makes every parameter past *text* keyword-only, whereas
+    python-slugify accepts some positionally.
 
     Args:
         text: Input Unicode string.
@@ -1802,6 +1844,7 @@ PRESETS: dict[str, list[tuple[str, str | None]]] = {
     ],
     "catalog_key": [
         ("normalize", "NFKC"),
+        ("strip_bidi", None),
         ("transliterate", None),
         ("confusables", "latin"),
         ("strip_accents", None),
@@ -1814,6 +1857,7 @@ PRESETS: dict[str, list[tuple[str, str | None]]] = {
     ],
     "search_key": [
         ("normalize", "NFKC"),
+        ("strip_bidi", None),
         ("transliterate", None),
         ("strip_accents", None),
         ("fold_case", None),
@@ -1821,6 +1865,7 @@ PRESETS: dict[str, list[tuple[str, str | None]]] = {
     ],
     "sort_key": [
         ("normalize", "NFKC"),
+        ("strip_bidi", None),
         ("transliterate", None),
         ("fold_case", None),
         ("collapse_whitespace", None),

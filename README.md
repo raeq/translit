@@ -209,12 +209,16 @@ Built-in language profiles span the core and compatibility tiers, with ISO 9:199
 ```python
 from translit import list_langs, transliterate
 
+print(len(list_langs()))   # 83
 print(list_langs())
-# ['am', 'ar', 'as', 'bg', 'bn', 'bo', 'ca', 'cs', 'cy', 'da', 'de', 'dv', 'el',
-#  'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy',
-#  'is', 'it', 'ja', 'jv', 'ka', 'km', 'kn', 'ko', 'lo', 'lt', 'lv', 'ml', 'mn',
-#  'mr', 'mt', 'my', 'ne', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa',
-#  'si', 'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'th', 'tr', 'uk', 'vi', 'zh']
+#  ['am', 'ar', 'as', 'ban', 'bax', 'bg', 'bn', 'bo', 'bug', 'ca', 'chr',
+#   'cjm', 'cop', 'cs', 'cy', 'da', 'de', 'dv', 'el', 'es', 'et', 'fa',
+#   'fi', 'fr', 'ga', 'gu', 'he', 'hi', 'hr', 'hu', 'hy', 'is', 'it',
+#   'ja', 'ja-kunrei', 'jv', 'ka', 'khb', 'km', 'kn', 'ko', 'lis', 'lo',
+#   'lt', 'lv', 'ml', 'mn', 'mni', 'mr', 'mt', 'my', 'ne', 'nl', 'no',
+#   'nod', 'nqo', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sa', 'sat', 'si',
+#   'sk', 'sl', 'sq', 'sr', 'su', 'sv', 'syr', 'ta', 'tdd', 'te', 'th',
+#   'tl', 'tr', 'tzm', 'uk', 'vai', 'vi', 'zh']
 ```
 
 See [Language support](docs/user-guide/language-support.md) for the full registry, per-script policies, and tier classification.
@@ -225,12 +229,16 @@ translit is compiled Rust with O(1) compile-time perfect hash tables — no rege
 
 | Operation | Throughput | vs. legacy |
 |---|---|---|
-| Transliterate (Latin) | 450M chars/sec | **38×** faster than Unidecode |
-| Transliterate (Cyrillic) | 130M chars/sec | **18×** faster than Unidecode |
-| Slugify | 849K slugs/sec | **10–24×** faster than python-slugify |
-| Batch transliterate (100 strings) | 2.8× faster than loop | — |
+| Transliterate (Latin) | ~450M chars/sec | **~38×** faster than Unidecode |
+| Transliterate (Cyrillic) | ~106M chars/sec | **~15×** faster than Unidecode |
+| Slugify | ~712K slugs/sec | **~10–24×** faster than python-slugify |
+| Batch transliterate (100 strings) | ~2.8× faster than loop | — |
 
-See [docs/performance.md](docs/performance.md) for full benchmark methodology and results.
+Figures are throughput on a commodity 4‑vCPU x86‑64 Linux runner (min‑of‑N
+`perf_counter`); they are hardware‑dependent and directional, not guarantees.
+Latin and batch numbers are conservative (both exceed the figure above on that
+hardware). See [docs/performance.md](docs/performance.md) for full benchmark
+methodology and results.
 
 ## Drop-in replacement
 

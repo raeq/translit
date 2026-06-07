@@ -15,10 +15,14 @@ import pytest
 from translit import (
     Text,
     TextPipeline,
+    catalog_key,
     collapse_whitespace,
     demojize,
+    search_key,
     slugify,
+    sort_key,
     transliterate,
+    unidecode,
 )
 
 # ---------------------------------------------------------------------------
@@ -421,3 +425,117 @@ class TestSealRegistrations:
         )
         r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
         assert r.returncode == 0 and "OK" in r.stdout, f"stdout={r.stdout!r} stderr={r.stderr!r}"
+
+
+class TestKeyFunctionBidiLeak:
+    """search_key/catalog_key/sort_key must strip bidi/soft-hyphen (#93).
+
+    A value stored with an invisible char must produce the same key as its
+    clean equivalent, or dedup/lookup silently misses.
+    """
+
+    INVISIBLE_PAIRS = [
+        ("pass­word", "password"),  # soft hyphen
+        ("user‮txt", "usertxt"),  # RLO override
+        ("a‎b", "ab"),  # LRM
+        ("x؜y", "xy"),  # Arabic Letter Mark
+    ]
+
+    @pytest.mark.parametrize("stored,clean", INVISIBLE_PAIRS)
+    def test_search_key_collides(self, stored, clean):
+        assert search_key(stored) == search_key(clean)
+
+    @pytest.mark.parametrize("stored,clean", INVISIBLE_PAIRS)
+    def test_catalog_key_collides(self, stored, clean):
+        assert catalog_key(stored) == catalog_key(clean)
+
+    @pytest.mark.parametrize("stored,clean", INVISIBLE_PAIRS)
+    def test_sort_key_collides(self, stored, clean):
+        assert sort_key(stored) == sort_key(clean)
+
+
+class TestKwargConflictMatrix:
+    """transliterate() resolves conflicting kwargs identically for str & list (#69)."""
+
+    def test_context_target_mutually_exclusive_both_paths(self):
+        with pytest.raises(ValueError, match="'context' and 'target' are mutually exclusive"):
+            transliterate("x", target="ru", context=True)
+        with pytest.raises(ValueError, match="'context' and 'target' are mutually exclusive"):
+            transliterate(["x"], target="ru", context=True)
+
+    def test_context_tones_rejected_both_paths(self):
+        with pytest.raises(ValueError, match="'tones' cannot be used with 'context'"):
+            transliterate("北京", lang="zh", tones=True, context=True)
+        with pytest.raises(ValueError, match="'tones' cannot be used with 'context'"):
+            transliterate(["北京"], lang="zh", tones=True, context=True)
+
+    def test_lang_target_mutually_exclusive_both_paths(self):
+        with pytest.raises(ValueError, match="'lang' and 'target' are mutually exclusive"):
+            transliterate("x", lang="de", target="ru")
+        with pytest.raises(ValueError, match="'lang' and 'target' are mutually exclusive"):
+            transliterate(["x"], lang="de", target="ru")
+
+
+class TestUnidecodeCompatKwargs:
+    """translit.unidecode mirrors the Unidecode 1.3 errors=/replace_str= API (#72)."""
+
+    def test_ignore_default_drops(self):
+        assert unidecode("a→b") == "ab"
+        assert unidecode("a→b", errors="ignore") == "ab"
+
+    def test_replace_uses_replace_str(self):
+        assert unidecode("a→b", errors="replace") == "a?b"
+        assert unidecode("a→b", errors="replace", replace_str="_") == "a_b"
+
+    def test_preserve_keeps_original(self):
+        assert unidecode("a→b", errors="preserve") == "a→b"
+
+    def test_strict_raises_with_index(self):
+        with pytest.raises(ValueError, match=r"index 1"):
+            unidecode("a→b", errors="strict")
+
+    def test_strict_passes_when_all_mapped(self):
+        assert unidecode("café", errors="strict") == "cafe"
+
+    def test_invalid_errors_value(self):
+        with pytest.raises(ValueError, match="invalid value for errors"):
+            unidecode("x", errors="bogus")
+
+
+class TestGreekReverseNoLatinLeak:
+    """Reverse el must not leave literal Latin letters in Greek output (#82)."""
+
+    def test_canonical_example(self):
+        assert transliterate("psychi", target="el") == "ψυχη"
+
+    @pytest.mark.parametrize("word", ["ψυχή", "ευχαριστώ", "ούζο", "αύριο", "υγεία", "Κύπρος"])
+    def test_no_latin_residue_on_roundtrip(self, word):
+        rev = transliterate(transliterate(word), target="el")
+        assert not any(c.isascii() and c.isalpha() for c in rev), f"{word} -> {rev}"
+
+
+class TestSingleBatchKwargParity:
+    """transliterate(x, **kw) == transliterate([x], **kw)[0] across kwargs (#79)."""
+
+    CORPUS = ["北京", "café", "Москва", "naïve", "ψυχή", "東京", "Köln", "plain"]
+    KWARGS = [
+        {},
+        {"tones": True},
+        {"lang": "zh", "tones": True},
+        {"strict_iso9": True},
+        {"gost7034": True},
+        {"errors": "ignore"},
+        {"errors": "preserve"},
+        {"replace_with": "?"},
+        {"lang": "ru"},
+        {"lang": "de"},
+    ]
+
+    @pytest.mark.parametrize("kw", KWARGS)
+    def test_scalar_batch_parity(self, kw):
+        for s in self.CORPUS:
+            assert transliterate(s, **kw) == transliterate([s], **kw)[0], (s, kw)
+
+    def test_reverse_parity(self):
+        for s in ["Moskva", "psychi", "Kyiv"]:
+            assert transliterate(s, target="ru") == transliterate([s], target="ru")[0]
