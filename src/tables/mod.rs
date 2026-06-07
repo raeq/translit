@@ -60,11 +60,17 @@ static GLOBAL_REPLACEMENTS: LazyLock<RwLock<HashMap<String, String>>> =
 /// transliterate call. Kept in sync by every mutator below.
 static HAS_REPLACEMENTS: AtomicBool = AtomicBool::new(false);
 
-/// Once sealed, the registration tables (langs + replacements) are frozen:
-/// further register/remove/clear calls are rejected (#64). This lets an
-/// application configure registrations at startup and then prevent any later
+/// Once sealed, the registration tables (langs + replacements) are frozen so an
+/// application can configure registrations at startup and then prevent any later
 /// code (a request handler, an imported library) from mutating the
-/// process-global canonicalization that every caller shares. One-way latch.
+/// process-global canonicalization that every caller shares (#64). One-way latch.
+///
+/// Enforcement note: this flag is the *state*; rejection of register/remove/
+/// clear is currently performed by the PyO3 entry points (`check_not_sealed` in
+/// `transliterate.rs`), which are the only callers of the mutators below. The
+/// `tables::` mutators themselves do **not** consult this flag, so a future
+/// direct-Rust API (the core split, #38) must add the seal check at that new
+/// boundary — do not assume sealing is enforced at this layer.
 static REGISTRATIONS_SEALED: AtomicBool = AtomicBool::new(false);
 
 /// Seal the global registration tables: subsequent register/remove/clear calls

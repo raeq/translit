@@ -385,14 +385,26 @@ fn load_embedded_dict(name: &str, data: &[u8]) -> Option<ContextDict> {
 ///
 /// 1. `$TRANSLIT_DICT_DIR/{name}_dict.bin` — explicit opt-in for installed
 ///    wheels. Build the dictionaries with `scripts/bootstrap_dicts.sh` and
-///    point `TRANSLIT_DICT_DIR` at the output directory.
+///    point `TRANSLIT_DICT_DIR` at the output directory. **A relative
+///    `TRANSLIT_DICT_DIR` is rejected** (warn + ignore): a relative value would
+///    reintroduce exactly the CWD-relative dictionary loading #61 removed, just
+///    via the env var. The directory must be an absolute path.
 /// 2. `$CARGO_MANIFEST_DIR/data/{name}_dict.bin` — source/development builds
 ///    only; a compile-time absolute path baked into the binary.
 #[cfg(not(feature = "embed-dicts"))]
 fn dict_search_paths(name: &str) -> Vec<std::path::PathBuf> {
     let mut paths: Vec<std::path::PathBuf> = Vec::new();
     if let Some(dir) = std::env::var_os("TRANSLIT_DICT_DIR") {
-        paths.push(std::path::Path::new(&dir).join(format!("{name}_dict.bin")));
+        let dir = std::path::Path::new(&dir);
+        if dir.is_absolute() {
+            paths.push(dir.join(format!("{name}_dict.bin")));
+        } else {
+            eprintln!(
+                "Warning: ignoring relative TRANSLIT_DICT_DIR={:?}; an absolute path is \
+                 required (security #61: no CWD-relative dictionary loading).",
+                dir.display()
+            );
+        }
     }
     paths.push(std::path::PathBuf::from(format!(
         "{}/data/{name}_dict.bin",
@@ -649,6 +661,13 @@ mod tests {
         assert!(
             !paths.iter().any(|p| p == cwd_relative),
             "must not probe the CWD-relative data/ path; got {paths:?}"
+        );
+        // Stronger invariant: *every* candidate is absolute. A relative
+        // TRANSLIT_DICT_DIR is rejected at the source, so no env value can
+        // smuggle in a CWD-relative candidate.
+        assert!(
+            paths.iter().all(|p| p.is_absolute()),
+            "all dict search paths must be absolute; got {paths:?}"
         );
     }
 }

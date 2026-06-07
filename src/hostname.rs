@@ -97,8 +97,12 @@ pub fn _is_safe_hostname(hostname: &str) -> PyResult<(bool, SafeHostnameDetails)
         // inert ASCII. A malformed ACE label cannot be verified → fail closed.
         // Byte comparison (not `raw_label[..4]`, which would panic on a
         // non-ASCII label where byte 4 is not a char boundary). ACE labels are
-        // pure ASCII, so a byte-prefix match is exactly right.
-        let is_ace = raw_label.len() > 4 && raw_label.as_bytes()[..4].eq_ignore_ascii_case(b"xn--");
+        // pure ASCII, so a byte-prefix match is exactly right. `>= 4` (not
+        // `> 4`) so a bare, malformed `"xn--"` is still recognised as ACE and
+        // routed through the fail-closed decode below rather than slipping past
+        // as an inert ASCII label.
+        let is_ace =
+            raw_label.len() >= 4 && raw_label.as_bytes()[..4].eq_ignore_ascii_case(b"xn--");
         let label: String = if is_ace {
             let (unicode, result) = idna::domain_to_unicode(raw_label);
             if result.is_err() {

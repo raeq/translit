@@ -23,14 +23,17 @@ const MAX_REPLACEMENT_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MiB
 /// An unknown code (typo like `"RU"` or `"russian"`) would otherwise silently
 /// fall back to the default tables and produce quietly-wrong output — unlike
 /// `errors=`/`form=`, which reject bad values. Returns an error listing the
-/// valid codes. The special `"auto"` detection mode and any `register_lang()`
-/// additions are accepted.
+/// valid codes. The special `"auto"` detection mode, the BCP-47 aliases
+/// (`nb`/`nn`/`da`), and any `register_lang()` additions are also accepted.
 pub fn validate_lang(lang: Option<&str>) -> PyResult<()> {
     if let Some(l) = lang {
         if l != "auto" && !tables::is_valid_lang(l) {
+            // `list_langs()` already includes any `register_lang()` codes, so
+            // we only need to call out the extras it omits: the "auto" mode and
+            // the BCP-47 aliases accepted by `is_valid_lang`.
             return translit_err!(
-                "unknown language code {:?}; expected one of (plus \"auto\" and any \
-                 register_lang() codes): {}",
+                "unknown language code {:?}; expected \"auto\", a BCP-47 alias \
+                 (nb, nn, da), or one of: {}",
                 l,
                 tables::list_langs().join(", ")
             );
@@ -346,10 +349,17 @@ pub fn transliterate_impl<'a>(
             // filter-evasion vector. Only reached for chars with no table
             // mapping, so this is purely additive: a char whose NFKC form is
             // itself falls straight through to the error handler below.
-            let decomposed: String = ch.nfkc().collect();
-            let nfkc_recovered = if decomposed.chars().eq(std::iter::once(ch)) {
+            // Peek the NFKC iterator without allocating: the overwhelmingly
+            // common case on this path is a char whose NFKC form is itself
+            // (emoji, unmapped CJK, symbols). Collecting into a String there
+            // would add a per-codepoint allocation to the unmapped hot path,
+            // so only allocate when NFKC actually changes the character.
+            let mut nfkc = ch.nfkc();
+            let nfkc_unchanged = matches!((nfkc.next(), nfkc.next()), (Some(c), None) if c == ch);
+            let nfkc_recovered = if nfkc_unchanged {
                 false
             } else {
+                let decomposed: String = ch.nfkc().collect();
                 let sub = transliterate_impl(
                     &decomposed,
                     lang,
