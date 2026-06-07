@@ -200,7 +200,9 @@ pub(crate) fn recover_lock<T>(result: std::sync::LockResult<T>) -> T {
 /// is not available. Python-context callers should prefer `emit_py_warning`
 /// (which routes through `warnings.warn`) when a GIL token is at hand.
 pub(crate) fn emit_warning_stderr(msg: &str) {
-    eprintln!("translit warning: {msg}");
+    // Callers already prefix their messages with "translit: ..."; emit as-is to
+    // avoid a double "translit warning: translit: ..." prefix (review on #106).
+    eprintln!("{msg}");
 }
 
 /// Emit a Python `UserWarning` via `warnings.warn`, falling back to stderr if

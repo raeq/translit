@@ -782,6 +782,20 @@ impl _UniqueSlugifier {
                     return Ok(candidate);
                 }
             }
+            // Fail fast on an impossible constraint (#102 review): a unique slug
+            // needs room for the separator plus at least one counter digit. If
+            // max_length is smaller, the suffix-only branch below would truncate
+            // to a constant string that collides forever — loop to
+            // MAX_UNIQUE_ATTEMPTS, then error. Detect it here and error clearly
+            // and immediately instead.
+            let min_unique_len = self.inner.config.separator.len() + 1;
+            if self.inner.config.max_length > 0 && self.inner.config.max_length < min_unique_len {
+                return Err(crate::TranslitError::new_err(format!(
+                    "max_length={} is too small to generate a unique slug with separator {:?}: \
+                     need at least {min_unique_len} bytes for the separator plus one counter digit",
+                    self.inner.config.max_length, self.inner.config.separator
+                )));
+            }
             candidate = format!("{}{}{counter}", base, self.inner.config.separator);
             // If max_length is set, ensure the suffixed candidate doesn't exceed it.
             // Truncate the base portion to make room for the separator + counter.
