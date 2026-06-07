@@ -7,6 +7,32 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-06-07
+
+A hardening and bug-fix release. Two new opt-in helpers (`dedup_batch`,
+`make_cached_transliterator`) make this a **minor** bump; no public API was
+removed. **Several fixes change output for specific inputs** — read *Upgrade
+notes* before upgrading if you cache or persist transliterator/normalizer output.
+
+### Upgrade notes (output-affecting fixes)
+
+Each of these was a bug; the new output is the correct one. If you store or cache
+results that were keyed on the old (buggy) behaviour, regenerate them:
+
+- **`register_replacements()` now actually applies.** It was a silent no-op — the
+  registered table was never consulted. Registered replacements now take effect
+  across `transliterate()` (scalar, list, and `context=True`). If you registered
+  replacements and (knowingly or not) relied on them being ignored, output changes.
+- **`transliterate(list, tones=True)`** now returns toned pinyin (was silently
+  toneless on the list path); **`transliterate(list, target=…, tones=True)`** now
+  raises `ValueError` for the forward-only parameter (was silently ignored).
+- **`normalize_confusables(text, target="cyrillic")`** no longer maps characters
+  onto *invisible combining marks* (28 such mappings removed).
+- **`strip_obfuscation`** now folds intra-Latin ASCII homoglyphs (`þ→p`, `ſ→f`,
+  `ı→i`, …) and is idempotent; **`sanitize_user_input`** is idempotent for
+  control/invisible characters between combining marks; **`demojize`** no longer
+  inserts a stray space after a tab/newline that precedes an emoji.
+
 ### Changed
 - **External wording: capability, not promise.** Security-relevant features are now
   described as mechanisms (TR39 confusable *mapping*, bidi/zalgo *stripping*, hostname
@@ -31,7 +57,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
   confusables, Unicode-version skew, semantic attacks, DoS), and a vulnerability-vs-
   known-limitation policy, grounded in the literature (Holgers 2006, Deng 2020,
   BitAbuse 2025).
-- `SECURITY.md` rewritten on real footing: supported versions corrected to 0.5.x, triage
+- `SECURITY.md` rewritten on real footing: supported-version policy stated, triage
   scope defined, and linked to the threat model.
 - **Security-invariant property tests + fuzzing.** `proptest` invariants in Rust
   (`src/presets.rs`) assert no-panic, idempotence, and "no bidi/format control
@@ -51,14 +77,63 @@ Versions follow [Semantic Versioning](https://semver.org/).
   and a `tests/test_confusable_coverage.py` gate against Unicode-version drift.
 
 ### Fixed
-- **Defense pipelines are now idempotent** (both bugs found by the new property tests):
+- **`register_replacements()` was a silent no-op** — the global table was stored
+  but never consulted by `transliterate()`. It now applies as a longest-match
+  pre-pass (no cascade) across the scalar, list, and `context=True` forward paths,
+  including ASCII-keyed replacements that previously bypassed Rust via the Python
+  fast path. (#51)
+- **`tones=` on the list/batch path** was dropped: `transliterate(["北京"],
+  tones=True)` returned toneless pinyin while the scalar path returned toned, and
+  `transliterate([...], target=…, tones=True)` silently ignored the forward-only
+  parameter instead of raising. Both now match the scalar path. (#14, #15)
+- **`normalize_confusables(target="cyrillic")` emitted invisible combining marks** —
+  28 mappings folded a visible character onto a combining Cyrillic-Extended mark (an
+  obfuscation vector). The generator now excludes combining-mark targets. (#24)
+- **`script_info("CanadianAboriginal")["context_aware"]` raised `KeyError`** — the
+  entry omitted a required `ScriptMeta` field; a completeness guard now prevents
+  recurrence. (#18)
+- **Context path skipped `strict_iso9`/`gost7034` mutual-exclusion validation** —
+  `transliterate(text, context=True, strict_iso9=True, gost7034=True)` now raises
+  `ValueError` like the non-context path; the missing-dictionary error hint is now
+  language-specific (`he`→`hebrew`). (#18)
+- **`demojize` inserted a stray space** after a tab/newline preceding an emoji
+  (`"a\t😀"` → `"a\t grinning face"`); it now checks for any whitespace. (#12)
+- **Defense pipelines are now idempotent** (bugs found by the property tests):
   - `strip_obfuscation`: emoji whose CLDR name contains typographic punctuation
     (e.g. `👒` → `woman’s hat`, U+2019 `’`) weren't folded because confusables ran
     *before* demojize; a second pass folded `’`→`'`. Confusables now runs after demojize.
-  - `sanitize_user_input`: an invisible char between combining marks
-    (e.g. soft-hyphen) split a mark-run, so removing it *after* zalgo-capping merged
-    runs that a second pass then capped differently. Bidi/zero-width are now stripped
-    *before* zalgo-capping.
+  - `sanitize_user_input`: an invisible *or control* character between combining
+    marks (e.g. soft-hyphen, NUL) split a mark-run, so removing it *after*
+    zalgo-capping merged runs that a second pass then capped differently. Bidi,
+    zero-width, **and control characters** are now stripped *before* zalgo-capping.
+- Build-time and doc corrections: `build.rs` now rejects malformed `\u{…}` escapes
+  in TSV data; embedded-dictionary parse errors are logged (not silently dropped);
+  and numerous stale docstrings/comments were corrected (`script_to_lang` returns
+  ISO 639-1 *or* 639-3; `normalize()` ASCII fast-path; list single-Rust-call caveats).
+
+### Security
+- **`ContextDict::from_bytes` is fully bounds-checked.** A malformed or truncated
+  context dictionary previously caused an out-of-bounds **panic** (the crate is
+  `unsafe_code = forbid`, so a panic aborts the process). Every read is now
+  bounds-checked and section offsets are validated; capacity hints are clamped.
+  Added truncation/bogus-offset/`u32::MAX`-count unit tests. (#18)
+- **`register_replacements` expansion is bounded.** Replacement *values* are
+  caller-controlled and unbounded; a small input with a large value could expand
+  past the transliterate input cap. Output is now bounded during construction and
+  rejected once it would exceed `MAX_TRANSLITERATE_INPUT_BYTES`. (#51)
+
+### Internal / tests
+- **170 deterministic tests were excluded from CI.** A module-level
+  `pytestmark = pytest.mark.hypothesis` in `test_filename_regressions.py` and
+  `test_case_folding.py` (filename-security and case-folding regressions) deselected
+  the *entire* files under CI's `-m "not hypothesis"` filter; only ~10 were actual
+  property tests. The mark is now scoped to the property-test class in each file, so
+  the deterministic tests run in CI. (#12)
+- New tests: `register_replacements` (unit + Hypothesis property), context-dict
+  parser robustness, `resolve_auto_lang` for all 18 scripts added in v0.3.0+, and a
+  `SCRIPT_META` field-completeness guard.
+- CI/workflow hygiene: concurrency group on secret-scan, `uv.lock` in the benchmark
+  path filter, and CodeQL no longer triggered by Rust-only changes.
 
 ## [0.5.0] — 2026-06-06
 
