@@ -6,12 +6,13 @@ project's test tiering, but run locally via `pytest`.
 
 from __future__ import annotations
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
 from translit import clear_replacements, register_replacements, transliterate
 
-pytestmark = __import__("pytest").mark.hypothesis
+pytestmark = pytest.mark.hypothesis
 
 # Single, non-surrogate characters for the replacement key.
 _keys = st.characters(blacklist_categories=("Cs",))

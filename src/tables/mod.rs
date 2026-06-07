@@ -368,7 +368,11 @@ pub fn register_replacements(replacements: HashMap<String, String>) -> Result<()
         return Err(projected);
     }
     table.extend(replacements);
-    HAS_REPLACEMENTS.store(!table.is_empty(), Ordering::Relaxed);
+    // Release so a reader's Acquire load that observes `true` also observes the
+    // table mutation above. (Note: this does not make register-concurrent-with-
+    // transliterate fully ordered — a reader may still observe a stale `false`
+    // and skip; the contract is configure-then-use.)
+    HAS_REPLACEMENTS.store(!table.is_empty(), Ordering::Release);
     Ok(())
 }
 
@@ -378,7 +382,7 @@ pub fn register_replacements(replacements: HashMap<String, String>) -> Result<()
 pub fn remove_replacement(key: &str) -> bool {
     let mut table = crate::recover_lock_or_clear(GLOBAL_REPLACEMENTS.write());
     let removed = table.remove(key).is_some();
-    HAS_REPLACEMENTS.store(!table.is_empty(), Ordering::Relaxed);
+    HAS_REPLACEMENTS.store(!table.is_empty(), Ordering::Release);
     removed
 }
 
@@ -386,7 +390,7 @@ pub fn remove_replacement(key: &str) -> bool {
 pub fn clear_replacements() {
     let mut table = crate::recover_lock_or_clear(GLOBAL_REPLACEMENTS.write());
     table.clear();
-    HAS_REPLACEMENTS.store(false, Ordering::Relaxed);
+    HAS_REPLACEMENTS.store(false, Ordering::Release);
 }
 
 /// Apply the registered global pre-transliteration replacements to `text`.
@@ -396,36 +400,51 @@ pub fn clear_replacements() {
 /// matches is emitted as its replacement and the scan jumps past it; matched
 /// output is never re-scanned, so replacements cannot cascade into each other.
 ///
-/// Returns `Cow::Borrowed` (zero allocation) when no replacements are
-/// registered or none match. This is the missing piece that made
-/// `register_replacements` a no-op: nothing previously consulted the table.
-pub fn apply_replacements(text: &str) -> Cow<'_, str> {
-    // Fast path: no replacements registered (single relaxed atomic load).
-    if !HAS_REPLACEMENTS.load(Ordering::Relaxed) {
-        return Cow::Borrowed(text);
+/// Returns `Ok(Cow::Borrowed)` (zero allocation) when no replacements are
+/// registered or none match. Returns `Err(size)` if the replaced text would
+/// exceed `max_len` bytes: replacement *values* are caller-controlled and
+/// unbounded in length, so a small input with a large registered value could
+/// otherwise expand past the transliterate() input cap and defeat it. The
+/// output is bounded during construction, so the over-limit allocation is
+/// capped rather than realised in full.
+pub fn apply_replacements(text: &str, max_len: usize) -> Result<Cow<'_, str>, usize> {
+    // Fast path: no replacements registered (single Acquire atomic load,
+    // pairing with the Release stores in the mutators).
+    if !HAS_REPLACEMENTS.load(Ordering::Acquire) {
+        return Ok(Cow::Borrowed(text));
     }
     let table = crate::recover_lock(GLOBAL_REPLACEMENTS.read());
     if table.is_empty() {
-        return Cow::Borrowed(text);
+        return Ok(Cow::Borrowed(text));
     }
-    replace_longest_match(text, &table)
+    replace_longest_match(text, &table, max_len)
 }
 
 /// Pure longest-match substring replacement: the algorithm behind
 /// [`apply_replacements`], with the table passed in so it can be unit-tested
-/// without touching global state. Borrows `text` on the no-match path.
-fn replace_longest_match<'a>(text: &'a str, table: &HashMap<String, String>) -> Cow<'a, str> {
+/// without touching global state.
+///
+/// The output buffer is allocated lazily on the first match, so a string with
+/// no matching key is returned borrowed with **zero allocation**. Returns
+/// `Err(size)` once the output would exceed `max_len` bytes.
+fn replace_longest_match<'a>(
+    text: &'a str,
+    table: &HashMap<String, String>,
+    max_len: usize,
+) -> Result<Cow<'a, str>, usize> {
     // Distinct key byte-lengths, longest first, so we try the longest possible
     // match at each position. Zero-length keys are ignored (would not advance).
     let mut lengths: Vec<usize> = table.keys().map(String::len).filter(|&l| l > 0).collect();
     lengths.sort_unstable_by(|a, b| b.cmp(a));
     lengths.dedup();
     if lengths.is_empty() {
-        return Cow::Borrowed(text);
+        return Ok(Cow::Borrowed(text));
     }
 
-    let mut out = String::with_capacity(text.len());
-    let mut replaced_any = false;
+    // `out` is allocated only once a replacement actually fires; `last` marks the
+    // start of the input region not yet copied into it.
+    let mut out: Option<String> = None;
+    let mut last = 0;
     let mut i = 0;
     while i < text.len() {
         let mut matched = false;
@@ -435,10 +454,15 @@ fn replace_longest_match<'a>(text: &'a str, table: &HashMap<String, String>) -> 
                 continue;
             }
             if let Some(rep) = table.get(&text[i..end]) {
-                out.push_str(rep);
+                let buf = out.get_or_insert_with(|| String::with_capacity(text.len()));
+                buf.push_str(&text[last..i]);
+                buf.push_str(rep);
+                if buf.len() > max_len {
+                    return Err(buf.len());
+                }
                 i = end;
+                last = end;
                 matched = true;
-                replaced_any = true;
                 break;
             }
         }
@@ -446,15 +470,19 @@ fn replace_longest_match<'a>(text: &'a str, table: &HashMap<String, String>) -> 
             // `i` is always at a char boundary (we advance by whole chars or
             // whole matched keys), so `chars().next()` yields a char.
             let ch = text[i..].chars().next().unwrap();
-            out.push(ch);
             i += ch.len_utf8();
         }
     }
 
-    if replaced_any {
-        Cow::Owned(out)
-    } else {
-        Cow::Borrowed(text)
+    match out {
+        Some(mut buf) => {
+            buf.push_str(&text[last..]);
+            if buf.len() > max_len {
+                return Err(buf.len());
+            }
+            Ok(Cow::Owned(buf))
+        }
+        None => Ok(Cow::Borrowed(text)),
     }
 }
 
@@ -496,47 +524,47 @@ mod tests {
             .collect()
     }
 
+    // Convenience: run replace_longest_match with no size limit and unwrap.
+    fn rlm<'a>(text: &'a str, t: &HashMap<String, String>) -> Cow<'a, str> {
+        replace_longest_match(text, t, usize::MAX).expect("no size limit")
+    }
+
     #[test]
     fn test_replace_longest_match_basic() {
         let t = tbl(&[("@", "(at)"), ("Ω", "OMEGA")]);
-        assert_eq!(replace_longest_match("a@b", &t), "a(at)b");
-        assert_eq!(replace_longest_match("xΩy", &t), "xOMEGAy");
+        assert_eq!(rlm("a@b", &t), "a(at)b");
+        assert_eq!(rlm("xΩy", &t), "xOMEGAy");
     }
 
     #[test]
     fn test_replace_longest_match_prefers_longest() {
         // "abc" must win over "ab" at the same position; output is not rescanned.
         let t = tbl(&[("ab", "X"), ("abc", "Y")]);
-        assert_eq!(replace_longest_match("abcd", &t), "Yd");
-        assert_eq!(replace_longest_match("abx", &t), "Xx");
+        assert_eq!(rlm("abcd", &t), "Yd");
+        assert_eq!(rlm("abx", &t), "Xx");
     }
 
     #[test]
     fn test_replace_longest_match_no_cascade() {
         // Replacing "a"->"b" must not then re-match "b"->"c".
         let t = tbl(&[("a", "b"), ("b", "c")]);
-        assert_eq!(replace_longest_match("a", &t), "b");
-        assert_eq!(replace_longest_match("aa", &t), "bb");
+        assert_eq!(rlm("a", &t), "b");
+        assert_eq!(rlm("aa", &t), "bb");
     }
 
     #[test]
     fn test_replace_longest_match_borrows_on_no_match() {
+        // A non-empty table with no matching key must allocate nothing.
         let t = tbl(&[("zzz", "Q")]);
-        assert!(matches!(
-            replace_longest_match("hello", &t),
-            Cow::Borrowed(_)
-        ));
+        assert!(matches!(rlm("hello", &t), Cow::Borrowed(_)));
     }
 
     #[test]
     fn test_replace_longest_match_empty_and_zero_len_key() {
-        assert!(matches!(
-            replace_longest_match("hi", &HashMap::new()),
-            Cow::Borrowed(_)
-        ));
+        assert!(matches!(rlm("hi", &HashMap::new()), Cow::Borrowed(_)));
         // A zero-length key must be ignored (must not loop forever).
         let t = tbl(&[("", "X"), ("a", "Z")]);
-        assert_eq!(replace_longest_match("ba", &t), "bZ");
+        assert_eq!(rlm("ba", &t), "bZ");
     }
 
     #[test]
@@ -544,10 +572,26 @@ mod tests {
         // A 2-byte key must not match starting inside a 3-byte char, and a key
         // whose byte length would land mid-char is skipped without panicking.
         let t = tbl(&[("é", "e"), ("好", "hao")]);
-        assert_eq!(replace_longest_match("café 好", &t), "cafe hao");
+        assert_eq!(rlm("café 好", &t), "cafe hao");
         // Key "©" (2 bytes) vs input "★" (3 bytes): no spurious match, no panic.
         let t2 = tbl(&[("\u{00A9}", "(c)")]);
-        assert_eq!(replace_longest_match("\u{2605}", &t2), "\u{2605}");
+        assert_eq!(rlm("\u{2605}", &t2), "\u{2605}");
+    }
+
+    #[test]
+    fn test_replace_longest_match_size_cap() {
+        // A small input with a large replacement value is rejected once output
+        // would exceed max_len, bounding allocation (DoS guard).
+        let big = "X".repeat(100);
+        let t = tbl(&[("a", big.as_str())]);
+        assert!(replace_longest_match("aaaa", &t, 50).is_err());
+        // Within the limit it succeeds.
+        assert_eq!(replace_longest_match("a", &t, 1000).unwrap(), big);
+        // No match never trips the cap even with a tiny limit (borrowed).
+        assert!(matches!(
+            replace_longest_match("zzz", &t, 1).unwrap(),
+            Cow::Borrowed(_)
+        ));
     }
 
     #[test]
