@@ -12,8 +12,6 @@ from hypothesis import strategies as st
 
 from translit import sanitize_filename
 
-pytestmark = pytest.mark.hypothesis
-
 
 class TestWindowsReservedNames:
     """Windows reserved names must be prefixed AND preserve their extension."""
@@ -342,6 +340,11 @@ class TestFilenameInvariants:
     bypasses a parameter (preserve_extension, max_length, platform) by
     hardcoding a default instead of forwarding the caller's value.
     """
+
+    # Only the property-based tests in this class are hypothesis-gated; the
+    # deterministic regression tests above must run in CI (CI uses
+    # `-m "not hypothesis"`). A module-level mark previously excluded all of them.
+    pytestmark = pytest.mark.hypothesis
 
     @given(
         stem=st.from_regex(r"[a-zA-Z0-9]{1,20}", fullmatch=True),

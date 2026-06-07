@@ -9,9 +9,6 @@ from hypothesis import strategies as st
 from translit import fold_case
 from translit._text import Text
 
-pytestmark = pytest.mark.hypothesis
-
-
 # ── ASCII fast path ──────────────────────────────────────────────────
 
 
@@ -357,6 +354,11 @@ class TestAgainstPythonCasefold:
 
 
 class TestProperties:
+    # Only this property-based class is hypothesis-gated; the deterministic
+    # case-folding tests above must run in CI (which uses `-m "not hypothesis"`).
+    # A module-level mark previously excluded every test in this file.
+    pytestmark = pytest.mark.hypothesis
+
     @given(st.text(max_size=200))
     @settings(max_examples=500)
     def test_idempotent(self, text: str) -> None:
