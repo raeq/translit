@@ -17,7 +17,8 @@ use crate::{case_fold, confusables, emoji, transliterate, whitespace, zalgo};
 ///
 /// Covers: soft hyphen (U+00AD), Arabic Letter Mark (U+061C),
 /// bidi marks (U+200E–U+200F), bidi embeddings/overrides (U+202A–U+202E),
-/// bidi isolates (U+2066–U+2069).
+/// bidi isolates (U+2066–U+2069), deprecated format controls (U+206A–U+206F),
+/// and interlinear annotation marks (U+FFF9–U+FFFB).
 fn strip_bidi(text: &str) -> String {
     text.chars().filter(|&ch| !is_bidi_or_format(ch)).collect()
 }
@@ -27,6 +28,16 @@ fn is_bidi_or_format(ch: char) -> bool {
     // ── Soft hyphen ─────────────────────────────────────
     // Not a bidi char per se, but invisible and used to split keywords.
     if ch == '\u{00AD}' {
+        return true;
+    }
+
+    // ── Deprecated format controls + interlinear annotation (#67.2) ──
+    // U+206A–U+206F (deprecated: symmetric/digit shaping, inhibit join) and
+    // U+FFF9–U+FFFB (interlinear annotation anchor/separator/terminator) are
+    // invisible/format characters; strip them here too so strip_bidi /
+    // display_clean don't leave them behind (they were previously only handled
+    // as transliteration-table entries).
+    if matches!(ch, '\u{206A}'..='\u{206F}' | '\u{FFF9}'..='\u{FFFB}') {
         return true;
     }
 

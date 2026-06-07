@@ -219,3 +219,41 @@ class TestDigitVariantsFoldToDigits:
         from translit import is_confusable
 
         assert is_confusable("𝟏") is True  # folds to a digit, but still confusable
+
+
+class TestNFKCConfusablesComposition:
+    """Pin the composed NFKC→confusables behaviour for codepoints where TR39 and
+    NFKC disagree (#67.3). The presets run NFKC *before* confusables, so NFKC
+    wins; a data or ordering change must not silently flip this."""
+
+    def test_long_s_resolves_via_nfkc_in_presets(self):
+        import unicodedata
+
+        from translit import catalog_key, security_clean
+
+        # ſ (U+017F): NFKC→s, but the TR39 confusable target is 'f'. In the preset
+        # pipeline NFKC runs first, so it must become 's', never 'f'.
+        assert unicodedata.normalize("NFKC", "ſ") == "s"
+        assert security_clean("ſ") == "s"
+        assert catalog_key("maſſe") == "masse"
+
+    def test_nfkc_ascii_remap_surface_is_pinned(self):
+        # The exhaustive set of BMP codepoints whose NFKC form is pure ASCII but
+        # which normalize_confusables then *re-maps* is small and intentional
+        # (visual-look-alike punctuation folding). Pin it so a data/ordering change
+        # can't silently grow it — e.g. re-introducing digit→letter (#89) here
+        # would fail this test.
+        import unicodedata
+
+        from translit import normalize_confusables
+
+        remapped = {}
+        for cp in range(0x20, 0x10000):
+            nf = unicodedata.normalize("NFKC", chr(cp))
+            if nf.isascii() and nf != chr(cp):
+                out = normalize_confusables(nf, target_script="latin")
+                if out != nf:
+                    remapped[nf] = out
+        # backtick→apostrophe, fullwidth quote→two apostrophes, vertical bar→l.
+        # NO digits and NO letters: those must pass through NFKC-stable.
+        assert remapped == {"`": "'", '"': "''", "|": "l"}, remapped

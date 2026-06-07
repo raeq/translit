@@ -164,6 +164,14 @@ results that were keyed on the old (buggy) behaviour, regenerate them:
 - **`is_safe_hostname` fails closed** (#67.1). A confusable-check error no longer
   silently degrades to "not confusable" (`unwrap_or(false)`) → "safe"; it now
   marks the hostname unsafe.
+- **`strip_bidi`/`display_clean` now also strip deprecated format controls
+  (U+206A–U+206F) and interlinear annotation marks (U+FFF9–U+FFFB)** (#67.2),
+  which were previously only handled as transliteration-table entries.
+- **NFKC×confusables composition pinned** (#67.3). Added a regression test fixing
+  the exact set of NFKC-ASCII results that `normalize_confusables` re-maps
+  (`` ` ``→`'`, `"`→`''`, `|`→`l`) so a data/ordering change — e.g. reintroducing
+  digit→letter — fails loudly; and that presets resolve NFKC/TR39 conflicts
+  (`ſ`→`s`) via NFKC.
 - **Context dictionaries are no longer loaded from a CWD-relative path** (#61).
   `load_dict_from_fs` previously probed `./data/{name}_dict.bin` *first*, so a
   process whose working directory an attacker influences (or where they can drop
