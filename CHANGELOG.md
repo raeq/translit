@@ -41,8 +41,31 @@ invisible characters** — see *Upgrade notes*.
   `unidecode(string, errors="ignore", replace_str="?")`, mapping Unidecode's
   `errors` modes (`ignore`/`replace`/`preserve`/`strict`) onto the native error
   handling, instead of raising `TypeError` on those kwargs.
+- **#95** — Greek Extended polytonic **capitals** for omicron/upsilon/omega/rho
+  were corrupted, emitting unrelated Latin letters (`Ὅμηρος` → `Xmiros`,
+  `Ὑγίεια` → `Pgieia`). Corrected all 50 affected entries to the proper base
+  romanization, consistent with the monotonic forms (`Ὅμηρος` → `Omiros`).
+- **#99.3** — a typo'd `form=`/`errors=` value now raises even for pure-ASCII
+  input. Previously the ASCII fast-path returned before reaching Rust, so the
+  bad enum silently no-opped on ASCII and only raised on the first non-ASCII
+  string. Validation now runs before the fast-path in `normalize()` and
+  `transliterate()`.
 
 ### Documentation
+
+- **#94** — `strict_iso9` is no longer described as "ISO 9:1995". It emits ASCII
+  digraphs (ж→zh, ч→ch, ш→sh), not the standard's diacritics (ž/č/š) — translit
+  tables are ASCII-only by design. Docstrings, the data-file header, and the docs
+  now describe it as a scholarly ASCII (ISO 9-style) transliteration and warn it
+  is not ISO 9-conformant. No behavior change.
+- **#98** — `docs/user-guide/transliteration.md` no longer instructs users to
+  `pip install translit-rs[arabic|hebrew|context]` (those empty extras were
+  removed in 0.6.0); it now documents the `bootstrap_dicts.sh` / `TRANSLIT_DICT_DIR`
+  path, matching the README and the runtime error message.
+- **#99.1 / #99.2** — fixed two false docstrings: `sort_key` no longer claims to
+  preserve accents (it folds them via transliteration, coinciding with
+  `search_key`), and `slugify` no longer documents a `pretranslate` kwarg it
+  never had.
 
 - **#84** — corrected the README throughput table (Cyrillic ~106M chars/sec,
   slugify ~712K slugs/sec on commodity 4-vCPU hardware) and added a

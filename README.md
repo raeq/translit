@@ -58,7 +58,7 @@ Requires Python 3.9+. Wheels are available for Linux, macOS, and Windows.
 - **[Confusable & homoglyph analysis (TR39)](docs/security/adversarial-defense.md)**: visual [confusable mapping](docs/user-guide/confusables.md), bidi-control / zalgo / zero-width / invisible-character stripping, and the `strip_obfuscation` pipeline (defense-in-depth — see the [Threat Model](THREAT_MODEL.md))
 - **[Canonicalization pipelines](docs/api/pipelines.md)**: `security_clean`, `sanitize_user_input`, `catalog_key`, `search_key`, `sort_key`, `display_clean`, `ml_normalize` for common workflows
 - **[Hostname / IDN analysis](docs/api/predicates.md#is_safe_hostname)**: mixed-script and confusable detection for domains
-- **[Standards-based transliteration](docs/user-guide/transliteration.md)**: best-in-class Latin / Cyrillic / Greek with ISO 9:1995, GOST R 7.0.34, and BGN/PCGN, plus [reverse transliteration](docs/user-guide/language-support.md#reverse-transliteration) (Russian, Ukrainian, Greek)
+- **[Standards-based transliteration](docs/user-guide/transliteration.md)**: best-in-class Latin / Cyrillic / Greek with ISO 9-style ASCII (`strict_iso9`), GOST R 7.0.34, and BGN/PCGN, plus [reverse transliteration](docs/user-guide/language-support.md#reverse-transliteration) (Russian, Ukrainian, Greek)
 - **[Text normalization](docs/user-guide/normalization.md)**: NFC/NFD/NFKC/NFKD, full Unicode case folding (1,557 CaseFolding.txt mappings via PHF), [whitespace collapse](docs/user-guide/text-cleaning.md)
 - **[Slugification](docs/user-guide/slugification.md)** & **[filename sanitization](docs/user-guide/filenames.md)**: URL-safe slugs (python-slugify compatible) and cross-platform safe filenames with path-traversal handling
 - **[Grapheme clusters](docs/user-guide/graphemes.md)**: correct user-perceived character counting, splitting, and truncation
@@ -98,7 +98,7 @@ transliterate("Москва")                    # → "Moskva"     (Cyrillic, B
 transliterate("Αθήνα")                     # → "Athina"     (Greek, BGN/PCGN)
 
 # Named standards (Latin / Cyrillic / Greek)
-transliterate("Юрий", strict_iso9=True)    # → "Jurij"      (ISO 9:1995)
+transliterate("Юрий", strict_iso9=True)    # → "Jurij"      (ISO 9-style ASCII)
 transliterate("Москва", gost7034=True)     # → "Moskva"     (GOST R 7.0.34)
 
 # Language profiles (sparse overrides on top of the default table)
@@ -131,7 +131,7 @@ translit transliterates a very wide range of scripts, but the **quality guarante
 
 | Tier | Scripts | Policy | Standard |
 |---|---|---|---|
-| **Core** (best-in-class) | Latin, Cyrillic, Greek | Standards-based romanization + reverse | BGN/PCGN (default), ISO 9:1995 (`strict_iso9`), GOST R 7.0.34 (`gost7034`) |
+| **Core** (best-in-class) | Latin, Cyrillic, Greek | Standards-based romanization + reverse | BGN/PCGN (default), ISO 9-style ASCII (`strict_iso9`), GOST R 7.0.34 (`gost7034`) |
 | **Compatibility** (best-effort) | CJK (Chinese / Japanese / Korean), Arabic, Hebrew, Devanagari & 9 other Indic scripts, Thai, Lao | Context-free, character-by-character — same approach as Unidecode/AnyAscii | Unihan `kMandarin`, Revised Romanization, Hepburn, UNGEGN/IAST-derived, RTGS-derived |
 | **Best-effort** | Georgian, Armenian, and a long tail of additional scripts | Context-free coverage so input is never silently dropped | see [Language support](docs/user-guide/language-support.md) |
 
@@ -204,7 +204,7 @@ from translit import is_confusable, security_clean, decode_to_utf8, fold_case
 
 ## Language profiles
 
-Built-in language profiles span the core and compatibility tiers, with ISO 9:1995 scholarly Cyrillic support. Profiles apply **sparse overrides** on top of the default table (e.g. German maps `ü` → `ue` instead of the default `u`).
+Built-in language profiles span the core and compatibility tiers, with scholarly ASCII Cyrillic support (`strict_iso9`; ISO 9-style digraphs, not the diacritic standard). Profiles apply **sparse overrides** on top of the default table (e.g. German maps `ü` → `ue` instead of the default `u`).
 
 ```python
 from translit import list_langs, transliterate

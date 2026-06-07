@@ -170,6 +170,11 @@ from translit._types import NF, EmojiProvider, ErrorMode, NormalizationForm, Pla
 _MAX_BATCH_SIZE: int = 100_000
 _MAX_GRAPHEME_SPLIT_INPUT: int = 10 * 1024 * 1024  # 10 MiB
 
+# --- Enum validation (must match Rust-side messages; validated in Python so the
+#     ASCII fast-path cannot silently accept a typo'd value before reaching Rust, #99) ---
+_VALID_ERROR_MODES: tuple[str, ...] = ("replace", "ignore", "preserve")
+_VALID_NORM_FORMS: tuple[str, ...] = ("NFC", "NFD", "NFKC", "NFKD")
+
 
 def _validate_batch(texts: object, func_name: str) -> None:
     """Validate that texts is a list[str] within batch size limits."""
@@ -208,7 +213,13 @@ def _check_transliterate_conflicts(
     *forward-only*, so combining either with ``target`` is an error. ``context``
     (abjad vowel restoration) has no toned-pinyin output, so ``context`` +
     ``tones`` is rejected too.
+
+    Also validates the ``errors`` enum up front (#99): the ASCII fast-path returns
+    before reaching Rust, so a typo'd ``errors`` would otherwise silently no-op on
+    ASCII input and only raise later on the first non-ASCII string.
     """
+    if errors not in _VALID_ERROR_MODES:
+        raise TranslitError(f"errors must be 'replace', 'ignore', or 'preserve', got {errors!r}")
     if target is not None and lang is not None:
         raise ValueError("'lang' and 'target' are mutually exclusive")
     if context and target is not None:
@@ -304,10 +315,13 @@ def transliterate(
                       (``""``) is equivalent to ``errors="ignore"`` — the
                       character is silently dropped. This matches the behaviour
                       of the Unidecode library.
-        strict_iso9: Use ISO 9:1995 scholarly transliteration for Cyrillic.
-                     When True, overrides both default and lang-specific
-                     mappings with the international standard used in
-                     linguistics and library science (e.g. й→j, ю→ju, я→ja).
+        strict_iso9: Use a scholarly **ASCII** Cyrillic transliteration with
+                     consistent 1:1-style overrides (e.g. й→j, ю→ju, я→ja).
+                     NOTE: this is *not* the diacritic ISO 9:1995 standard
+                     (which uses ž, č, š, ŝ, h). translit's tables are ASCII-only
+                     by design, so it emits digraphs (ж→zh, ч→ch, ш→sh) instead
+                     of the standard's diacritics — do not rely on this for
+                     ISO 9-conformant library catalog access points (#94).
         gost7034: Use GOST R 7.0.34-2014 simplified transliteration for
                   Russian Cyrillic. Mutually exclusive with *strict_iso9*.
                   Key differences from default: х→x, ц→c, щ→shh, й→j.
@@ -514,8 +528,6 @@ def slugify(
 
     Raises:
         TranslitError: If an internal Rust error occurs.
-        NotImplementedError: If ``pretranslate`` is passed as a callable
-            (only dict is supported in the compatibility shim).
 
     Examples:
         >>> slugify("Hello World!")
@@ -604,6 +616,10 @@ def normalize(
         >>> normalize(["e\u0301", "n\u0303o"], form="NFC")
         ['é', 'ño']
     """
+    # Validate the form enum before the ASCII fast-path / batch dispatch (#99):
+    # otherwise a typo'd form silently no-ops on ASCII input.
+    if form not in _VALID_NORM_FORMS:
+        raise TranslitError(f"form must be 'NFC', 'NFD', 'NFKC', or 'NFKD', got {form!r}")
     if isinstance(text, list):
         _validate_batch(text, "normalize")
         return _normalize_batch(text, form=form)
@@ -1086,10 +1102,19 @@ def sort_key(
 ) -> str:
     """Sort key generation pipeline.
 
-    Pipeline: NFKC → transliterate → fold_case → collapse_whitespace
+    Pipeline: NFKC → strip_bidi → transliterate → fold_case → collapse_whitespace
 
-    Like :func:`search_key` but without accent stripping, preserving base
-    accented characters for correct alphabetical ordering.
+    Produces a case-insensitive ASCII key for alphabetical ordering.
+    Transliteration folds accented characters to their ASCII base (``é`` → ``e``,
+    ``ü`` → ``u``), so the result is **accent-folded**, not accent-preserving.
+
+    .. note::
+        In practice this currently produces the same output as
+        :func:`search_key`: ``search_key`` adds an explicit accent-strip pass,
+        but transliteration has already removed accents by that point, so the
+        two keys coincide for typical input. Use whichever name documents intent
+        at the call site. (Distinct accent-preserving ordering is tracked for a
+        future release.)
 
     Args:
         text: Input text to generate a sort key from.

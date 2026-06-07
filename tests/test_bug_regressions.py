@@ -539,3 +539,103 @@ class TestSingleBatchKwargParity:
     def test_reverse_parity(self):
         for s in ["Moskva", "psychi", "Kyiv"]:
             assert transliterate(s, target="ru") == transliterate([s], target="ru")[0]
+
+
+class TestGreekPolytonicCapitals:
+    """Greek Extended polytonic capitals must romanize to the right base (#95).
+
+    The Greek Extended block (U+1F00–U+1FFF) for omicron/upsilon/omega/rho was
+    corrupted to emit X/P/garbage. Fixed to the base romanization, consistent
+    with the monotonic forms (which the engine already handled). Breathing marks
+    are dropped uniformly, matching monotonic/lowercase behaviour.
+    """
+
+    def test_issue_examples_no_wrong_letters(self):
+        assert transliterate("Ὅμηρος") == "Omiros"  # was 'Xmiros'
+        assert transliterate("Ὑγίεια") == "Ygieia"  # was 'Pgieia'
+        assert transliterate("Ἡμέρα") == "Imera"  # was 'Imera' base ok
+        assert transliterate("Όμηρος") == "Omiros"  # monotonic unchanged
+
+    @pytest.mark.parametrize(
+        "ch,base",
+        [
+            ("Ὅ", "O"),
+            ("Ὕ", "Y"),
+            ("Ὥ", "O"),
+            ("Ῥ", "R"),
+            ("Ὦ", "O"),
+            ("Ώ", "O"),
+            ("Ύ", "Y"),
+        ],
+    )
+    def test_capital_base_letter_correct(self, ch, base):
+        out = transliterate(ch)
+        assert out and out[0].upper() == base, f"{ch!r} -> {out!r}, expected base {base}"
+
+    def test_no_xi_pi_leak_for_omicron_upsilon_omega(self):
+        # None of these should produce the X (xi) or P (pi) letters they used to.
+        for ch in "ὌὍὙὛὝὟὨὩὪὫὬὭὮὯ":
+            out = transliterate(ch)
+            assert out.upper() not in ("X", "P"), f"{ch!r} -> {out!r}"
+
+
+class TestEnumValidationBeforeFastPath:
+    """Typo'd form/errors must raise even on ASCII input (#99.3).
+
+    The ASCII fast-path returned before reaching Rust, so a bad enum silently
+    no-opped on ASCII and only raised on the first non-ASCII string.
+    """
+
+    def test_normalize_bad_form_ascii_raises(self):
+        from translit import TranslitError, normalize
+
+        with pytest.raises(TranslitError, match="form must be"):
+            normalize("hello", form="GARBAGE")
+
+    def test_transliterate_bad_errors_ascii_raises(self):
+        from translit import TranslitError
+
+        with pytest.raises(TranslitError, match="errors must be"):
+            transliterate("hello", errors="GARBAGE")
+
+    def test_transliterate_bad_errors_ascii_batch_raises(self):
+        from translit import TranslitError
+
+        with pytest.raises(TranslitError, match="errors must be"):
+            transliterate(["hello"], errors="GARBAGE")
+
+    def test_valid_enums_still_work(self):
+        from translit import normalize
+
+        assert normalize("hello", form="NFC") == "hello"
+        assert transliterate("hello", errors="ignore") == "hello"
+
+
+class TestSlugifyNoPretranslateKwarg:
+    """slugify() never had a pretranslate kwarg; the docstring Raises was stale (#99.2)."""
+
+    def test_pretranslate_rejected(self):
+        with pytest.raises(TypeError, match="pretranslate"):
+            slugify("x", pretranslate=lambda s: s)  # type: ignore[call-arg]
+
+    def test_pretranslate_not_in_docstring(self):
+        assert "pretranslate" not in (slugify.__doc__ or "")
+
+
+class TestSortKeyDocstringHonest:
+    """sort_key folds accents (it doesn't preserve them); docstring must not lie (#99.1)."""
+
+    def test_sort_key_folds_accents(self):
+        from translit import search_key, sort_key
+
+        assert sort_key("naïve") == "naive"
+        assert sort_key("Köln") == "koln"
+        # Documented reality: coincides with search_key for typical input.
+        assert sort_key("naïve") == search_key("naïve")
+
+    def test_docstring_does_not_claim_preservation(self):
+        from translit import sort_key
+
+        doc = sort_key.__doc__ or ""
+        assert "without accent stripping" not in doc
+        assert "accent-folded" in doc

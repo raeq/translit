@@ -255,7 +255,9 @@ pub fn transliterate_impl<'a>(
         );
 
         // Lookup priority:
-        // 1. If strict_iso9: ISO 9 table → default table (lang overrides ignored)
+        // 1. If strict_iso9: scholarly ASCII Cyrillic table (ISO 9-style
+        //    digraphs, NOT the diacritic ISO 9:1995 standard — #94) → default
+        //    table (lang overrides ignored)
         // 2. If gost7034: GOST 7.0.34 table → default table (lang overrides ignored)
         // 3. Otherwise: lang override → default table
         // When tones=true, CJK uses toned pinyin (with diacritics) instead of toneless.
