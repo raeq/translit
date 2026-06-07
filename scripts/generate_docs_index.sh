@@ -30,6 +30,10 @@ fi
 # (set -euo pipefail) never leaves docs/index.md empty or partially written.
 TMPOUT="$(mktemp "$ROOT/docs/.index.md.XXXXXX")"
 trap 'rm -f "$TMPOUT"' EXIT
+# mktemp creates the file 0600; `mv` would carry that through, leaving the
+# generated docs index non-world-readable. Restore the normal 0644 a plain
+# `> "$OUTPUT"` redirect (umask 022) would have produced.
+chmod 644 "$TMPOUT"
 
 {
     echo "<!-- AUTO-GENERATED from README.md + docs/_index_nav.md -->"
