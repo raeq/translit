@@ -61,8 +61,9 @@ fixes** — see *Upgrade notes*.
   per token boundary; **#110** single `ch.nfkc()` pass on the NFKC fallback;
   **#111** lowered `MAX_CAPACITY_HINT` 256 MiB → 8 MiB; **#112/#113** emoji
   matching uses stack buffers + a fixed sliding window (no per-char `Vec`/`String`);
-  **#114** slugify uses `Cow` (no eager `to_owned`); **#116** clamped the
-  `ContextDict` capacity hint.
+  **#114** slugify uses `Cow` (no eager `to_owned`); **#115** context `tokenize()`
+  returns borrowed (`Cow`) slices of the input — zero per-token allocation;
+  **#116** clamped the `ContextDict` capacity hint.
 
 ### Maintenance
 
