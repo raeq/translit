@@ -122,6 +122,16 @@ results that were keyed on the old (buggy) behaviour, regenerate them:
   ISO 639-1 *or* 639-3; `normalize()` ASCII fast-path; list single-Rust-call caveats).
 
 ### Security
+- **`is_safe_hostname` now decodes IDN/`xn--` labels** (#63, high). Previously an
+  `xn--` ACE label was pure ASCII → single-script → reported **safe**, so the
+  on-the-wire form of the IDN homograph attack (a Cyrillic `xn--80ak6aa92e.com`
+  "apple" spoof) sailed through — the exact blind spot for a library marketing
+  `idn`/`anti-spoofing`. ACE labels are now UTS#46-decoded (via the `idna` crate)
+  before script/confusable analysis; a malformed ACE label is treated as unsafe.
+  Non-`xn--` labels are untouched (no false positives on, e.g., `my_host.local`).
+- **`is_safe_hostname` fails closed** (#67.1). A confusable-check error no longer
+  silently degrades to "not confusable" (`unwrap_or(false)`) → "safe"; it now
+  marks the hostname unsafe.
 - **Context dictionaries are no longer loaded from a CWD-relative path** (#61).
   `load_dict_from_fs` previously probed `./data/{name}_dict.bin` *first*, so a
   process whose working directory an attacker influences (or where they can drop
