@@ -347,3 +347,26 @@ class TestContextParameterValidation:
     def test_context_batch_rejects_iso9_and_gost_together(self) -> None:
         with pytest.raises(ValueError, match="mutually exclusive"):
             transliterate(["كتب"], lang="ar", context=True, strict_iso9=True, gost7034=True)
+
+
+class TestNFKCCompatibilityFallback:
+    """transliterate recovers NFKC-compatible Latin instead of emitting [?] (#81)."""
+
+    def test_mathematical_alphanumerics(self):
+        assert transliterate("𝕳𝖊𝖑𝖑𝖔 𝟙𝟚𝟛") == "Hello 123"
+
+    def test_presentation_ligatures(self):
+        assert transliterate("ﬁ ﬂ") == "fi fl"
+
+    def test_superscripts_recovered(self):
+        assert transliterate("x²") == "x2"
+
+    def test_emoji_still_replaced(self):
+        # Emoji do not NFKC-decompose to ASCII, so they remain [?] (by design).
+        assert transliterate("😀") == "[?]"
+
+    def test_strip_obfuscation_folds_fancy_text(self):
+        # Anti-obfuscation: "fancy text" math alphanumerics must fold, not survive.
+        from translit import strip_obfuscation
+
+        assert strip_obfuscation("𝕳𝖊𝖑𝖑𝖔") == "Hello"  # case preserved

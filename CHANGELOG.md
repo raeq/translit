@@ -119,6 +119,13 @@ results that were keyed on the old (buggy) behaviour, regenerate them:
   language-specific (`he`→`hebrew`). (#18)
 - **`demojize` inserted a stray space** after a tab/newline preceding an emoji
   (`"a\t😀"` → `"a\t grinning face"`); it now checks for any whitespace. (#12)
+- **NFKC-compatible Latin is recovered instead of dropped to `[?]`** (#81).
+  Mathematical Alphanumeric Symbols (`𝕳𝖊𝖑𝖑𝖔 𝟙𝟚𝟛` → `Hello 123`), presentation
+  ligatures (`ﬁ`/`ﬂ` → `fi`/`fl`), and superscripts (`x²` → `x2`) now
+  transliterate: an unmapped non-ASCII char is NFKC-decomposed and re-tried
+  before the error fallback. This matches unidecode/anyascii and closes a
+  filter-evasion ("fancy text") gap. Purely additive — only chars that were
+  previously `[?]` are affected; emoji (no ASCII decomposition) still map to `[?]`.
 - **Defense pipelines are now idempotent** (bugs found by the property tests):
   - `strip_obfuscation`: emoji whose CLDR name contains typographic punctuation
     (e.g. `👒` → `woman’s hat`, U+2019 `’`) weren't folded because confusables ran

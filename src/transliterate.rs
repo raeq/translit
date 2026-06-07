@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use unicode_normalization::UnicodeNormalization;
 
 use crate::tables;
 use crate::unicode_ranges as ur;
@@ -315,6 +316,38 @@ pub fn transliterate_impl<'a>(
             }
             prev_class = char_class;
         } else {
+            // #81: before the error fallback, try NFKC compatibility
+            // decomposition. Mathematical Alphanumerics (𝕳→H) and presentation
+            // ligatures (ﬁ→fi) are pure-Latin content NFKC folds to ASCII —
+            // both unidecode and anyascii recover them, and they are a real
+            // filter-evasion vector. Only reached for chars with no table
+            // mapping, so this is purely additive: a char whose NFKC form is
+            // itself falls straight through to the error handler below.
+            let decomposed: String = ch.nfkc().collect();
+            let nfkc_recovered = if decomposed.chars().eq(std::iter::once(ch)) {
+                false
+            } else {
+                let sub = transliterate_impl(
+                    &decomposed,
+                    lang,
+                    error_mode,
+                    replace_with,
+                    strict_iso9,
+                    gost7034,
+                    tones,
+                );
+                if sub.is_empty() {
+                    false
+                } else {
+                    result.push_str(&sub);
+                    last_appended = sub.chars().next_back();
+                    prev_class = ScriptClass::Latin;
+                    true
+                }
+            };
+            if nfkc_recovered {
+                continue;
+            }
             match error_mode {
                 ErrorMode::Replace => {
                     // An empty replace_with is intentionally equivalent to

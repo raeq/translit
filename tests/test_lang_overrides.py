@@ -258,18 +258,20 @@ class TestOverridesDivergeFromDefault:
 
     # Languages whose PHF tables contain at least one mapping that
     # genuinely differs from the default table.
-    MUST_DIVERGE = {"de", "no", "sv", "is", "et", "es", "bg", "uk", "ca", "pt", "it"}
+    MUST_DIVERGE = {"de", "no", "sv", "is", "et", "es", "bg", "uk", "ca"}
 
     # Languages whose PHF tables currently duplicate the default.
     # Kept as defensive insurance in case the default table changes.
-    DEFENSIVE_DUPLICATES = {"fr", "tr", "nl", "vi", "el"}
+    # pt/it (ª→a, º→o) moved here once the NFKC compatibility fallback (#81)
+    # made the default table recover ordinal indicators on its own.
+    DEFENSIVE_DUPLICATES = {"fr", "tr", "nl", "vi", "el", "pt", "it"}
 
     @pytest.mark.parametrize(
         "lang,mappings",
         [
             pytest.param(lang, mappings, id=lang)
             for lang, mappings in LANG_OVERRIDES.items()
-            if lang in {"de", "no", "sv", "is", "et", "es", "bg", "uk", "ca", "pt", "it"}
+            if lang in {"de", "no", "sv", "is", "et", "es", "bg", "uk", "ca"}
         ],
     )
     def test_divergent_overrides_actually_diverge(
@@ -296,7 +298,7 @@ class TestOverridesDivergeFromDefault:
         [
             pytest.param(lang, mappings, id=lang)
             for lang, mappings in LANG_OVERRIDES.items()
-            if lang in {"fr", "tr", "nl", "vi", "el"}
+            if lang in {"fr", "tr", "nl", "vi", "el", "pt", "it"}
         ],
     )
     def test_defensive_duplicates_match_correctly(
