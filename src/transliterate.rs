@@ -282,7 +282,7 @@ pub fn transliterate_impl<'a>(
             }
         };
 
-        let mapped: Option<Cow<'static, str>> = if strict_iso9 {
+        let mut mapped: Option<Cow<'static, str>> = if strict_iso9 {
             tables::lookup_iso9(ch)
                 .map(Cow::Borrowed)
                 .or_else(|| default_lookup(ch))
@@ -304,19 +304,23 @@ pub fn transliterate_impl<'a>(
             let role = indic_char_role(ch as u32);
             match role {
                 IndicRole::Virama | IndicRole::DependentVowel if last_was_indic_consonant => {
-                    // Virama characters should have table entries (mapping to "")
-                    // so they are consumed rather than passed to the error handler.
-                    // This assert catches missing virama entries during development.
-                    debug_assert!(
-                        role != IndicRole::Virama || mapped.is_some(),
-                        "virama U+{:04X} missing from transliteration tables",
-                        ch as u32
-                    );
-                    // Pop the trailing inherent 'a' from the previous consonant
+                    // Pop the trailing inherent 'a' from the previous consonant.
                     if result.ends_with('a') {
                         result.pop();
                     }
                     last_was_indic_consonant = false;
+                    // Correctness must not depend on table completeness (see the
+                    // comment above). A virama (and, defensively, a dependent
+                    // vowel) absent from the tables must still be *consumed* like
+                    // the empty mapping a complete table would carry — otherwise
+                    // release builds fall through to the error handler and emit it
+                    // as `replace_with` / preserve the raw mark: silent output
+                    // corruption for any script whose virama is missing (#200).
+                    // Debug builds previously only `debug_assert!`'d this; promote
+                    // it to a runtime fallback so debug and release agree.
+                    if mapped.is_none() {
+                        mapped = Some(Cow::Borrowed(""));
+                    }
                 }
                 IndicRole::Consonant => {
                     last_was_indic_consonant = true;

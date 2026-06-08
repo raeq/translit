@@ -388,7 +388,17 @@ fn demojize_impl(
                 }
                 win.advance(1);
             }
-            last_was_emoji = false;
+            // Parity with the recognized-emoji path (#200): flag the position so
+            // a following alphanumeric is separated by a space — but only when a
+            // *visible* token was actually emitted, otherwise we inject a
+            // spurious leading space. Preserve always writes the raw mark;
+            // Replace writes `replace_with`, which may be empty ("drop it");
+            // Ignore writes nothing.
+            last_was_emoji = match error_mode {
+                ErrorMode::Preserve => true,
+                ErrorMode::Replace => !replace_with.is_empty(),
+                ErrorMode::Ignore => false,
+            };
             continue;
         }
 

@@ -14,45 +14,6 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-/// Arabic diacritical marks (tashkeel) to strip for skeleton extraction.
-const ARABIC_DIACRITICS: &[char] = &[
-    '\u{064B}', // FATHATAN
-    '\u{064C}', // DAMMATAN
-    '\u{064D}', // KASRATAN
-    '\u{064E}', // FATHA
-    '\u{064F}', // DAMMA
-    '\u{0650}', // KASRA
-    '\u{0651}', // SHADDA
-    '\u{0652}', // SUKUN
-    '\u{0653}', // MADDAH ABOVE
-    '\u{0654}', // HAMZA ABOVE
-    '\u{0655}', // HAMZA BELOW
-    '\u{0670}', // SUPERSCRIPT ALEF
-];
-
-/// Hebrew niqqud (vowel points) to strip for skeleton extraction.
-const HEBREW_NIQQUD: &[char] = &[
-    '\u{05B0}', // SHEVA
-    '\u{05B1}', // HATAF SEGOL
-    '\u{05B2}', // HATAF PATAH
-    '\u{05B3}', // HATAF QAMATS
-    '\u{05B4}', // HIRIQ
-    '\u{05B5}', // TSERE
-    '\u{05B6}', // SEGOL
-    '\u{05B7}', // PATAH
-    '\u{05B8}', // QAMATS
-    '\u{05B9}', // HOLAM
-    '\u{05BA}', // HOLAM HASER
-    '\u{05BB}', // QUBUTS
-    '\u{05BC}', // DAGESH
-    '\u{05BD}', // METEG
-    '\u{05BF}', // RAFE
-    '\u{05C1}', // SHIN DOT
-    '\u{05C2}', // SIN DOT
-    '\u{05C4}', // UPPER DOT
-    '\u{05C5}', // LOWER DOT
-];
-
 /// Tatweel (kashida) — decorative elongation in Arabic.
 const TATWEEL: char = '\u{0640}';
 
@@ -149,7 +110,12 @@ impl ContextDict {
             let num_forms = read_u16(data, pos)? as usize;
             pos += 2;
 
-            let mut forms = Vec::with_capacity(num_forms.min(data.len()));
+            // Cap the pre-reservation by the entry-count limit (#200), consistent
+            // with the unigram/bigram HashMaps above — not by `data.len()`, which
+            // is a byte count and lets a corrupt header over-reserve before the
+            // per-form read below fails. (`num_forms` is a u16, so this is the
+            // bound that actually applies once the type can no longer cap it.)
+            let mut forms = Vec::with_capacity(num_forms.min(MAX_DICT_ENTRIES));
             for _ in 0..num_forms {
                 let form_len = read_u16(data, pos)? as usize;
                 pos += 2;
@@ -220,15 +186,13 @@ impl ContextDict {
 /// Strip Arabic diacritics (tashkeel) and tatweel from a word.
 pub fn strip_arabic_diacritics(word: &str) -> String {
     word.chars()
-        .filter(|&c| !ARABIC_DIACRITICS.contains(&c) && c != TATWEEL)
+        .filter(|&c| !is_arabic_diacritic(c) && c != TATWEEL)
         .collect()
 }
 
 /// Strip Hebrew niqqud (vowel points) from a word.
 pub fn strip_hebrew_niqqud(word: &str) -> String {
-    word.chars()
-        .filter(|&c| !HEBREW_NIQQUD.contains(&c))
-        .collect()
+    word.chars().filter(|&c| !is_hebrew_niqqud(c)).collect()
 }
 
 /// Strip diacritics appropriate for the given language.
@@ -255,6 +219,20 @@ fn is_hebrew_char(c: char) -> bool {
     matches!(c as u32, 0x0590..=0x05FF | 0xFB1D..=0xFB4F)
 }
 
+/// True if `c` is an Arabic diacritic (tashkeel): U+064B–U+0655 plus U+0670
+/// (SUPERSCRIPT ALEF). O(1) range check rather than a linear scan (#108/#200).
+#[inline]
+fn is_arabic_diacritic(c: char) -> bool {
+    matches!(c as u32, 0x064B..=0x0655 | 0x0670)
+}
+
+/// True if `c` is Hebrew niqqud (vowel point): U+05B0–U+05C5 minus U+05BE
+/// (MAQAF), U+05C0 (PASEQ), and U+05C3 (SOF PASUQ). O(1) range check (#108/#200).
+#[inline]
+fn is_hebrew_niqqud(c: char) -> bool {
+    matches!(c as u32, 0x05B0..=0x05C5) && !matches!(c as u32, 0x05BE | 0x05C0 | 0x05C3)
+}
+
 /// Tokenize text into words and non-word spans (whitespace, punctuation).
 pub fn tokenize(text: &str) -> Vec<Token<'_>> {
     // #115: each token is a contiguous run of same-class characters, so it is a
@@ -263,16 +241,13 @@ pub fn tokenize(text: &str) -> Vec<Token<'_>> {
     // when the class flips.
     #[inline]
     fn is_word_char(c: char) -> bool {
-        // #108: O(1) codepoint range/mask checks (not O(N) slice scans).
-        // Arabic diacritics are exactly U+064B–U+0655 plus U+0670 (SUPERSCRIPT ALEF).
-        // Hebrew niqqud are U+05B0–U+05C5 minus U+05BE (MAQAF), U+05C0 (PASEQ), U+05C3 (SOF PASUQ).
-        let is_arabic_diacritic = matches!(c as u32, 0x064B..=0x0655 | 0x0670);
-        let is_hebrew_niqqud =
-            matches!(c as u32, 0x05B0..=0x05C5) && !matches!(c as u32, 0x05BE | 0x05C0 | 0x05C3);
+        // #108: O(1) codepoint range/mask checks (not O(N) slice scans). The
+        // diacritic/niqqud predicates are shared with the strip_* functions so
+        // the ranges have a single definition (#200).
         is_arabic_char(c)
             || is_hebrew_char(c)
-            || is_arabic_diacritic
-            || is_hebrew_niqqud
+            || is_arabic_diacritic(c)
+            || is_hebrew_niqqud(c)
             || c == TATWEEL
     }
 

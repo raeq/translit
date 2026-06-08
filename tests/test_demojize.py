@@ -181,6 +181,42 @@ class TestErrorModes:
             demojize("😀", errors="invalid")  # type: ignore[arg-type]
 
 
+class TestUnknownEmojiSpacingParity:
+    """#200: an unknown emoji that emits a visible token (replace -> [?],
+    preserve -> raw mark) must be separated from a following alphanumeric by a
+    space, exactly like a recognized emoji's name. Ignore emits nothing and must
+    not introduce a spurious space."""
+
+    # A codepoint in the emoji range with no CLDR name. Guarded below so the test
+    # fails loudly (not silently) if it is ever assigned one.
+    UNKNOWN = "\U0001fc00"
+
+    def test_precondition_codepoint_is_unmapped(self) -> None:
+        assert demojize(self.UNKNOWN) == "[?]", "codepoint gained a CLDR name; pick another"
+
+    def test_replace_separates_from_following_alnum(self) -> None:
+        assert demojize(self.UNKNOWN + "abc") == "[?] abc"
+
+    def test_preserve_separates_from_following_alnum(self) -> None:
+        assert demojize(self.UNKNOWN + "abc", errors="preserve") == self.UNKNOWN + " abc"
+
+    def test_ignore_adds_no_spurious_space(self) -> None:
+        assert demojize(self.UNKNOWN + "abc", errors="ignore") == "abc"
+
+    def test_replace_with_empty_string_adds_no_spurious_space(self) -> None:
+        # replace_with="" means "drop it": nothing visible is emitted, so no
+        # space must be injected before the following word (#200 review).
+        assert demojize(self.UNKNOWN + "abc", errors="replace", replace_with="") == "abc"
+
+    def test_replace_with_nonempty_separates(self) -> None:
+        assert demojize(self.UNKNOWN + "abc", errors="replace", replace_with="X") == "X abc"
+
+    def test_matches_recognized_emoji_spacing(self) -> None:
+        # Recognized emoji already space before a following alnum; unknown now agrees.
+        assert demojize("😀abc") == "grinning face abc"
+        assert demojize(self.UNKNOWN + "abc").endswith(" abc")
+
+
 # ---------------------------------------------------------------------------
 # Text builder integration
 # ---------------------------------------------------------------------------

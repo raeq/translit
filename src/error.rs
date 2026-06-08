@@ -16,7 +16,27 @@
 //! Each variant also exposes a stable machine-readable [`Error::code`] — new
 //! metadata that is not yet surfaced to Python and changes no behaviour.
 
+use std::borrow::Cow;
+
 use thiserror::Error;
+
+/// Maximum length (bytes) of user-controlled input echoed into an error message.
+const MAX_ERROR_INPUT_BYTES: usize = 80;
+
+/// Bound user-controlled text embedded in an error message (#200): a long or
+/// sensitive input must not bloat the message or be logged in full. Truncates on
+/// a UTF-8 char boundary and appends an ellipsis; short inputs pass through
+/// borrowed and unchanged.
+fn truncate_error_text(text: &str) -> Cow<'_, str> {
+    if text.len() <= MAX_ERROR_INPUT_BYTES {
+        return Cow::Borrowed(text);
+    }
+    let mut end = MAX_ERROR_INPUT_BYTES;
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    Cow::Owned(format!("{}…", &text[..end]))
+}
 
 /// Internal error type for the translit core.
 ///
@@ -196,7 +216,10 @@ pub(crate) enum Error {
     },
 
     /// `UniqueSlugifier` exhausted its attempt budget.
-    #[error("UniqueSlugifier exceeded {max} attempts for '{text}'")]
+    #[error(
+        "UniqueSlugifier exceeded {max} attempts for '{}'",
+        truncate_error_text(text)
+    )]
     UniqueSlugAttemptsExceeded {
         /// The attempt cap.
         max: u64,
@@ -325,7 +348,49 @@ impl From<Error> for pyo3::PyErr {
 
 #[cfg(test)]
 mod tests {
-    use super::Error;
+    use super::{truncate_error_text, Error, MAX_ERROR_INPUT_BYTES};
+
+    #[test]
+    fn truncate_error_text_bounds_long_input() {
+        let long = "a".repeat(500);
+        let out = truncate_error_text(&long);
+        // Bounded to the cap plus the multi-byte ellipsis, never the full input.
+        assert!(out.len() < long.len());
+        assert!(out.starts_with("aaaa"));
+        assert!(out.ends_with('…'));
+        assert!(out.len() <= MAX_ERROR_INPUT_BYTES + '…'.len_utf8());
+    }
+
+    #[test]
+    fn truncate_error_text_passes_short_input_through() {
+        assert_eq!(truncate_error_text("short"), "short");
+    }
+
+    #[test]
+    fn truncate_error_text_cuts_on_char_boundary() {
+        // Multi-byte chars straddling the cap must not panic or split a char.
+        let s = "é".repeat(100); // 200 bytes
+        let out = truncate_error_text(&s);
+        assert!(out.ends_with('…'));
+        // The Owned branch produced valid UTF-8 (would have panicked otherwise).
+        assert!(out.chars().count() > 1);
+    }
+
+    #[test]
+    fn unique_slug_error_display_is_truncated() {
+        let err = Error::UniqueSlugAttemptsExceeded {
+            max: 5,
+            text: "x".repeat(500),
+        };
+        let msg = err.to_string();
+        assert!(msg.starts_with("UniqueSlugifier exceeded 5 attempts for 'xxxx"));
+        assert!(msg.contains('…'));
+        assert!(
+            msg.len() < 200,
+            "error message should be bounded, got {} bytes",
+            msg.len()
+        );
+    }
 
     /// `code()` is stable and exhaustive: every variant returns a non-empty,
     /// SCREAMING-or-snake identifier. This also keeps `code()` exercised (it is
