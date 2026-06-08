@@ -493,6 +493,8 @@ CLASS_METHODS = {
             "strip_control",
             "strip_zero_width",
             "demojize",
+            "strip_bidi",
+            "strip_zalgo",
         ],
         "__call__": ["text"],
         "explain": [],

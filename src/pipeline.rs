@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 
 use bitflags::bitflags;
 
-use crate::{case_fold, confusables, emoji, normalize, transliterate, whitespace};
+use crate::{case_fold, confusables, emoji, normalize, transliterate, whitespace, zalgo};
 
 bitflags! {
     #[derive(Debug, Clone, Copy)]
@@ -18,6 +18,8 @@ bitflags! {
         const DEMOJIZE         = 0b0100_0000;
         const STRIP_CONTROL    = 0b1000_0000;
         const STRIP_ZERO_WIDTH = 0b1_0000_0000;
+        const STRIP_BIDI       = 0b10_0000_0000;
+        const STRIP_ZALGO      = 0b100_0000_0000;
     }
 }
 
@@ -27,6 +29,7 @@ bitflags! {
 pub struct _TextPipeline {
     steps: PipelineSteps,
     normalize_form: Option<String>,
+    zalgo_max_marks: Option<usize>,
     lang: Option<String>,
     strict_iso9: bool,
     gost7034: bool,
@@ -49,6 +52,8 @@ impl _TextPipeline {
         strip_control=None,
         strip_zero_width=None,
         demojize=false,
+        strip_bidi=false,
+        strip_zalgo=None,
     ))]
     #[allow(clippy::too_many_arguments)]
     fn new(
@@ -64,6 +69,8 @@ impl _TextPipeline {
         strip_control: Option<bool>,
         strip_zero_width: Option<bool>,
         demojize: bool,
+        strip_bidi: bool,
+        strip_zalgo: Option<i64>,
     ) -> PyResult<Self> {
         let mut steps = PipelineSteps::empty();
 
@@ -95,6 +102,27 @@ impl _TextPipeline {
         if demojize {
             steps |= PipelineSteps::DEMOJIZE;
         }
+        if strip_bidi {
+            steps |= PipelineSteps::STRIP_BIDI;
+        }
+
+        // strip_zalgo's value is `max_marks`, which must be >= 0. Validate here
+        // in the core — `new()` is the construction boundary for every caller,
+        // not just the Python wrapper — so a negative can never reach the
+        // `as usize` cast below, where it would silently wrap into an enormous
+        // cap (effectively disabling the step) instead of being rejected.
+        let zalgo_max_marks = match strip_zalgo {
+            Some(n) if n < 0 => {
+                return Err(crate::InvalidArgumentError::new_err(format!(
+                    "strip_zalgo (max_marks) must be non-negative, got {n}"
+                )));
+            }
+            Some(n) => {
+                steps |= PipelineSteps::STRIP_ZALGO;
+                Some(n as usize)
+            }
+            None => None,
+        };
 
         // strip_control: defaults to True when collapse_whitespace is True,
         // False otherwise. Can be independently set to True for standalone use.
@@ -116,6 +144,7 @@ impl _TextPipeline {
         let pipeline = Self {
             steps,
             normalize_form: normalize.map(std::borrow::ToOwned::to_owned),
+            zalgo_max_marks,
             lang: lang.map(std::borrow::ToOwned::to_owned),
             strict_iso9,
             gost7034,
@@ -133,9 +162,9 @@ impl _TextPipeline {
 
     /// Return the ordered list of active pipeline steps and their parameters.
     ///
-    /// Order matches `process()`: normalize → demojize → strip_accents →
-    /// transliterate → confusables → fold_case → strip_control →
-    /// strip_zero_width → collapse_whitespace.
+    /// Order matches `process()`: normalize → strip_zalgo → strip_bidi →
+    /// demojize → strip_accents → transliterate → confusables → fold_case →
+    /// strip_control → strip_zero_width → collapse_whitespace.
     ///
     /// Transliterate runs BEFORE confusables so that non-Latin scripts are
     /// fully romanized before confusable normalization. Running confusables
@@ -145,6 +174,8 @@ impl _TextPipeline {
         // Execution order — add new steps here AND in process().
         const STEP_ORDER: &[(PipelineSteps, &str)] = &[
             (PipelineSteps::NORMALIZE, "normalize"),
+            (PipelineSteps::STRIP_ZALGO, "strip_zalgo"),
+            (PipelineSteps::STRIP_BIDI, "strip_bidi"),
             (PipelineSteps::DEMOJIZE, "demojize"),
             (PipelineSteps::STRIP_ACCENTS, "strip_accents"),
             (PipelineSteps::TRANSLITERATE, "transliterate"),
@@ -161,6 +192,8 @@ impl _TextPipeline {
             .map(|(flag, name)| {
                 let param = if flag.contains(PipelineSteps::NORMALIZE) {
                     self.normalize_form.clone()
+                } else if flag.contains(PipelineSteps::STRIP_ZALGO) {
+                    self.zalgo_max_marks.map(|m| m.to_string())
                 } else if flag.contains(PipelineSteps::CONFUSABLES) {
                     Some("latin".to_owned())
                 } else if flag.contains(PipelineSteps::TRANSLITERATE) {
@@ -200,7 +233,17 @@ impl _TextPipeline {
             }
         }
 
-        // 2. Demojize (after normalization, before transliteration)
+        // 2. Strip zalgo (cap combining marks before further processing)
+        if self.steps.contains(PipelineSteps::STRIP_ZALGO) {
+            buf = Cow::Owned(zalgo::_strip_zalgo(&buf, self.zalgo_max_marks.unwrap_or(0)));
+        }
+
+        // 3. Strip bidi (remove bidirectional override/format characters)
+        if self.steps.contains(PipelineSteps::STRIP_BIDI) {
+            buf = Cow::Owned(crate::presets::_strip_bidi(&buf));
+        }
+
+        // 4. Demojize (after normalization, before transliteration)
         if self.steps.contains(PipelineSteps::DEMOJIZE) {
             buf = Cow::Owned(emoji::demojize_rust(&buf, false));
         }
@@ -274,6 +317,7 @@ mod tests {
         _TextPipeline {
             steps,
             normalize_form: normalize_form.map(ToOwned::to_owned),
+            zalgo_max_marks: None,
             lang: None,
             strict_iso9: false,
             gost7034: false,
@@ -386,6 +430,49 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_pipeline_strip_bidi_only() {
+        let p = pipeline(PipelineSteps::STRIP_BIDI, None);
+        // U+202E (Right-to-Left Override) is removed
+        let result = p.process("ad\u{202E}min").unwrap();
+        assert!(
+            !result.contains('\u{202E}'),
+            "bidi not stripped: {result:?}"
+        );
+        assert_eq!(result, "admin");
+    }
+
+    #[test]
+    fn test_pipeline_strip_zalgo_only() {
+        // max_marks 0 strips all stacked combining marks
+        let mut p = pipeline(PipelineSteps::STRIP_ZALGO, None);
+        p.zalgo_max_marks = Some(0);
+        // "a" + 4 stacked combining acute accents
+        let input = "a\u{0301}\u{0301}\u{0301}\u{0301}b";
+        let result = p.process(input).unwrap();
+        assert!(
+            result
+                .chars()
+                .all(|c| !unicode_normalization::char::is_combining_mark(c)),
+            "combining marks not stripped: {result:?}"
+        );
+        assert_eq!(result, "ab");
+    }
+
+    #[test]
+    fn test_pipeline_strip_zalgo_and_bidi_steps_report() {
+        let mut p = pipeline(PipelineSteps::STRIP_ZALGO | PipelineSteps::STRIP_BIDI, None);
+        p.zalgo_max_marks = Some(0);
+        let steps = p.steps();
+        assert_eq!(
+            steps,
+            vec![
+                ("strip_zalgo".to_owned(), Some("0".to_owned())),
+                ("strip_bidi".to_owned(), None),
+            ]
+        );
+    }
+
     // ── Step ordering verification ───────────────────────────────────
 
     #[test]
@@ -404,6 +491,8 @@ mod tests {
             step_names,
             vec![
                 "normalize",
+                "strip_zalgo",
+                "strip_bidi",
                 "demojize",
                 "strip_accents",
                 "transliterate",
@@ -443,10 +532,12 @@ mod tests {
         // collapse_whitespace=True with default strip_control/strip_zero_width (None)
         // should auto-enable both strip flags
         let p = _TextPipeline::new(
-            None, false, None, false, false, false, false, false, true, // collapse_whitespace
-            None, // strip_control (defaults to collapse_whitespace=true)
-            None, // strip_zero_width (defaults to collapse_whitespace=true)
-            false,
+            None, false, None, false, false, false, false, false, true,  // collapse_whitespace
+            None,  // strip_control (defaults to collapse_whitespace=true)
+            None,  // strip_zero_width (defaults to collapse_whitespace=true)
+            false, // demojize
+            false, // strip_bidi
+            None,  // strip_zalgo
         )
         .unwrap();
         assert!(p.steps.contains(PipelineSteps::COLLAPSE_WS));
@@ -469,7 +560,9 @@ mod tests {
             true,        // collapse_whitespace
             Some(false), // strip_control=False
             Some(false), // strip_zero_width=False
-            false,
+            false,       // demojize
+            false,       // strip_bidi
+            None,        // strip_zalgo
         )
         .unwrap();
         assert!(p.steps.contains(PipelineSteps::COLLAPSE_WS));
@@ -492,7 +585,9 @@ mod tests {
             false,      // collapse_whitespace
             Some(true), // strip_control
             None,       // strip_zero_width (defaults to collapse_whitespace=false)
-            false,
+            false,      // demojize
+            false,      // strip_bidi
+            None,       // strip_zalgo
         )
         .unwrap();
         assert!(!p.steps.contains(PipelineSteps::COLLAPSE_WS));
@@ -504,7 +599,8 @@ mod tests {
     fn test_constructor_empty() {
         // Default constructor — no steps
         let p = _TextPipeline::new(
-            None, false, None, false, false, false, false, false, false, None, None, false,
+            None, false, None, false, false, false, false, false, false, None, None, false, false,
+            None,
         )
         .unwrap();
         assert!(p.steps.is_empty());

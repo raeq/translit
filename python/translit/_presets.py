@@ -470,6 +470,27 @@ _POLICY_PROFILES: dict[str, dict[str, Any]] = {
         fold_case=True,
         collapse_whitespace=True,
     ),
+    "llm_guardrail": dict(
+        normalize="NFKC",
+        strip_zalgo=0,
+        strip_bidi=True,
+        strip_zero_width=True,
+        strip_control=True,
+        demojize=True,
+        confusables=True,
+        strip_accents=True,
+        fold_case=True,
+        collapse_whitespace=True,
+    ),
+    "rag_ingest": dict(
+        normalize="NFKC",
+        strip_bidi=True,
+        strip_control=True,
+        strip_zero_width=True,
+        transliterate=True,
+        strip_accents=True,
+        collapse_whitespace=True,
+    ),
 }
 
 
