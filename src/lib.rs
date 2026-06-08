@@ -163,6 +163,10 @@ fn _translit(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Custom exception
     m.add("TranslitError", m.py().get_type::<TranslitError>())?;
 
+    // Resource limits exposed so the Python wrapper reads them from this single
+    // source instead of re-declaring the literal and risking silent drift (#200).
+    m.add("_MAX_BATCH_SIZE", MAX_BATCH_SIZE)?;
+
     Ok(())
 }
 

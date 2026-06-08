@@ -145,8 +145,17 @@ _STUB_PARAMS = _parse_stub(STUB_PATH)
 
 
 def _ext_targets() -> list[str]:
-    """Names exported by the extension that we should compare."""
-    return [n for n in dir(ext) if not n.startswith("__") and n not in SKIP]
+    """Names exported by the extension that we should compare.
+
+    Only callables (functions/classes) have signatures to drift; module-level
+    constants exposed by the extension — e.g. ``_MAX_BATCH_SIZE`` (#200) — have
+    no ``inspect.signature`` and are skipped.
+    """
+    return [
+        n
+        for n in dir(ext)
+        if not n.startswith("__") and n not in SKIP and callable(getattr(ext, n))
+    ]
 
 
 _EXT_NAMES = _ext_targets()

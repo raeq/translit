@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal
 
-ErrorMode = Literal["replace", "ignore", "preserve"]
-Platform = Literal["universal", "windows", "posix"]
-NormalizationForm = Literal["NFC", "NFD", "NFKC", "NFKD"]
+# Imported from the single source of truth so the stub cannot drift from the
+# authoritative alias definitions in translit._types (#200).
+from translit._types import ErrorMode, NormalizationForm, Platform
+
+# Resource limits exposed by the Rust module (#200).
+_MAX_BATCH_SIZE: int
 
 class TranslitError(Exception): ...
 

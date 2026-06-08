@@ -20,6 +20,9 @@ from translit._enums import (
     ScriptMeta,
 )
 from translit._translit import (
+    # Resource limit — read from the Rust single source of truth, never
+    # re-declared, to prevent silent drift (#200).
+    _MAX_BATCH_SIZE,
     SafeHostnameDetails,
     # Exception
     TranslitError,
@@ -75,9 +78,12 @@ from translit._translit import (
 )
 from translit._types import EmojiProvider, ErrorMode, NormalizationForm, Platform
 
-# --- Resource limits (must match Rust-side constants) ---
-_MAX_BATCH_SIZE: int = 100_000
-_MAX_GRAPHEME_SPLIT_INPUT: int = 10 * 1024 * 1024  # 10 MiB
+# --- Resource limits ---
+# _MAX_BATCH_SIZE is imported from the Rust extension above (single source of
+# truth, #200). _MAX_GRAPHEME_SPLIT_INPUT has no Rust counterpart — the
+# grapheme_split() size guard is enforced only on the Python side — so it is
+# defined here (in characters/codepoints, see grapheme_split()).
+_MAX_GRAPHEME_SPLIT_INPUT: int = 10 * 1024 * 1024  # ~10.5M characters (codepoints)
 
 # --- Enum validation (must match Rust-side messages; validated in Python so a
 #     typo'd value raises before reaching Rust — e.g. before normalize()'s ASCII
@@ -969,10 +975,13 @@ def grapheme_split(text: str) -> list[str]:
         >>> len(grapheme_split("👨‍👩‍👧‍👦!"))  # family emoji + "!"
         2
     """
+    # `len(text)` counts codepoints, not bytes; the guard and message both speak
+    # in characters so the reported unit matches what is measured (#200). (An
+    # O(1) codepoint count, rather than encoding the whole string to count bytes.)
     if len(text) > _MAX_GRAPHEME_SPLIT_INPUT:
         raise TranslitError(
-            f"input too large ({len(text)} bytes); maximum for grapheme_split() "
-            f"is {_MAX_GRAPHEME_SPLIT_INPUT} bytes"
+            f"input too large ({len(text)} characters); maximum for grapheme_split() "
+            f"is {_MAX_GRAPHEME_SPLIT_INPUT} characters"
         )
     return _grapheme_split(text)
 
