@@ -328,11 +328,11 @@ def transliterate(
             gost7034=gost7034,
         )
 
-    # Fast path: pure ASCII needs no transliteration (~30 ns vs ~240 ns PyO3
-    # call). Skipped when global replacements may be registered, since an
-    # ASCII-keyed replacement (e.g. "@" -> "(at)") must still be applied in Rust.
-    if text.isascii() and not _has_global_replacements:
-        return text
+    # No Python-side ASCII short-circuit (#197): the Rust core validates `lang`
+    # first and has its own borrowed ASCII fast-path (`Cow::Borrowed`), so every
+    # call goes through it. A binding-side fast-path here skipped that validation
+    # (a typo'd `lang` was silently accepted on ASCII input, re-opening #68) and
+    # duplicated the core's own optimization — a per-binding drift liability.
     return _transliterate(
         text,
         lang=lang,
@@ -1577,18 +1577,8 @@ def script_info(script: str | Script) -> ScriptMeta:
 
 # Incremented whenever the global registration tables (languages or replacements)
 # change, so caches built by make_cached_transliterator can detect staleness and
-# self-invalidate.  Named *registration* to distinguish it from the companion
-# _has_global_replacements gate. (#128: renamed from _mutation_generation)
+# self-invalidate. (#128: renamed from _mutation_generation)
 _registration_generation: int = 0
-
-# Conservative gate for the pure-ASCII fast path in transliterate(): False means
-# *definitely no* global replacements are registered (so an ASCII string can be
-# returned without crossing into Rust); True means there *may* be some, so the
-# call must go through Rust where apply_replacements() runs. clear_replacements()
-# resets it to False; remove_replacement() leaves it True (we can't cheaply tell
-# from Python whether the table is now empty — staying True only costs a Rust
-# round-trip that finds an empty table, never correctness).
-_has_global_replacements: bool = False
 
 
 def _bump_registration_generation() -> None:
@@ -1607,6 +1597,15 @@ def register_lang(code: str, mappings: dict[str, str]) -> None:
         it from request-handling or library code in a multi-tenant process, where
         it would silently alter every other caller's output. Call
         :func:`seal_registrations` after startup to make further changes raise.
+
+    .. note::
+        Mappings keyed on **ASCII** characters do not apply to pure-ASCII input.
+        The core takes a fast path that returns all-ASCII text unchanged before
+        consulting language tables (ASCII is the transliteration *target*, so it
+        is normally identity). Language profiles are meant for non-ASCII source
+        characters (e.g. ``ä``→``ae``). To remap an ASCII character, use
+        :func:`register_replacements` instead — its keys run as a pre-pass that
+        executes ahead of the ASCII fast path and therefore do apply.
 
     Args:
         code: Language code string (e.g. "xx", "custom").
@@ -1653,10 +1652,7 @@ def register_replacements(replacements: dict[str, str]) -> None:
         'hello(tm)'
         >>> clear_replacements()
     """
-    global _has_global_replacements
     _register_replacements(replacements)
-    if replacements:
-        _has_global_replacements = True
     _bump_registration_generation()
 
 
@@ -1689,9 +1685,7 @@ def clear_replacements() -> None:
         >>> register_replacements({"©": "(c)", "®": "(r)"})
         >>> clear_replacements()
     """
-    global _has_global_replacements
     _clear_replacements()
-    _has_global_replacements = False
     _bump_registration_generation()
 
 
