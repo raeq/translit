@@ -1,3 +1,6 @@
+# ── Literature full-text scratch (canonical copies live in the lit-graph store) ──
+/literature/
+
 # ── Rust ──────────────────────────────────────────────
 /target/
 Cargo.lock
