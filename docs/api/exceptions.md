@@ -22,10 +22,17 @@ from translit import (
 
 `TranslitError` inherits from Python's built-in **`ValueError`**, so existing
 `except ValueError` code keeps working unchanged. As of
-[#183](https://github.com/raeq/translit/issues/183), **every** error translit raises
-is a `TranslitError` (or a subclass) — including the mutually-exclusive-flag checks,
-registration limits, and the unsupported reverse-transliteration language, which were
-previously bare `ValueError`s that `except TranslitError` silently missed.
+[#183](https://github.com/raeq/translit/issues/183), **every error raised by
+translit's native API** is a `TranslitError` (or a subclass) — including the
+mutually-exclusive-flag checks, registration limits, and the unsupported
+reverse-transliteration language, which were previously bare `ValueError`s that
+`except TranslitError` silently missed.
+
+> **One deliberate exception:** the `unidecode()` compatibility shim's
+> `errors="strict"` mode raises a bare `ValueError` (not a `TranslitError`), to
+> match the behaviour of the `unidecode` package it replaces. translit's own
+> native strict mode (tracked in
+> [#184](https://github.com/raeq/translit/issues/184)) will raise a `TranslitError`.
 
 ## The categories
 
@@ -52,7 +59,10 @@ A configured resource limit was exceeded.
 A requested operation is not supported.
 
 - Reverse transliteration for a language that has no reverse table (`target=`).
-- Auto-detecting an encoding that the detector cannot resolve.
+- Auto-detecting an encoding whose detected label translit does not support
+  (`detect_encoding` / `decode_to_utf8` resolves a charset translit cannot decode).
+  The separate *low-confidence* case — auto-detection that cannot commit to any
+  label — raises the base `TranslitError` (see below), not `UnsupportedError`.
 
 ### `TranslitError` (base, directly)
 State and data conditions that fit no category above: registrations sealed,
@@ -90,7 +100,8 @@ Because `TranslitError` subclasses `ValueError`, you can also catch it as a
 ## Error messages
 
 Error messages name the offending value and (where applicable) the valid options or
-remedy. They are generated once in the Rust core:
+remedy. They originate in the Rust core — with the `errors=`/`form=` text currently
+mirrored verbatim in the Python wrapper as well (see the note below):
 
 ```text
 form must be 'NFC', 'NFD', 'NFKC', or 'NFKD', got 'INVALID'
