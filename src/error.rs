@@ -295,6 +295,17 @@ pub(crate) enum Error {
         guess: String,
     },
 
+    /// `decode_to_utf8` was given a `min_confidence` outside the valid [0.0, 1.0]
+    /// range. Validated in the core (the single source of truth) rather than only
+    /// in the `_api.py` wrapper, so the raw `_decode_to_utf8` PyO3 entrypoint —
+    /// which bypasses that wrapper — is held to the same contract. Maps to
+    /// `InvalidArgumentError`.
+    #[error("min_confidence must be between 0.0 and 1.0, got {min_confidence}")]
+    MinConfidenceOutOfRange {
+        /// The caller-supplied confidence threshold.
+        min_confidence: f64,
+    },
+
     /// Reverse transliteration not supported for the requested language. Maps to
     /// `UnsupportedError` (#183).
     #[error("reverse transliteration not supported for lang '{lang}'; available: {available}")]
@@ -360,6 +371,7 @@ impl Error {
             Error::UnknownEncoding { .. } => "unknown_encoding",
             Error::UnsupportedAutoEncoding { .. } => "unsupported_auto_encoding",
             Error::EncodingConfidenceTooLow { .. } => "encoding_confidence_too_low",
+            Error::MinConfidenceOutOfRange { .. } => "min_confidence_out_of_range",
             Error::ReverseUnsupportedLang { .. } => "reverse_unsupported_lang",
             Error::Untranslatable { .. } => "untranslatable",
             Error::LossyDecode { .. } => "lossy_decode",
@@ -413,7 +425,8 @@ impl From<Error> for pyo3::PyErr {
             | Error::RegisterLangBadKeys { .. }
             | Error::RegexCompile { .. }
             | Error::UniqueSlugMaxLengthTooSmall { .. }
-            | Error::UnknownEncoding { .. } => crate::InvalidArgumentError::new_err(msg),
+            | Error::UnknownEncoding { .. }
+            | Error::MinConfidenceOutOfRange { .. } => crate::InvalidArgumentError::new_err(msg),
 
             // ResourceLimitError — a configured limit was exceeded.
             Error::BatchTooLarge { .. }
@@ -680,6 +693,12 @@ mod tests {
                 true,
             ),
             (
+                Error::MinConfidenceOutOfRange {
+                    min_confidence: 1.5,
+                },
+                false,
+            ),
+            (
                 Error::ReverseUnsupportedLang {
                     lang: MARKER.into(),
                     available: "ru".into(),
@@ -756,6 +775,9 @@ mod tests {
                 got: "x".into(),
                 suggestion: String::new(),
                 valid: "a, b".into(),
+            },
+            Error::MinConfidenceOutOfRange {
+                min_confidence: 1.5,
             },
         ];
         for e in &samples {

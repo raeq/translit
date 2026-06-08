@@ -88,6 +88,17 @@ pub fn decode_to_utf8_impl(
     min_confidence: f64,
     strict: bool,
 ) -> Result<(String, bool), crate::Error> {
+    // Validate the [0.0, 1.0] contract here in the core, not only in the
+    // `_api.py` wrapper: the raw `_decode_to_utf8` PyO3 function is importable
+    // and callable directly, bypassing that wrapper, so a wrapper-only check
+    // would leave it unguarded. The core is the single place every caller
+    // crosses. The check is unconditional — an out-of-range threshold is a
+    // caller mistake even when an explicit `encoding` means it is never used as
+    // a detection threshold. NaN is rejected too: `(0.0..=1.0).contains(&NaN)`
+    // is false, so the negation below is true.
+    if !(0.0..=1.0).contains(&min_confidence) {
+        return Err(crate::Error::MinConfidenceOutOfRange { min_confidence });
+    }
     let enc = if let Some(name) = encoding {
         encoding_rs::Encoding::for_label(name.as_bytes()).ok_or_else(|| {
             // "did you mean …?" against the common labels (#186); encoding_rs
@@ -288,5 +299,27 @@ mod tests {
         // Explicit encoding ignores min_confidence entirely.
         let result = decode_to_utf8_impl(b"hi", Some("UTF-8"), 1.0, false);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_decode_min_confidence_out_of_range_rejected() {
+        // The range contract is enforced in decode_to_utf8_impl itself, so it
+        // holds for the raw `_decode_to_utf8` PyO3 entrypoint too — not just the
+        // `_api.py` wrapper. Rejected below 0, above 1, for NaN, and even when an
+        // explicit encoding means the value is never used as a detection
+        // threshold — an out-of-range threshold is a caller mistake either way.
+        for bad in [-0.5_f64, 1.5, f64::NAN, -0.000_001, 1.000_001] {
+            let auto = decode_to_utf8_impl(b"hi", None, bad, false);
+            let explicit = decode_to_utf8_impl(b"hi", Some("UTF-8"), bad, false);
+            for r in [auto, explicit] {
+                assert!(
+                    matches!(r, Err(crate::Error::MinConfidenceOutOfRange { .. })),
+                    "min_confidence {bad} should be rejected by the core"
+                );
+            }
+        }
+        // The valid boundaries remain accepted.
+        assert!(decode_to_utf8_impl(b"hi", Some("UTF-8"), 0.0, false).is_ok());
+        assert!(decode_to_utf8_impl(b"hi", Some("UTF-8"), 1.0, false).is_ok());
     }
 }
