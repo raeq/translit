@@ -1215,10 +1215,8 @@ def decode_to_utf8(
         >>> had_errors
         False
     """
-    if not (0.0 <= min_confidence <= 1.0):
-        raise InvalidArgumentError(
-            f"min_confidence must be between 0.0 and 1.0, got {min_confidence}"
-        )
+    # The [0.0, 1.0] range check lives in the Rust core (decode_to_utf8_impl),
+    # the single source of truth every caller crosses — no Python-side duplicate.
     return _decode_to_utf8(data, encoding=encoding, min_confidence=min_confidence, strict=strict)
 
 

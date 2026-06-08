@@ -88,6 +88,14 @@ pub fn decode_to_utf8_impl(
     min_confidence: f64,
     strict: bool,
 ) -> Result<(String, bool), crate::Error> {
+    // Validate the [0.0, 1.0] contract here in the core — not in the Python
+    // wrapper — so a native Rust crate user calling this function directly is
+    // held to the same range as any binding. The check is unconditional: an
+    // out-of-range threshold is a caller mistake even when `encoding` is given
+    // and the value goes unused. (NaN is rejected too: `!(0.0..=1.0)` is true.)
+    if !(0.0..=1.0).contains(&min_confidence) {
+        return Err(crate::Error::MinConfidenceOutOfRange { min_confidence });
+    }
     let enc = if let Some(name) = encoding {
         encoding_rs::Encoding::for_label(name.as_bytes()).ok_or_else(|| {
             // "did you mean …?" against the common labels (#186); encoding_rs
@@ -288,5 +296,26 @@ mod tests {
         // Explicit encoding ignores min_confidence entirely.
         let result = decode_to_utf8_impl(b"hi", Some("UTF-8"), 1.0, false);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_decode_min_confidence_out_of_range_rejected() {
+        // The range contract is enforced in the core itself, so a native Rust
+        // caller (no Python binding involved) is held to it. Rejected below 0,
+        // above 1, for NaN, and even when an explicit encoding makes the value
+        // unused — an out-of-range threshold is a caller mistake either way.
+        for bad in [-0.5_f64, 1.5, f64::NAN, -0.000_001, 1.000_001] {
+            let auto = decode_to_utf8_impl(b"hi", None, bad, false);
+            let explicit = decode_to_utf8_impl(b"hi", Some("UTF-8"), bad, false);
+            for r in [auto, explicit] {
+                assert!(
+                    matches!(r, Err(crate::Error::MinConfidenceOutOfRange { .. })),
+                    "min_confidence {bad} should be rejected by the core"
+                );
+            }
+        }
+        // The valid boundaries remain accepted.
+        assert!(decode_to_utf8_impl(b"hi", Some("UTF-8"), 0.0, false).is_ok());
+        assert!(decode_to_utf8_impl(b"hi", Some("UTF-8"), 1.0, false).is_ok());
     }
 }
