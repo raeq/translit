@@ -86,7 +86,12 @@ Detect it with `is_mixed_script`, and fold it to a single script with
 ```python
 import translit
 
-s = "pаypаl"                       # contains Cyrillic а (U+0430)
+raw = "pаypаl"                     # contains Cyrillic а (U+0430)
+
+# Normalize first — NFKC folds compatibility variants (fullwidth, ligatures)
+# so the script check sees canonical input, never a disguised bypass.
+s = translit.normalize(raw, form="NFKC")
+
 translit.is_mixed_script(s)        # => True  (flag it)
 
 pure = translit.normalize_confusables(s, target_script="latin")
