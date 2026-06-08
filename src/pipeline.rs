@@ -7,7 +7,7 @@ use bitflags::bitflags;
 use crate::{case_fold, confusables, emoji, normalize, transliterate, whitespace, zalgo};
 
 bitflags! {
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct PipelineSteps: u16 {
         const NORMALIZE        = 0b0000_0001;
         const TRANSLITERATE    = 0b0000_0010;
@@ -22,6 +22,33 @@ bitflags! {
         const STRIP_ZALGO      = 0b100_0000_0000;
     }
 }
+
+/// The single source of truth for pipeline step ordering (#174).
+///
+/// BOTH `process()` (execution) and `steps()` (introspection/`__repr__`) iterate
+/// this one list, so the order a pipeline *reports* can never diverge from the
+/// order it *runs* — structurally preventing the #141-class bug where reported
+/// and executed positions drifted apart. To add a step: add its flag here in the
+/// correct position and handle it in `apply_step`. Do not encode order anywhere
+/// else.
+///
+/// Transliterate runs BEFORE confusables so non-Latin scripts are fully
+/// romanized before confusable normalization; running confusables first on
+/// Cyrillic/Greek text creates mixed-script gibberish because only some
+/// characters have Latin confusables.
+const STEP_ORDER: &[(PipelineSteps, &str)] = &[
+    (PipelineSteps::NORMALIZE, "normalize"),
+    (PipelineSteps::STRIP_ZALGO, "strip_zalgo"),
+    (PipelineSteps::STRIP_BIDI, "strip_bidi"),
+    (PipelineSteps::DEMOJIZE, "demojize"),
+    (PipelineSteps::STRIP_ACCENTS, "strip_accents"),
+    (PipelineSteps::TRANSLITERATE, "transliterate"),
+    (PipelineSteps::CONFUSABLES, "confusables"),
+    (PipelineSteps::FOLD_CASE, "fold_case"),
+    (PipelineSteps::STRIP_CONTROL, "strip_control"),
+    (PipelineSteps::STRIP_ZERO_WIDTH, "strip_zero_width"),
+    (PipelineSteps::COLLAPSE_WS, "collapse_whitespace"),
+];
 
 /// Composable, pre-compiled text cleaning pipeline.
 #[pyclass]
@@ -162,47 +189,13 @@ impl _TextPipeline {
 
     /// Return the ordered list of active pipeline steps and their parameters.
     ///
-    /// Order matches `process()`: normalize → strip_zalgo → strip_bidi →
-    /// demojize → strip_accents → transliterate → confusables → fold_case →
-    /// strip_control → strip_zero_width → collapse_whitespace.
-    ///
-    /// Transliterate runs BEFORE confusables so that non-Latin scripts are
-    /// fully romanized before confusable normalization. Running confusables
-    /// first on Cyrillic/Greek text creates mixed-script gibberish because
-    /// only some characters have Latin confusables.
+    /// Iterates the shared [`STEP_ORDER`] source, so the reported order is by
+    /// construction the same order `process()` executes (#174).
     fn steps(&self) -> Vec<(String, Option<String>)> {
-        // Execution order — add new steps here AND in process().
-        const STEP_ORDER: &[(PipelineSteps, &str)] = &[
-            (PipelineSteps::NORMALIZE, "normalize"),
-            (PipelineSteps::STRIP_ZALGO, "strip_zalgo"),
-            (PipelineSteps::STRIP_BIDI, "strip_bidi"),
-            (PipelineSteps::DEMOJIZE, "demojize"),
-            (PipelineSteps::STRIP_ACCENTS, "strip_accents"),
-            (PipelineSteps::TRANSLITERATE, "transliterate"),
-            (PipelineSteps::CONFUSABLES, "confusables"),
-            (PipelineSteps::FOLD_CASE, "fold_case"),
-            (PipelineSteps::STRIP_CONTROL, "strip_control"),
-            (PipelineSteps::STRIP_ZERO_WIDTH, "strip_zero_width"),
-            (PipelineSteps::COLLAPSE_WS, "collapse_whitespace"),
-        ];
-
         STEP_ORDER
             .iter()
             .filter(|(flag, _)| self.steps.contains(*flag))
-            .map(|(flag, name)| {
-                let param = if flag.contains(PipelineSteps::NORMALIZE) {
-                    self.normalize_form.clone()
-                } else if flag.contains(PipelineSteps::STRIP_ZALGO) {
-                    self.zalgo_max_marks.map(|m| m.to_string())
-                } else if flag.contains(PipelineSteps::CONFUSABLES) {
-                    Some("latin".to_owned())
-                } else if flag.contains(PipelineSteps::TRANSLITERATE) {
-                    self.lang.clone()
-                } else {
-                    None
-                };
-                ((*name).to_owned(), param)
-            })
+            .map(|(flag, name)| ((*name).to_owned(), self.step_param(*flag)))
             .collect()
     }
 
@@ -220,42 +213,57 @@ impl _TextPipeline {
 
     /// Process text through the pipeline.
     ///
+    /// Iterates the single [`STEP_ORDER`] source so the execution order is, by
+    /// construction, the order `steps()` reports — there is no second list to
+    /// drift out of sync (#174). Each active step is applied as its own pass via
+    /// `apply_step`.
+    ///
     /// Uses `Cow<str>` to avoid cloning the input when no steps modify it
     /// (e.g. empty pipeline, or input that passes through unchanged).
+    ///
+    /// Note: the strip_control + strip_zero_width + collapse_whitespace tail
+    /// now runs as up to three separate passes rather than the previous fused
+    /// single pass. The result is identical — control and zero-width characters
+    /// are transparent to whitespace-run collapsing whether skipped inline or
+    /// removed first — at the cost of two extra linear scans over the (by then
+    /// usually short, ASCII) tail. Correctness of the single source of truth is
+    /// worth more than that micro-optimization; the fused `_collapse_whitespace`
+    /// remains available to direct callers.
     fn process(&self, text: &str) -> PyResult<String> {
         let mut buf: Cow<'_, str> = Cow::Borrowed(text);
-
-        // Fixed optimal order regardless of construction order:
-        // 1. Normalize (canonical form first)
-        if self.steps.contains(PipelineSteps::NORMALIZE) {
-            if let Some(ref form) = self.normalize_form {
-                buf = Cow::Owned(normalize::_normalize(&buf, form)?);
+        for (flag, _name) in STEP_ORDER {
+            if self.steps.contains(*flag) {
+                buf = self.apply_step(*flag, buf)?;
             }
         }
+        Ok(buf.into_owned())
+    }
+}
 
-        // 2. Strip zalgo (cap combining marks before further processing)
-        if self.steps.contains(PipelineSteps::STRIP_ZALGO) {
-            buf = Cow::Owned(zalgo::_strip_zalgo(&buf, self.zalgo_max_marks.unwrap_or(0)));
-        }
-
-        // 3. Strip bidi (remove bidirectional override/format characters)
-        if self.steps.contains(PipelineSteps::STRIP_BIDI) {
-            buf = Cow::Owned(crate::presets::_strip_bidi(&buf));
-        }
-
-        // 4. Demojize (after normalization, before transliteration)
-        if self.steps.contains(PipelineSteps::DEMOJIZE) {
-            buf = Cow::Owned(emoji::demojize_rust(&buf, false));
-        }
-
-        // 3. Strip accents (NFD decompose + strip combining marks)
-        if self.steps.contains(PipelineSteps::STRIP_ACCENTS) {
-            buf = Cow::Owned(transliterate::_strip_accents(&buf));
-        }
-
-        // 4. Transliterate (Unicode → ASCII)
-        if self.steps.contains(PipelineSteps::TRANSLITERATE) {
-            buf = Cow::Owned(
+impl _TextPipeline {
+    /// Apply one pipeline step to `buf`.
+    ///
+    /// Called only with single-flag values from [`STEP_ORDER`]: `process()` owns
+    /// the *ordering* (by iterating that one list), this owns the *per-step
+    /// transform*. Every flag in `STEP_ORDER` must be handled here — an
+    /// unhandled flag would silently no-op, which
+    /// `every_step_in_order_is_actually_applied` guards against.
+    fn apply_step<'a>(&self, step: PipelineSteps, buf: Cow<'a, str>) -> PyResult<Cow<'a, str>> {
+        let out: Cow<'a, str> = if step == PipelineSteps::NORMALIZE {
+            match self.normalize_form {
+                Some(ref form) => Cow::Owned(normalize::_normalize(&buf, form)?),
+                None => buf,
+            }
+        } else if step == PipelineSteps::STRIP_ZALGO {
+            Cow::Owned(zalgo::_strip_zalgo(&buf, self.zalgo_max_marks.unwrap_or(0)))
+        } else if step == PipelineSteps::STRIP_BIDI {
+            Cow::Owned(crate::presets::_strip_bidi(&buf))
+        } else if step == PipelineSteps::DEMOJIZE {
+            Cow::Owned(emoji::demojize_rust(&buf, false))
+        } else if step == PipelineSteps::STRIP_ACCENTS {
+            Cow::Owned(transliterate::_strip_accents(&buf))
+        } else if step == PipelineSteps::TRANSLITERATE {
+            Cow::Owned(
                 transliterate::transliterate_impl(
                     &buf,
                     self.lang.as_deref(),
@@ -266,45 +274,40 @@ impl _TextPipeline {
                     false,
                 )
                 .into_owned(),
-            );
-        }
-
-        // 5. Confusables (after transliteration — non-Latin text is now ASCII,
-        //    so confusable normalization operates on Latin-only text)
-        if self.steps.contains(PipelineSteps::CONFUSABLES) {
-            buf = Cow::Owned(confusables::_normalize_confusables(&buf, "latin")?);
-        }
-
-        // 6. Fold case (after transliteration)
-        if self.steps.contains(PipelineSteps::FOLD_CASE) {
-            buf = Cow::Owned(case_fold::fold_case_impl(&buf));
-        }
-
-        // 7. Strip control + strip zero-width + collapse whitespace (final cleanup)
-        //    When collapse_whitespace is active, use the combined single-pass function.
-        //    Otherwise, apply strip_control and strip_zero_width independently.
-        let has_collapse = self.steps.contains(PipelineSteps::COLLAPSE_WS);
-        let has_strip_ctrl = self.steps.contains(PipelineSteps::STRIP_CONTROL);
-        let has_strip_zw = self.steps.contains(PipelineSteps::STRIP_ZERO_WIDTH);
-
-        if has_collapse {
-            // Combined single-pass: collapse whitespace + optional stripping
-            buf = Cow::Owned(whitespace::_collapse_whitespace(
-                &buf,
-                has_strip_ctrl,
-                has_strip_zw,
-            ));
+            )
+        } else if step == PipelineSteps::CONFUSABLES {
+            Cow::Owned(confusables::_normalize_confusables(&buf, "latin")?)
+        } else if step == PipelineSteps::FOLD_CASE {
+            Cow::Owned(case_fold::fold_case_impl(&buf))
+        } else if step == PipelineSteps::STRIP_CONTROL {
+            Cow::Owned(whitespace::strip_control_chars(&buf))
+        } else if step == PipelineSteps::STRIP_ZERO_WIDTH {
+            Cow::Owned(whitespace::strip_zero_width_chars(&buf))
+        } else if step == PipelineSteps::COLLAPSE_WS {
+            // Collapse only — strip_control / strip_zero_width are their own
+            // steps. With both flags false this preserves any control and
+            // zero-width characters those steps didn't run, collapsing solely
+            // whitespace runs.
+            Cow::Owned(whitespace::_collapse_whitespace(&buf, false, false))
         } else {
-            // Standalone stripping without whitespace collapsing
-            if has_strip_ctrl {
-                buf = Cow::Owned(whitespace::strip_control_chars(&buf));
-            }
-            if has_strip_zw {
-                buf = Cow::Owned(whitespace::strip_zero_width_chars(&buf));
-            }
-        }
+            buf
+        };
+        Ok(out)
+    }
 
-        Ok(buf.into_owned())
+    /// The parameter shown for `step` in `steps()` / `__repr__`, or `None`.
+    fn step_param(&self, step: PipelineSteps) -> Option<String> {
+        if step == PipelineSteps::NORMALIZE {
+            self.normalize_form.clone()
+        } else if step == PipelineSteps::STRIP_ZALGO {
+            self.zalgo_max_marks.map(|m| m.to_string())
+        } else if step == PipelineSteps::CONFUSABLES {
+            Some("latin".to_owned())
+        } else if step == PipelineSteps::TRANSLITERATE {
+            self.lang.clone()
+        } else {
+            None
+        }
     }
 }
 
@@ -321,6 +324,115 @@ mod tests {
             lang: None,
             strict_iso9: false,
             gost7034: false,
+        }
+    }
+
+    // ── Ordering invariant: the single source of truth (#174) ───────
+    //
+    // These lock the structural guarantee that `steps()` (reporting) and
+    // `process()` (execution) cannot drift apart, the #141-class bug class.
+
+    #[test]
+    fn step_order_lists_every_flag_exactly_once() {
+        // If a new PipelineSteps flag is added but not registered in STEP_ORDER,
+        // it would be neither executed nor reported. This fails loudly instead.
+        let mut seen = PipelineSteps::empty();
+        for (flag, _name) in STEP_ORDER {
+            assert!(
+                !seen.contains(*flag),
+                "STEP_ORDER lists {flag:?} more than once"
+            );
+            seen |= *flag;
+        }
+        assert_eq!(
+            seen,
+            PipelineSteps::all(),
+            "STEP_ORDER must list every PipelineSteps flag exactly once"
+        );
+    }
+
+    #[test]
+    fn every_step_in_order_is_actually_applied() {
+        // For each step, a pipeline with ONLY that step enabled must change a
+        // witness input — proving apply_step has a real branch for the flag
+        // rather than silently falling through to the `else { buf }` arm. A new
+        // step added to STEP_ORDER without a witness here panics, forcing the
+        // author to exercise its apply_step branch.
+        for (flag, name) in STEP_ORDER {
+            let (form, input): (Option<&str>, &str) = if *flag == PipelineSteps::NORMALIZE {
+                (Some("NFC"), "e\u{0301}") // e + combining acute → é
+            } else if *flag == PipelineSteps::STRIP_ZALGO {
+                (None, "a\u{0301}\u{0301}\u{0301}\u{0301}b")
+            } else if *flag == PipelineSteps::STRIP_BIDI {
+                (None, "a\u{202e}b")
+            } else if *flag == PipelineSteps::DEMOJIZE {
+                (None, "\u{2615}") // ☕
+            } else if *flag == PipelineSteps::STRIP_ACCENTS {
+                (None, "é")
+            } else if *flag == PipelineSteps::TRANSLITERATE {
+                (None, "Москва")
+            } else if *flag == PipelineSteps::CONFUSABLES {
+                (None, "\u{0410}pple") // Cyrillic А
+            } else if *flag == PipelineSteps::FOLD_CASE {
+                (None, "ABC")
+            } else if *flag == PipelineSteps::STRIP_CONTROL {
+                (None, "a\u{0000}b")
+            } else if *flag == PipelineSteps::STRIP_ZERO_WIDTH {
+                (None, "a\u{200b}b")
+            } else if *flag == PipelineSteps::COLLAPSE_WS {
+                (None, "a  b")
+            } else {
+                panic!(
+                    "no witness for new step '{name}'; add one so apply_step coverage stays gated"
+                );
+            };
+            let out = pipeline(*flag, form).process(input).unwrap();
+            assert_ne!(
+                out, input,
+                "step '{name}' left its witness unchanged — apply_step may be missing a branch"
+            );
+        }
+    }
+
+    #[test]
+    fn report_order_equals_execution_order() {
+        // steps() must report in the same order process() runs. With every step
+        // enabled, the reported names must equal STEP_ORDER's names in order —
+        // both derive from the one list, so this pins that they keep doing so.
+        let mut p = pipeline(PipelineSteps::all(), Some("NFKC"));
+        // strict_iso9/gost7034 are mutually exclusive and unrelated to ordering.
+        p.lang = Some("ru".to_owned());
+        let reported: Vec<String> = p.steps().into_iter().map(|(name, _)| name).collect();
+        let expected: Vec<String> = STEP_ORDER
+            .iter()
+            .map(|(_, name)| (*name).to_owned())
+            .collect();
+        assert_eq!(reported, expected);
+    }
+
+    #[test]
+    fn whitespace_tail_matches_former_fused_pass() {
+        // The three-pass strip_control → strip_zero_width → collapse tail must
+        // equal the old fused _collapse_whitespace(_, true, true) it replaced,
+        // including for chars that are both control and whitespace-adjacent.
+        let tail = PipelineSteps::STRIP_CONTROL
+            | PipelineSteps::STRIP_ZERO_WIDTH
+            | PipelineSteps::COLLAPSE_WS;
+        let p = pipeline(tail, None);
+        for input in [
+            "a\nb",
+            "a\t\tb",
+            "a\u{0000}\nb",
+            "a \u{200b} b",
+            "a\n\n  b\tc",
+            "  lead\u{0000}ing \u{200d} trail  ",
+            "\u{feff}bom\rcr",
+        ] {
+            assert_eq!(
+                p.process(input).unwrap(),
+                whitespace::_collapse_whitespace(input, true, true),
+                "tail diverged from fused pass for {input:?}"
+            );
         }
     }
 
