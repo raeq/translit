@@ -44,15 +44,15 @@ CURATED = [
     "abc",  # pure ASCII
     "Hello, World!",  # ASCII with punctuation
     "é",  # é precomposed (U+00E9)
-    "é",  # é decomposed (e + combining acute)
-    "ạ́",  # ạ́ : base + below-mark + above-mark (multi-mark stack)
+    "e\u0301",  # é decomposed (e + combining acute)
+    "a\u0323\u0301",  # ạ\u0301 : base + below-mark + above-mark (multi-mark stack)
     "क्ष",  # क्ष Devanagari conjunct KA + virama + SSA
     "க்ஷ",  # க்ஷ Tamil conjunct KA + virama + SSA
     "한",  # 한 composed Hangul syllable (U+D55C)
-    "한",  # 한 as conjoining jamo (HIEUH + A + NIEUN)
+    "\u1112\u1161\u11ab",  # 한 as conjoining jamo (HIEUH + A + NIEUN)
     "ﬁ",  # ﬁ ligature (U+FB01)
-    "\U0001f468‍\U0001f469‍\U0001f467",  # 👨‍👩‍👧 ZWJ family emoji
-    "́abc",  # leading defective combining mark (orphan acute)
+    "\U0001f468\u200d\U0001f469\u200d\U0001f467",  # 👨\u200d👩\u200d👧 ZWJ family emoji
+    "\u0301abc",  # leading defective combining mark (orphan acute)
     "Ａ",  # Ａ fullwidth A (U+FF21)
     "café naïve résumé",  # mixed ASCII + accents
     "Straße",  # ß (eszett, no decomposition but NFKC-relevant elsewhere)
@@ -82,7 +82,9 @@ class TestGraphemeBoundaryPreservation:
         # the per-cluster join still equals normalize(whole). We assert both the
         # expansion AND that the boundary invariant continues to hold for it.
         ligature = "ﬁ"  # ﬁ
-        assert translit.grapheme_split(ligature) == [ligature]  # one cluster in
+        assert translit.grapheme_split(ligature) == [
+            ligature
+        ]  # the ligature is a single grapheme cluster on input
         assert translit.normalize(ligature, form="NFKC") == "fi"
         # "fi" is two grapheme clusters out — count changed, by design.
         assert translit.grapheme_split("fi") == ["f", "i"]
@@ -95,7 +97,7 @@ class TestGraphemeBoundaryPreservation:
         # No normalization form may produce output whose first scalar is a
         # combining mark — that would mean a mark was orphaned to the front.
         based = [
-            "ẹ́",  # ẹ́ : e + below-dot + acute
+            "e\u0323\u0301",  # ẹ\u0301 : e + below-dot + acute
             "ñ",  # ñ decomposed
             "à",  # à decomposed
             "का",  # का : Devanagari KA + AA matra

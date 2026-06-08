@@ -11,7 +11,8 @@
 //!
 //! These tests exhaustively cover bounded Unicode domains (all Hangul
 //! syllables, all Devanagari conjunct pairs, the full combining-diacriticals
-//! block, and every assigned BMP scalar). They are `#[ignore]` by default so
+//! block, and every BMP scalar value excluding surrogates — including
+//! unassigned codepoints and noncharacters). They are `#[ignore]` by default so
 //! they don't slow everyday development — exactly like
 //! `tests/exhaustive_transliterate.rs`. Run before release with:
 //! `cargo test --no-default-features --test exhaustive_grapheme -- --ignored`
@@ -99,7 +100,7 @@ fn boundary_preservation_bmp_combining_pairs() {
     }
 }
 
-// ── Every assigned BMP scalar as a single-char string ─────────────────
+// ── Every BMP scalar value (excluding surrogates) as a single-char string ──
 
 #[test]
 #[ignore = "exhaustive: slow, run with --ignored"]
