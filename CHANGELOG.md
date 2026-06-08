@@ -10,6 +10,13 @@ compatibility (see [RELEASING.md](RELEASING.md)).
 
 ## [Unreleased]
 
+### Security
+
+- The RustSec advisory audit (`cargo-audit`) now **blocks merge** via the required "Rust
+  checks passed" gate, on every PR (an advisory can land on a dependency without a code
+  change here). It previously ran but was not in the gate (#195). The Trivy-image half of
+  #195 is moot — the Docker pipeline is removed (below).
+
 ### Removed
 
 - **Docker image build/publish** (and the associated Trivy CVE scan, #138). translit is
