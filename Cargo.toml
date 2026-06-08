@@ -34,7 +34,7 @@ phf_codegen = "0.11"
 
 [dev-dependencies]
 proptest = "1"
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 
 [[bench]]
 name = "bench_core"
