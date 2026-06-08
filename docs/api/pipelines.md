@@ -186,7 +186,7 @@ Returns sorted list of available profile names.
 | `web_input_sanitize` | NFKC → confusables → collapse_whitespace | UTF-8 |
 | `ml_corpus_normalize` | NFKC → demojize → strip_accents → fold_case → collapse_whitespace | ASCII |
 | `search_index` | NFKC → transliterate → strip_accents → fold_case → collapse_whitespace | ASCII |
-| `llm_guardrail` | NFKC → strip_zalgo(0) → strip_bidi → demojize → strip_accents → confusables → fold_case → strip_control → strip_zero_width → collapse_whitespace | ASCII |
+| `llm_guardrail` | NFKC → strip_zalgo(0) → strip_bidi → demojize → strip_accents → confusables → fold_case → strip_control → strip_zero_width → collapse_whitespace | UTF-8 |
 | `rag_ingest` | NFKC → strip_bidi → strip_accents → transliterate → strip_control → strip_zero_width → collapse_whitespace | ASCII |
 
 `llm_guardrail` hardens text against prompt-injection and homoglyph/zalgo/bidi obfuscation before it reaches an LLM (digits are never remapped to letters). `rag_ingest` canonicalizes documents for retrieval pipelines while preserving case.

@@ -63,9 +63,10 @@ def test_rag_ingest_preserves_case() -> None:
 
 
 def test_llm_guardrail_neutralizes_bidi_override() -> None:
-    # U+202E (Right-to-Left Override).
-    result = translit.get_pipeline("llm_guardrail")("ad‮min")
-    assert "‮" not in result
+    # U+202E (Right-to-Left Override) — written as an escape so the source
+    # stays auditable and doesn't trip bidi-source security warnings.
+    result = translit.get_pipeline("llm_guardrail")("ad\u202emin")
+    assert "\u202e" not in result
 
 
 def test_llm_guardrail_neutralizes_zalgo() -> None:
@@ -94,8 +95,8 @@ def test_llm_guardrail_folds_fullwidth_latin() -> None:
 
 
 def test_llm_guardrail_strips_zero_width_joiner() -> None:
-    result = translit.get_pipeline("llm_guardrail")("a‍b")
-    assert "‍" not in result
+    result = translit.get_pipeline("llm_guardrail")("a\u200db")
+    assert "\u200d" not in result
 
 
 def test_llm_guardrail_fullwidth_hello() -> None:
