@@ -18,7 +18,7 @@ body:
     attributes:
       label: translit version
       description: 'Output of `python -c "import translit; print(translit.__version__)"`'
-      placeholder: "0.6.0"
+      placeholder: "0.6.2"
     validations:
       required: true
   - type: textarea
