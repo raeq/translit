@@ -53,3 +53,16 @@ class TestCoreEnumValidation:
     def test_bogus_norm_form_rejected(self) -> None:
         with pytest.raises(translit.InvalidArgumentError):
             translit.normalize("é", form="BOGUS")  # type: ignore[arg-type]
+
+    def test_validation_runs_on_pure_ascii_input(self) -> None:
+        # #185 / #210 review: the deleted Python fast paths short-circuited ASCII
+        # input *before* validating, so the core must reject an invalid form /
+        # errors even when the input is all-ASCII. This guards against a
+        # regression that reintroduces an ASCII short-circuit ahead of validation
+        # (which non-ASCII test inputs above would not catch).
+        with pytest.raises(translit.InvalidArgumentError):
+            translit.normalize("abc", form="BOGUS")  # type: ignore[arg-type]
+        with pytest.raises(translit.InvalidArgumentError):
+            translit.transliterate("abc", errors="bogus")  # type: ignore[arg-type]
+        # ...while valid all-ASCII calls still take the fast identity path.
+        assert translit.normalize("abc", form="NFC") == "abc"
