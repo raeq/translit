@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use pyo3::prelude::*;
 use unicode_normalization::UnicodeNormalization;
 
@@ -14,15 +16,18 @@ use crate::{case_fold, confusables, emoji, transliterate, whitespace, zalgo};
 /// no compatibility decompositions and no combining marks to compose — so
 /// `nfkc()` is the identity on ASCII (the same property `normalize()`'s ASCII
 /// fast path relies on). Detecting that with one SIMD-friendly `is_ascii()` scan
-/// lets these presets skip the normalizer's per-character state machine for the
-/// common ASCII case; both branches still return an owned `String`, so callers
-/// that mutate `buf` afterwards are unaffected. See #198.
+/// lets these presets skip the normalizer's per-character state machine **and**
+/// the allocation for the common ASCII case: the ASCII branch borrows the input
+/// (`Cow::Borrowed`, like transliterate()'s fast path) rather than copying it.
+/// Each preset then takes ownership at the first stage that produces a new
+/// `String` (every next step returns one), so the only ASCII allocation is the
+/// one that stage would make anyway. See #198.
 #[inline]
-fn nfkc_normalize(text: &str) -> String {
+fn nfkc_normalize(text: &str) -> Cow<'_, str> {
     if text.is_ascii() {
-        text.to_owned()
+        Cow::Borrowed(text)
     } else {
-        text.nfkc().collect()
+        Cow::Owned(text.nfkc().collect())
     }
 }
 
@@ -133,12 +138,17 @@ pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyRes
         }
         .into());
     }
-    // 1. NFKC normalization
-    let mut buf = nfkc_normalize(text);
-    // 2. Emoji → text (CLDR short names)
-    if emoji_style == "cldr" {
-        buf = emoji::demojize_rust(&buf, false);
-    }
+    // 1. NFKC normalization (borrowed for ASCII; ownership is taken below).
+    let normalized = nfkc_normalize(text);
+    // 2. Emoji → text (CLDR short names). This stage — or `into_owned()` when
+    //    emoji expansion is off — yields the owned `buf` the remaining stages
+    //    mutate in place. For the common ASCII+CLDR path `demojize_rust` borrows
+    //    `normalized`, so the NFKC step adds no allocation of its own.
+    let mut buf = if emoji_style == "cldr" {
+        emoji::demojize_rust(&normalized, false)
+    } else {
+        normalized.into_owned()
+    };
     // 3. Transliterate if lang is set (e.g. "de" for ü→ue, "ja" for kana).
     //    Use Ignore mode: ML pipelines need clean ASCII-ish output, so
     //    characters with no mapping (e.g. katakana ー) should be dropped
@@ -413,9 +423,10 @@ mod tests {
     use super::*;
 
     // ── nfkc_normalize: ASCII fast path must equal full NFKC (#198) ──
-    // The fast path returns ASCII input verbatim; this guards that the
-    // optimization is output-preserving against the reference `nfkc()` pass
-    // across ASCII, fullwidth, ligature, superscript, and combining-mark inputs.
+    // The fast path returns the ASCII input borrowed (no copy); this guards
+    // that the optimization is output-preserving against the reference `nfkc()`
+    // pass across ASCII, fullwidth, ligature, superscript, and combining-mark
+    // inputs.
     #[test]
     fn test_nfkc_normalize_matches_reference() {
         let cases = [
@@ -433,11 +444,21 @@ mod tests {
         for s in cases {
             let reference: String = s.nfkc().collect();
             assert_eq!(
-                nfkc_normalize(s),
-                reference,
+                nfkc_normalize(s).as_ref(),
+                reference.as_str(),
                 "nfkc_normalize diverged from nfkc() on {s:?}"
             );
         }
+    }
+
+    // The ASCII fast path must *borrow* (zero-copy), not allocate; non-ASCII
+    // input must take the owned NFKC path (#198, #202 review).
+    #[test]
+    fn test_nfkc_normalize_borrows_ascii_owns_nonascii() {
+        assert!(matches!(nfkc_normalize("plain ascii"), Cow::Borrowed(_)));
+        assert!(matches!(nfkc_normalize(""), Cow::Borrowed(_)));
+        assert!(matches!(nfkc_normalize("Ｆｕｌｌ"), Cow::Owned(_)));
+        assert!(matches!(nfkc_normalize("café"), Cow::Owned(_)));
     }
 
     // ── strip_bidi: exhaustive UAX #9 coverage ────────────────
