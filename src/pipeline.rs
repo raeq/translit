@@ -246,8 +246,8 @@ impl _TextPipeline {
     /// Called only with single-flag values from [`STEP_ORDER`]: `process()` owns
     /// the *ordering* (by iterating that one list), this owns the *per-step
     /// transform*. Every flag in `STEP_ORDER` must be handled here — an
-    /// unhandled flag would silently no-op, which `every_step_is_applied`
-    /// guards against.
+    /// unhandled flag would silently no-op, which
+    /// `every_step_in_order_is_actually_applied` guards against.
     fn apply_step<'a>(&self, step: PipelineSteps, buf: Cow<'a, str>) -> PyResult<Cow<'a, str>> {
         let out: Cow<'a, str> = if step == PipelineSteps::NORMALIZE {
             match self.normalize_form {
