@@ -142,21 +142,29 @@ jobs:
 
   # ── Status gates (always run, for branch protection) ────────────
   # These MUST run on every PR so branch protection checks report.
-  # On doc-only PRs, lint/test are skipped — gates pass automatically.
-  # On code PRs, gates pass only if lint+test succeed.
+  # On doc-only PRs, lint/test are skipped — gates pass on those.
+  # The RustSec audit, however, blocks merge on EVERY PR (#195): an advisory can
+  # land on a dependency without any code change here.
   rust-ok:
     name: Rust checks passed
     if: always()
-    needs: [changes, lint, test]
+    needs: [changes, lint, test, cargo-audit]
     runs-on: ubuntu-latest
     steps:
       - run: |
           CODE="${{ needs.changes.outputs.code }}"
           LINT="${{ needs.lint.result }}"
           TEST="${{ needs.test.result }}"
+          AUDIT="${{ needs['cargo-audit'].result }}"
+
+          # A RustSec advisory blocks merge regardless of code changes (#195).
+          if [[ "$AUDIT" != "success" ]]; then
+            echo "cargo audit ($AUDIT) — an outstanding RustSec advisory blocks merge"
+            exit 1
+          fi
 
           if [[ "$CODE" != "true" ]]; then
-            echo "No code changes — skipping checks"
+            echo "No code changes — skipping lint/test gate"
             exit 0
           fi
 
