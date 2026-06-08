@@ -79,8 +79,10 @@ from translit._types import EmojiProvider, ErrorMode, NormalizationForm, Platfor
 _MAX_BATCH_SIZE: int = 100_000
 _MAX_GRAPHEME_SPLIT_INPUT: int = 10 * 1024 * 1024  # 10 MiB
 
-# --- Enum validation (must match Rust-side messages; validated in Python so the
-#     ASCII fast-path cannot silently accept a typo'd value before reaching Rust, #99) ---
+# --- Enum validation (must match Rust-side messages; validated in Python so a
+#     typo'd value raises before reaching Rust — e.g. before normalize()'s ASCII
+#     fast-path could silently accept it, #99. transliterate()'s own fast path was
+#     removed in #197; its errors check below now front-loads the same error.) ---
 _VALID_ERROR_MODES: tuple[str, ...] = ("replace", "ignore", "preserve")
 _VALID_NORM_FORMS: tuple[str, ...] = ("NFC", "NFD", "NFKC", "NFKD")
 
@@ -123,9 +125,12 @@ def _check_transliterate_conflicts(
     (abjad vowel restoration) has no toned-pinyin output, so ``context`` +
     ``tones`` is rejected too.
 
-    Also validates the ``errors`` enum up front (#99): the ASCII fast-path returns
-    before reaching Rust, so a typo'd ``errors`` would otherwise silently no-op on
-    ASCII input and only raise later on the first non-ASCII string.
+    Also validates the ``errors`` enum up front (#99) so a typo'd value raises a
+    clear Python-side error before crossing into Rust, identically for scalar and
+    batch input. (This originally guarded a binding-side ASCII fast path that
+    returned before Rust ever saw the call; that fast path was removed in #197,
+    but front-loading the check keeps the error message and timing uniform across
+    input shapes.)
     """
     if errors not in _VALID_ERROR_MODES:
         raise TranslitError(f"errors must be 'replace', 'ignore', or 'preserve', got {errors!r}")
