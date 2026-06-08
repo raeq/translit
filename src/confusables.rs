@@ -5,10 +5,12 @@ use crate::tables;
 /// Validate the `target_script` parameter.
 ///
 /// Supported values: `"latin"`, `"cyrillic"`.
-fn validate_target_script(target_script: &str) -> PyResult<()> {
+fn validate_target_script(target_script: &str) -> Result<(), crate::Error> {
     match target_script {
         "latin" | "cyrillic" => Ok(()),
-        _ => translit_err!("target_script must be 'latin' or 'cyrillic', got '{target_script}'"),
+        _ => Err(crate::Error::InvalidTargetScript {
+            got: target_script.to_owned(),
+        }),
     }
 }
 

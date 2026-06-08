@@ -9,14 +9,10 @@ use pyo3::prelude::*;
 #[doc(hidden)]
 pub mod utils;
 
-/// Construct a `TranslitError` `PyResult::Err` with a formatted message.
-///
-/// Usage: `translit_err!("invalid value: {}", val)` returns `Err(TranslitError(...))`.
-macro_rules! translit_err {
-    ($($arg:tt)*) => {
-        Err($crate::TranslitError::new_err(format!($($arg)*)))
-    };
-}
+// Pure-Rust error enum + the single PyO3 boundary conversion (#181).
+pub(crate) mod error;
+pub(crate) use error::Error;
+
 /// Error handling mode for operations that encounter untranslatable/unknown input.
 ///
 /// Shared across transliterate, emoji, and other modules that need the
@@ -34,11 +30,16 @@ pub enum ErrorMode {
 impl ErrorMode {
     /// Parse a Python-facing error mode string (`"replace"`, `"ignore"`, `"preserve"`).
     pub fn from_str(s: &str) -> PyResult<Self> {
+        Ok(Self::parse(s)?)
+    }
+
+    /// Pure-Rust parse of an error mode string, returning the core `Error`.
+    pub(crate) fn parse(s: &str) -> Result<Self, crate::Error> {
         match s {
             "replace" => Ok(Self::Replace),
             "ignore" => Ok(Self::Ignore),
             "preserve" => Ok(Self::Preserve),
-            _ => translit_err!("errors must be 'replace', 'ignore', or 'preserve', got '{s}'"),
+            _ => Err(crate::Error::InvalidErrorMode { got: s.to_owned() }),
         }
     }
 }

@@ -129,9 +129,10 @@ pub fn _sanitize_filename(
         "universal" | "windows" => UNIVERSAL_ILLEGAL,
         "posix" => POSIX_ILLEGAL,
         _ => {
-            return Err(crate::TranslitError::new_err(format!(
-                "platform must be 'universal', 'windows', or 'posix', got '{platform}'"
-            )))
+            return Err(crate::Error::InvalidPlatform {
+                got: platform.to_owned(),
+            }
+            .into())
         }
     };
 

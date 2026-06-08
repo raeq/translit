@@ -6,9 +6,11 @@ use unicode_normalization::UnicodeNormalization;
 
 /// Validate normalization form string. Returns an error for invalid forms.
 #[inline]
-fn validate_form(form: &str) -> PyResult<()> {
+fn validate_form(form: &str) -> Result<(), crate::Error> {
     if !matches!(form, "NFC" | "NFD" | "NFKC" | "NFKD") {
-        return translit_err!("form must be 'NFC', 'NFD', 'NFKC', or 'NFKD', got '{form}'");
+        return Err(crate::Error::InvalidNormForm {
+            got: form.to_owned(),
+        });
     }
     Ok(())
 }
@@ -66,11 +68,11 @@ pub fn _is_normalized(text: &str, form: &str) -> PyResult<bool> {
 pub fn _normalize_batch(py: Python<'_>, texts: Vec<String>, form: &str) -> PyResult<Vec<String>> {
     validate_form(form)?;
     if texts.len() > crate::MAX_BATCH_SIZE {
-        return translit_err!(
-            "batch too large ({} items); maximum is {} items",
-            texts.len(),
-            crate::MAX_BATCH_SIZE
-        );
+        return Err(crate::Error::BatchTooLarge {
+            len: texts.len(),
+            max: crate::MAX_BATCH_SIZE,
+        }
+        .into());
     }
     // Pick the normalizer once (form is validated), then run the pure-Rust loop
     // with the GIL released (#70): the closure touches no Python objects, so

@@ -28,23 +28,22 @@ const MAX_REGEX_DFA_BYTES: usize = 1_048_576; // 1 MiB
 
 /// Validate and compile a caller-supplied regex pattern after enforcing a size cap.
 ///
-/// Returns `Err(String)` if the pattern exceeds `MAX_REGEX_PATTERN_BYTES`,
+/// Returns `Err(crate::Error)` if the pattern exceeds `MAX_REGEX_PATTERN_BYTES`,
 /// if the compiled DFA would exceed `MAX_REGEX_DFA_BYTES`, or if
 /// `regex::RegexBuilder` rejects it for any other reason.
-/// Callers at the PyO3 boundary convert the `String` error to a
-/// `TranslitError` with `.map_err(|e| TranslitError::new_err(e))`.
-fn compile_regex(pattern: &str) -> Result<regex::Regex, String> {
+/// Callers at the PyO3 boundary convert the error to a `TranslitError` via the
+/// `From<Error> for PyErr` boundary impl (#181).
+fn compile_regex(pattern: &str) -> Result<regex::Regex, crate::Error> {
     if pattern.len() > MAX_REGEX_PATTERN_BYTES {
-        return Err(format!(
-            "regex_pattern is too long ({} bytes); maximum is {} bytes",
-            pattern.len(),
-            MAX_REGEX_PATTERN_BYTES
-        ));
+        return Err(crate::Error::RegexTooLong {
+            len: pattern.len(),
+            max: MAX_REGEX_PATTERN_BYTES,
+        });
     }
     regex::RegexBuilder::new(pattern)
         .size_limit(MAX_REGEX_DFA_BYTES)
         .build()
-        .map_err(|e| format!("Invalid regex: {e}"))
+        .map_err(|e| crate::Error::RegexCompile { source: e })
 }
 
 use crate::utils::floor_char_boundary;
@@ -96,10 +95,9 @@ impl SlugConfig {
     /// entrypoints (`_slugify`, `_slugify_batch`, `_Slugifier::new`,
     /// `_UniqueSlugifier::new`).
     ///
-    /// Returns `Err(String)` if the regex pattern is invalid, or if `lang`
-    /// fails validation — callers at the PyO3 boundary convert the error to a
-    /// `TranslitError`. (#119)
-    pub fn from_pyargs(
+    /// Returns `Err(crate::Error)` if the regex pattern is invalid — callers at
+    /// the PyO3 boundary convert the error to a `TranslitError`. (#119)
+    pub(crate) fn from_pyargs(
         separator: &str,
         lowercase: bool,
         max_length: usize,
@@ -113,7 +111,7 @@ impl SlugConfig {
         entities: bool,
         decimal: bool,
         hexadecimal: bool,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, crate::Error> {
         let compiled_regex = regex_pattern.map(compile_regex).transpose()?;
         Ok(Self {
             separator: separator.to_owned(),
@@ -185,7 +183,7 @@ pub fn _slugify(
         decimal,
         hexadecimal,
     )
-    .map_err(crate::TranslitError::new_err)?;
+    .map_err(pyo3::PyErr::from)?;
     Ok(slugify_impl(text, &config))
 }
 
@@ -567,11 +565,11 @@ pub fn _slugify_batch(
     hexadecimal: bool,
 ) -> PyResult<Vec<String>> {
     if texts.len() > crate::MAX_BATCH_SIZE {
-        return translit_err!(
-            "batch too large ({} items); maximum is {} items",
-            texts.len(),
-            crate::MAX_BATCH_SIZE
-        );
+        return Err(crate::Error::BatchTooLarge {
+            len: texts.len(),
+            max: crate::MAX_BATCH_SIZE,
+        }
+        .into());
     }
     // #119: delegate to SlugConfig::from_pyargs (shared constructor).
     crate::transliterate::validate_lang(lang)?;
@@ -590,7 +588,7 @@ pub fn _slugify_batch(
         decimal,
         hexadecimal,
     )
-    .map_err(crate::TranslitError::new_err)?;
+    .map_err(pyo3::PyErr::from)?;
 
     // Pre-build the stopword set once for the entire batch instead of
     // reconstructing it on every call to slugify_impl.
@@ -667,7 +665,7 @@ impl _Slugifier {
             decimal,
             hexadecimal,
         )
-        .map_err(crate::TranslitError::new_err)?;
+        .map_err(pyo3::PyErr::from)?;
         let stopset: HashSet<String> = config.stopwords.iter().cloned().collect();
         Ok(Self { config, stopset })
     }
@@ -765,9 +763,11 @@ impl _UniqueSlugifier {
 
         loop {
             if counter > MAX_UNIQUE_ATTEMPTS {
-                return Err(crate::TranslitError::new_err(format!(
-                    "UniqueSlugifier exceeded {MAX_UNIQUE_ATTEMPTS} attempts for '{text}'"
-                )));
+                return Err(crate::Error::UniqueSlugAttemptsExceeded {
+                    max: MAX_UNIQUE_ATTEMPTS,
+                    text: text.to_owned(),
+                }
+                .into());
             }
 
             if !self.seen.contains(&candidate) {
@@ -790,11 +790,12 @@ impl _UniqueSlugifier {
             // and immediately instead.
             let min_unique_len = self.inner.config.separator.len() + 1;
             if self.inner.config.max_length > 0 && self.inner.config.max_length < min_unique_len {
-                return Err(crate::TranslitError::new_err(format!(
-                    "max_length={} is too small to generate a unique slug with separator {:?}: \
-                     need at least {min_unique_len} bytes for the separator plus one counter digit",
-                    self.inner.config.max_length, self.inner.config.separator
-                )));
+                return Err(crate::Error::UniqueSlugMaxLengthTooSmall {
+                    max_length: self.inner.config.max_length,
+                    separator: self.inner.config.separator.clone(),
+                    min_unique_len,
+                }
+                .into());
             }
             candidate = format!("{}{}{counter}", base, self.inner.config.separator);
             // If max_length is set, ensure the suffixed candidate doesn't exceed it.
@@ -1116,7 +1117,7 @@ mod tests {
     #[test]
     fn test_compile_regex_too_long() {
         let long_pattern = "a".repeat(MAX_REGEX_PATTERN_BYTES + 1);
-        let err = compile_regex(&long_pattern).unwrap_err();
+        let err = compile_regex(&long_pattern).unwrap_err().to_string();
         assert!(err.contains("too long"), "unexpected error: {err}");
     }
 
@@ -1130,7 +1131,7 @@ mod tests {
     #[test]
     fn test_compile_regex_invalid() {
         // Syntactically invalid pattern must return an error regardless of length.
-        let err = compile_regex(r"[unclosed").unwrap_err();
+        let err = compile_regex(r"[unclosed").unwrap_err().to_string();
         assert!(err.contains("Invalid regex"), "unexpected error: {err}");
     }
 

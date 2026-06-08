@@ -110,9 +110,10 @@ pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyRes
     crate::transliterate::validate_lang(lang)?;
     // Validate emoji_style — only two modes are supported.
     if !matches!(emoji_style, "cldr" | "none") {
-        return Err(crate::TranslitError::new_err(format!(
-            "emoji_style must be 'cldr' or 'none', got '{emoji_style}'"
-        )));
+        return Err(crate::Error::InvalidEmojiStyle {
+            got: emoji_style.to_owned(),
+        }
+        .into());
     }
     // 1. NFKC normalization
     let mut buf: String = text.nfkc().collect();
