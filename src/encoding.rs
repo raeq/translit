@@ -35,23 +35,6 @@ pub fn detect_encoding_impl(bytes: &[u8]) -> (String, f64) {
     (encoding.name().to_owned(), CONFIDENCE_HIGH)
 }
 
-/// Pure Rust byte-to-UTF-8 decoding — no Python dependency.
-///
-/// Returns `Ok((decoded_text, had_errors))` or `Err(message)`.
-///
-/// `had_errors` reflects encoding_rs's WHATWG-defined error flag: it is
-/// `true` only when a U+FFFD REPLACEMENT CHARACTER was inserted because a
-/// byte sequence could not be decoded.  It is **not** a general fidelity
-/// guarantee — some encodings (e.g. Windows-1252) remap every byte to a
-/// valid Unicode codepoint without inserting U+FFFD, so `had_errors` will
-/// be `false` even if the result differs from what another encoding would
-/// produce.  Callers that require lossless round-trip guarantees should
-/// compare the re-encoded output against the original bytes rather than
-/// relying solely on this flag.
-///
-/// When `encoding` is `None` the encoding is auto-detected. If the
-/// detection confidence is below `min_confidence` an error is returned
-/// so the caller can require a minimum quality threshold.
 /// Common encoding labels offered as "did you mean …?" hints for an unrecognised
 /// label (#186). Not exhaustive — encoding_rs accepts ~220 labels — just the
 /// canonical names a typo is most likely aimed at.
@@ -78,10 +61,32 @@ const COMMON_ENCODING_LABELS: &[&str] = &[
     "macintosh",
 ];
 
+/// Pure Rust byte-to-UTF-8 decoding — no Python dependency.
+///
+/// Returns `Ok((decoded_text, had_errors))` or `Err(message)`.
+///
+/// `had_errors` reflects encoding_rs's WHATWG-defined error flag: it is
+/// `true` only when a U+FFFD REPLACEMENT CHARACTER was inserted because a
+/// byte sequence could not be decoded.  It is **not** a general fidelity
+/// guarantee — some encodings (e.g. Windows-1252) remap every byte to a
+/// valid Unicode codepoint without inserting U+FFFD, so `had_errors` will
+/// be `false` even if the result differs from what another encoding would
+/// produce.  Callers that require lossless round-trip guarantees should
+/// compare the re-encoded output against the original bytes rather than
+/// relying solely on this flag.
+///
+/// When `encoding` is `None` the encoding is auto-detected. If the
+/// detection confidence is below `min_confidence` an error is returned
+/// so the caller can require a minimum quality threshold.
+///
+/// In `strict` mode (#189) a lossy decode — malformed bytes replaced with U+FFFD
+/// — is a hard error rather than a silent `had_errors = true` the caller might
+/// ignore.
 pub fn decode_to_utf8_impl(
     bytes: &[u8],
     encoding: Option<&str>,
     min_confidence: f64,
+    strict: bool,
 ) -> Result<(String, bool), crate::Error> {
     let enc = if let Some(name) = encoding {
         encoding_rs::Encoding::for_label(name.as_bytes()).ok_or_else(|| {
@@ -110,7 +115,14 @@ pub fn decode_to_utf8_impl(
             .ok_or(crate::Error::UnsupportedAutoEncoding { got: name })?
     };
 
-    let (decoded, _actual_encoding, had_errors) = enc.decode(bytes);
+    let (decoded, actual_encoding, had_errors) = enc.decode(bytes);
+    // #189: in strict mode a lossy decode (malformed sequences replaced with
+    // U+FFFD) is a hard error, not a silent success the caller might ignore.
+    if strict && had_errors {
+        return Err(crate::Error::LossyDecode {
+            encoding: actual_encoding.name().to_owned(),
+        });
+    }
     Ok((decoded.into_owned(), had_errors))
 }
 
@@ -155,13 +167,15 @@ pub fn _detect_encoding(data: &Bound<'_, PyBytes>) -> (String, f64) {
 // letting callers reject auto-detection entirely by passing min_confidence > 0.95
 // (e.g. 1.0). Pass min_confidence=0.0 to be explicit about accepting any guess.
 #[pyfunction]
-#[pyo3(signature = (data, encoding=None, min_confidence=0.95))]
+#[pyo3(signature = (data, encoding=None, min_confidence=0.95, strict=false))]
 pub fn _decode_to_utf8(
     data: &Bound<'_, PyBytes>,
     encoding: Option<&str>,
     min_confidence: f64,
+    strict: bool,
 ) -> PyResult<(String, bool)> {
-    decode_to_utf8_impl(data.as_bytes(), encoding, min_confidence).map_err(pyo3::PyErr::from)
+    decode_to_utf8_impl(data.as_bytes(), encoding, min_confidence, strict)
+        .map_err(pyo3::PyErr::from)
 }
 
 #[cfg(test)]
@@ -222,7 +236,7 @@ mod tests {
     #[test]
     fn test_decode_utf8() {
         let (decoded, had_errors) =
-            decode_to_utf8_impl("café".as_bytes(), Some("UTF-8"), 0.0).unwrap();
+            decode_to_utf8_impl("café".as_bytes(), Some("UTF-8"), 0.0, false).unwrap();
         assert_eq!(decoded, "café");
         assert!(!had_errors);
     }
@@ -231,14 +245,14 @@ mod tests {
     fn test_decode_latin1() {
         // "café" in ISO-8859-1: 63 61 66 E9
         let (decoded, had_errors) =
-            decode_to_utf8_impl(&[0x63, 0x61, 0x66, 0xE9], Some("ISO-8859-1"), 0.0).unwrap();
+            decode_to_utf8_impl(&[0x63, 0x61, 0x66, 0xE9], Some("ISO-8859-1"), 0.0, false).unwrap();
         assert_eq!(decoded, "café");
         assert!(!had_errors);
     }
 
     #[test]
     fn test_decode_unknown_encoding_errors() {
-        let result = decode_to_utf8_impl(b"hello", Some("FAKE-999"), 0.0);
+        let result = decode_to_utf8_impl(b"hello", Some("FAKE-999"), 0.0, false);
         assert!(result.is_err());
     }
 
@@ -251,7 +265,7 @@ mod tests {
 
     #[test]
     fn test_decode_auto_detect() {
-        let (decoded, had_errors) = decode_to_utf8_impl(b"hello world", None, 0.0).unwrap();
+        let (decoded, had_errors) = decode_to_utf8_impl(b"hello world", None, 0.0, false).unwrap();
         assert_eq!(decoded, "hello world");
         assert!(!had_errors);
     }
@@ -260,7 +274,7 @@ mod tests {
     fn test_decode_min_confidence_rejected() {
         // detect_encoding_impl always returns 0.95 (CONFIDENCE_HIGH).
         // A threshold of 1.0 always rejects auto-detection.
-        let result = decode_to_utf8_impl(b"hi", None, 1.0);
+        let result = decode_to_utf8_impl(b"hi", None, 1.0, false);
         assert!(result.is_err());
         let msg = result.unwrap_err().to_string();
         assert!(
@@ -272,7 +286,7 @@ mod tests {
     #[test]
     fn test_decode_min_confidence_accepted() {
         // Explicit encoding ignores min_confidence entirely.
-        let result = decode_to_utf8_impl(b"hi", Some("UTF-8"), 1.0);
+        let result = decode_to_utf8_impl(b"hi", Some("UTF-8"), 1.0, false);
         assert!(result.is_ok());
     }
 }

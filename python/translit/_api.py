@@ -1165,6 +1165,7 @@ def decode_to_utf8(
     encoding: str | None = None,
     *,
     min_confidence: float = 0.95,
+    strict: bool = False,
 ) -> tuple[str, bool]:
     """Decode a byte sequence to UTF-8.
 
@@ -1190,14 +1191,22 @@ def decode_to_utf8(
             guess while accepting a confident one. (The earlier ``0.5`` default
             was inert — ``0.50 < 0.50`` is false — so it never rejected; #103.)
             Pass ``min_confidence=0.0`` to accept any guess.
+        strict: When ``True``, raise :class:`TranslitError` instead of silently
+            returning ``had_errors=True`` if the input contains byte sequences
+            that decode to the U+FFFD replacement character (#189). Use this to
+            turn lossy decodes — a common silent-data-loss source — into a hard
+            failure. Note ``had_errors`` is a *replacement-character* flag, not a
+            full fidelity guarantee (see the module docs), so ``strict`` catches
+            malformed input, not every lossy remapping.
 
     Returns:
-        Tuple of (decoded_text, had_errors) where had_errors is True if
-        any characters were replaced during lossy conversion.
+        Tuple of (decoded_text, had_errors). With ``strict=True`` the second
+        element is always ``False`` (any error raises instead).
 
     Raises:
         TranslitError: If the encoding name is unknown, decoding fails,
-            or auto-detection confidence is below min_confidence.
+            auto-detection confidence is below min_confidence, or
+            ``strict=True`` and the decode was lossy.
 
     Examples:
         >>> text, had_errors = decode_to_utf8(b"caf\\xe9", "windows-1252")
@@ -1210,7 +1219,9 @@ def decode_to_utf8(
         raise InvalidArgumentError(
             f"min_confidence must be between 0.0 and 1.0, got {min_confidence}"
         )
-    return _decode_to_utf8(data, encoding=encoding, min_confidence=min_confidence)
+    return _decode_to_utf8(
+        data, encoding=encoding, min_confidence=min_confidence, strict=strict
+    )
 
 
 # --- Predicates ---

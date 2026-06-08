@@ -356,7 +356,7 @@ CORE_FUNCTION_PARAMS = {
     "reverse_langs": [],
     # Encoding
     "detect_encoding": ["data"],
-    "decode_to_utf8": ["data", "encoding", "min_confidence"],
+    "decode_to_utf8": ["data", "encoding", "min_confidence", "strict"],
     # Predicates
     "detect_scripts": ["text"],
     "inspect_auto_lang": ["text"],

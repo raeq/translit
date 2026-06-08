@@ -275,3 +275,32 @@ class TestAdversarialDecodePath:
         data = b"\xc3\x28" * 524_288  # 1 MiB of invalid UTF-8
         s, had_errors = decode_to_utf8(data, encoding="utf-8")
         assert isinstance(s, str)
+
+
+class TestStrictDecode:
+    """#189: decode_to_utf8(strict=True) turns a lossy decode into a hard error
+    instead of a silent had_errors=True the caller might ignore."""
+
+    def test_strict_raises_on_lossy(self) -> None:
+        # 0xE9 is an invalid standalone byte in UTF-8 (not a BOM).
+        from translit import TranslitError
+
+        with pytest.raises(TranslitError, match="lossy|malformed|replaced"):
+            decode_to_utf8(b"caf\xe9", "utf-8", strict=True)
+
+    def test_strict_passes_valid(self) -> None:
+        text, had_errors = decode_to_utf8(b"caf\xc3\xa9", "utf-8", strict=True)
+        assert text == "café"
+        assert had_errors is False
+
+    def test_non_strict_is_lossy_not_raising(self) -> None:
+        text, had_errors = decode_to_utf8(b"caf\xe9", "utf-8")
+        assert "�" in text
+        assert had_errors is True
+
+    def test_strict_does_not_flag_byte_remapping(self) -> None:
+        # windows-1252 maps every byte to a codepoint (no U+FFFD), so strict
+        # accepts it — had_errors is a replacement-char flag, not full fidelity.
+        text, had_errors = decode_to_utf8(b"caf\xe9", "windows-1252", strict=True)
+        assert text == "café"
+        assert had_errors is False
