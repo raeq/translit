@@ -1139,6 +1139,11 @@ def detect_encoding(data: bytes) -> tuple[str, float]:
     Returns (encoding_name, confidence) where confidence is 0.0–1.0.
     Uses the chardetng algorithm (Firefox's encoding detector).
 
+    Note (#194): chardetng (since the 1.0 migration, #164) does not expose a
+    graded score — it reports a fixed confidence of ``0.95`` for every
+    successful detection. The float is kept for API stability and to align with
+    chardet-style ranges, but callers cannot use it to rank detection quality.
+
     Important: automatic encoding detection is inherently probabilistic.
     A high confidence score does NOT guarantee correctness. For critical
     pipelines, always prefer explicit encoding metadata over detection.
@@ -1169,12 +1174,18 @@ def decode_to_utf8(
 ) -> tuple[str, bool]:
     """Decode a byte sequence to UTF-8.
 
-    Returns (decoded_text, had_errors) where had_errors is True if any
-    characters were replaced during decoding (lossy conversion).
+    Returns (decoded_text, had_errors) where had_errors is True if a U+FFFD
+    replacement character was inserted during decoding.
 
-    If encoding is None, auto-detects the encoding using the chardetng
-    algorithm. Use min_confidence to require a minimum detection quality
-    and avoid silently decoding with a low-confidence guess.
+    ``had_errors=False`` is **not** a fidelity guarantee: single-byte encodings
+    such as windows-1252 map every byte to some codepoint without ever inserting
+    U+FFFD, so a wrong-encoding decode can produce mojibake with
+    ``had_errors=False`` and no exception. For critical data, prefer explicit
+    encoding metadata over auto-detection (and see ``strict`` below).
+
+    If encoding is None, auto-detects using the chardetng algorithm. Note that
+    ``min_confidence`` is effectively a binary accept/reject knob (see #194 and
+    the argument docs below), not a quality grade.
 
     Supports all WHATWG encodings (UTF-8, windows-1252, ISO-8859-1,
     Shift_JIS, EUC-JP, EUC-KR, Big5, GB18030, etc.).
@@ -1183,14 +1194,18 @@ def decode_to_utf8(
         data: Raw byte sequence to decode.
         encoding: Encoding name (e.g. "windows-1252"). None to auto-detect.
         min_confidence: Minimum acceptable detection confidence (0.0–1.0)
-            when auto-detecting. Raises TranslitError if the detected
-            confidence is below this threshold. Has no effect when
-            ``encoding`` is provided explicitly. Defaults to ``0.95``
-            (secure-by-default): the detector only reports ``0.50`` (ambiguous)
-            or ``0.95`` (confident), so a ``0.95`` default rejects the ambiguous
-            guess while accepting a confident one. (The earlier ``0.5`` default
-            was inert — ``0.50 < 0.50`` is false — so it never rejected; #103.)
-            Pass ``min_confidence=0.0`` to accept any guess.
+            when auto-detecting; raises TranslitError if the detected confidence
+            is below it. Has no effect when ``encoding`` is provided explicitly.
+            Defaults to ``0.95`` (secure-by-default).
+
+            **Effectively a binary knob (#194).** Since the chardetng 1.0
+            migration (#164) the detector reports a fixed ``0.95`` for every
+            successful detection, so ``min_confidence`` cannot grade detection
+            quality — it only *accepts every guess* (any value ``<= 0.95``,
+            including the ``0.95`` default) or *rejects auto-detection entirely*
+            (any value ``> 0.95``, e.g. ``1.0``). To require high-quality input,
+            pass the encoding explicitly rather than relying on this threshold.
+            Pass ``0.0`` to be explicit about accepting any guess.
         strict: When ``True``, raise :class:`TranslitError` instead of silently
             returning ``had_errors=True`` if the input contains byte sequences
             that decode to the U+FFFD replacement character (#189). Use this to
