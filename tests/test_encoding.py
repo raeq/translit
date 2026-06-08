@@ -285,8 +285,10 @@ class TestStrictDecode:
         # 0xE9 is an invalid standalone byte in UTF-8 (not a BOM).
         from translit import TranslitError
 
-        with pytest.raises(TranslitError, match="lossy|malformed|replaced"):
+        with pytest.raises(TranslitError) as exc:
             decode_to_utf8(b"caf\xe9", "utf-8", strict=True)
+        # The contract: the error names the encoding it decoded from.
+        assert "decoding as 'UTF-8'" in str(exc.value)
 
     def test_strict_passes_valid(self) -> None:
         text, had_errors = decode_to_utf8(b"caf\xc3\xa9", "utf-8", strict=True)

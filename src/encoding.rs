@@ -63,7 +63,7 @@ const COMMON_ENCODING_LABELS: &[&str] = &[
 
 /// Pure Rust byte-to-UTF-8 decoding — no Python dependency.
 ///
-/// Returns `Ok((decoded_text, had_errors))` or `Err(message)`.
+/// Returns `Ok((decoded_text, had_errors))` or a [`crate::Error`].
 ///
 /// `had_errors` reflects encoding_rs's WHATWG-defined error flag: it is
 /// `true` only when a U+FFFD REPLACEMENT CHARACTER was inserted because a
