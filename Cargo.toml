@@ -26,7 +26,7 @@ unicode-normalization = "0.1"
 phf = "0.13"
 unicode-segmentation = "1"
 encoding_rs = "0.8"
-chardetng = "0.1"
+chardetng = "1.0"
 idna = "1"  # UTS#46 / punycode decoding for is_safe_hostname (#63)
 
 [build-dependencies]
