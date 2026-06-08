@@ -4,18 +4,21 @@ name: Conversations resolved
 # GitHub's "Require conversation resolution before merging" setting only disables the
 # merge button and is bypassable; making this a required status check enforces it.
 #
-# Re-evaluates on PR open/sync and on review submit/edit/dismiss. Note: GitHub Actions
-# has NO trigger that fires on pure thread *resolution* (`pull_request_review_thread` is a
-# webhook event, not an Actions trigger — using it is a workflow startup failure). So in
-# the common flow — a reviewer resolves threads and submits/updates their review — the
-# `pull_request_review` event re-runs this and it goes green. If someone resolves the last
-# thread WITHOUT any review activity, re-run this check (or push) to refresh it.
+# Triggering: GitHub Actions has NO event that fires on pure thread *resolution*
+# (`pull_request_review_thread` is a webhook event, not an Actions trigger — using it is a
+# workflow startup failure). We re-evaluate on the events that DO exist: PR open/sync,
+# review submit/edit/dismiss, and review-comment create/edit/delete (so a newly added
+# unresolved thread re-runs the gate and can't leave a stale green). The one gap is
+# resolving the *last* thread with no accompanying review/comment activity — re-run this
+# check (or push) to refresh it.
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
   pull_request_review:
     types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
 
 permissions:
   contents: read
@@ -34,8 +37,13 @@ jobs:
         run: |
           owner="${REPO%/*}"
           name="${REPO#*/}"
-          query='query($owner:String!,$name:String!,$pr:Int!){repository(owner:$owner,name:$name){pullRequest(number:$pr){reviewThreads(first:100){nodes{isResolved}}}}}'
-          unresolved=$(gh api graphql -f query="$query" -F owner="$owner" -F name="$name" -F pr="$PR" --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')
+          # Paginate over ALL review threads (not just the first 100) so a large PR
+          # cannot hide unresolved threads beyond the first page and pass incorrectly.
+          query='query($owner:String!,$name:String!,$pr:Int!,$endCursor:String){repository(owner:$owner,name:$name){pullRequest(number:$pr){reviewThreads(first:100,after:$endCursor){nodes{isResolved}pageInfo{hasNextPage endCursor}}}}}'
+          unresolved=$(gh api graphql --paginate \
+            -f query="$query" -F owner="$owner" -F name="$name" -F pr="$PR" \
+            --jq '.data.repository.pullRequest.reviewThreads.nodes[].isResolved' \
+            | grep -c '^false$' || true)
           echo "Unresolved review threads: ${unresolved:-0}"
           if [ "${unresolved:-0}" -gt 0 ]; then
             echo "::error::${unresolved} unresolved review thread(s). Resolve every review conversation before merging."
