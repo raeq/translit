@@ -181,15 +181,29 @@ pub(crate) const MAX_BATCH_SIZE: usize = 100_000;
 /// caller must decide whether to continue, reset, or propagate an error.
 /// We log a diagnostic and return the guard rather than propagating the panic
 /// to every subsequent caller. (#126)
-pub(crate) fn recover_lock<T>(result: std::sync::LockResult<T>) -> T {
+pub(crate) fn recover_lock<T>(result: std::sync::LockResult<T>, table_name: &str) -> T {
     result.unwrap_or_else(|e| {
-        // #106: route this diagnostic through Python's warnings module so that
-        // Python applications can capture it via the `warnings`/`logging` APIs.
-        emit_warning_stderr(
-            "translit: RwLock poisoned (a thread panicked while holding the lock). \
-             Recovering from poisoned state — data may be inconsistent. \
-             This is a bug; please report it.",
+        // #117: identify WHICH lock was recovered and route the diagnostic
+        // through Python's warnings module (a UserWarning via warnings.warn) so
+        // that Python applications can capture it via the `warnings`/`logging`
+        // APIs, falling back to stderr.
+        let msg = format!(
+            "translit: lock for `{table_name}` poisoned (a thread panicked while holding the \
+             lock). Recovering from poisoned state — data may be inconsistent. This is a bug; \
+             please report it."
         );
+        // `recover_lock` has no `Python<'_>` token, so acquire the GIL here.
+        // `with_gil` panics if no interpreter is initialized (pyo3 is built
+        // without `auto-initialize`): the shipped extension always has one live,
+        // but a pure-Rust caller may not — and lock-poison recovery must stay
+        // non-fatal. Catch that panic and fall back to stderr so recovery never
+        // aborts. (#117)
+        let emitted = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            pyo3::Python::with_gil(|py| emit_py_warning(py, &msg));
+        }));
+        if emitted.is_err() {
+            emit_warning_stderr(&msg);
+        }
         e.into_inner()
     })
 }
@@ -206,13 +220,14 @@ pub(crate) fn emit_warning_stderr(msg: &str) {
 }
 
 /// Emit a Python `UserWarning` via `warnings.warn`, falling back to stderr if
-/// the interpreter is unavailable. (#106)
+/// the `warnings.warn` call itself fails. (#106) Requires a `Python<'_>` token.
 ///
 /// Prefer this over bare `eprintln!` whenever a `Python<'_>` token is at hand
 /// so that Python applications can capture and redirect diagnostics.
-/// Non-PyO3 callsites (e.g. dict loading, lock recovery) must use
-/// `emit_warning_stderr` instead since they lack a `Python<'_>` token.
-#[allow(dead_code)] // utility for PyO3 callsites in sibling modules
+/// Non-PyO3 callsites that lack a `Python<'_>` token should use
+/// `emit_warning_stderr`, or acquire the GIL via `pyo3::Python::with_gil` — but
+/// note `with_gil` panics if no interpreter is initialized, so guard it (as
+/// `recover_lock` does on the poison path: catch the panic, fall back to stderr).
 pub(crate) fn emit_py_warning(py: pyo3::Python<'_>, msg: &str) {
     if py
         .import("warnings")
