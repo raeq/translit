@@ -52,3 +52,22 @@ class TestEnrichedDetail:
         msg = str(exc.value)
         assert "lang 'zz'" in msg  # not lang="zz"
         assert 'lang="zz"' not in msg
+
+
+class TestCauseChains:
+    """#188: an error that wraps an underlying failure surfaces it as __cause__,
+    instead of only flattening it into the message."""
+
+    def test_regex_compile_chains_cause(self) -> None:
+        with pytest.raises(InvalidArgumentError) as exc:
+            translit.slugify("x", regex_pattern="[")
+        cause = exc.value.__cause__
+        assert cause is not None, "expected a chained cause"
+        assert isinstance(cause, ValueError)
+        assert "regex parse error" in str(cause)
+
+    def test_non_wrapping_error_has_no_cause(self) -> None:
+        # A plain validation error wraps nothing — no spurious __cause__.
+        with pytest.raises(InvalidArgumentError) as exc:
+            translit.transliterate("x", lang="zz")
+        assert exc.value.__cause__ is None
