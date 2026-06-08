@@ -1543,6 +1543,11 @@ class TextPipeline:
 
     Operations execute in fixed optimal order regardless of construction order.
 
+    Two security-focused steps run early in the order: ``strip_zalgo`` caps
+    excessive combining marks (``strip_zalgo=max_marks``), and ``strip_bidi``
+    removes bidirectional override/format characters. Both run right after
+    ``normalize`` and before ``demojize``.
+
     Examples:
         >>> pipe = TextPipeline(normalize="NFC", fold_case=True, collapse_whitespace=True)
         >>> pipe("  Héllo  WÖRLD  ")
@@ -1564,7 +1569,13 @@ class TextPipeline:
         strip_control: bool | None = None,
         strip_zero_width: bool | None = None,
         demojize: bool = False,
+        strip_bidi: bool = False,
+        strip_zalgo: int | None = None,
     ) -> None:
+        if strip_zalgo is not None and strip_zalgo < 0:
+            raise InvalidArgumentError(
+                f"strip_zalgo (max_marks) must be non-negative, got {strip_zalgo}"
+            )
         self._inner = _TextPipeline(
             normalize=normalize,
             transliterate=transliterate,
@@ -1578,6 +1589,8 @@ class TextPipeline:
             strip_control=strip_control,
             strip_zero_width=strip_zero_width,
             demojize=demojize,
+            strip_bidi=strip_bidi,
+            strip_zalgo=strip_zalgo,
         )
 
     def __call__(self, text: str) -> str:
