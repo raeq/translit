@@ -11,6 +11,9 @@ name: Conversations resolved
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  # Re-run when a reviewer resolves/unresolves a thread (no `types:` filter — both
+  # activities should re-evaluate the gate).
+  pull_request_review_thread:
 
 permissions:
   contents: read
