@@ -56,21 +56,24 @@ pub fn decode_to_utf8_impl(
     bytes: &[u8],
     encoding: Option<&str>,
     min_confidence: f64,
-) -> Result<(String, bool), String> {
+) -> Result<(String, bool), crate::Error> {
     let enc = if let Some(name) = encoding {
-        encoding_rs::Encoding::for_label(name.as_bytes())
-            .ok_or_else(|| format!("Unknown encoding: '{name}'"))?
+        encoding_rs::Encoding::for_label(name.as_bytes()).ok_or_else(|| {
+            crate::Error::UnknownEncoding {
+                got: name.to_owned(),
+            }
+        })?
     } else {
         let (name, confidence) = detect_encoding_impl(bytes);
         if confidence < min_confidence {
-            return Err(format!(
-                "Encoding detection confidence {confidence:.2} is below the required \
-                 minimum {min_confidence:.2} (best guess: '{name}'). \
-                 Provide an explicit encoding instead."
-            ));
+            return Err(crate::Error::EncodingConfidenceTooLow {
+                confidence,
+                min_confidence,
+                guess: name,
+            });
         }
         encoding_rs::Encoding::for_label(name.as_bytes())
-            .ok_or_else(|| format!("Auto-detected encoding '{name}' is not supported"))?
+            .ok_or(crate::Error::UnsupportedAutoEncoding { got: name })?
     };
 
     let (decoded, _actual_encoding, had_errors) = enc.decode(bytes);
@@ -124,8 +127,7 @@ pub fn _decode_to_utf8(
     encoding: Option<&str>,
     min_confidence: f64,
 ) -> PyResult<(String, bool)> {
-    decode_to_utf8_impl(data.as_bytes(), encoding, min_confidence)
-        .map_err(crate::TranslitError::new_err)
+    decode_to_utf8_impl(data.as_bytes(), encoding, min_confidence).map_err(pyo3::PyErr::from)
 }
 
 #[cfg(test)]
@@ -226,7 +228,7 @@ mod tests {
         // A threshold of 1.0 always rejects auto-detection.
         let result = decode_to_utf8_impl(b"hi", None, 1.0);
         assert!(result.is_err());
-        let msg = result.unwrap_err();
+        let msg = result.unwrap_err().to_string();
         assert!(
             msg.contains("below the required minimum"),
             "unexpected: {msg}"

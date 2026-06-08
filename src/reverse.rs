@@ -89,10 +89,11 @@ pub fn reverse_transliterate_impl(text: &str, lang: &str) -> String {
 #[pyo3(signature = (text, *, lang))]
 pub fn _reverse_transliterate(text: &str, lang: &str) -> PyResult<String> {
     if !supports_reverse(lang) {
-        let available = REVERSE_LANGS.join(", ");
-        return Err(pyo3::exceptions::PyValueError::new_err(format!(
-            "reverse transliteration not supported for lang={lang:?}; available: {available}"
-        )));
+        return Err(crate::Error::ReverseUnsupportedLang {
+            lang: lang.to_owned(),
+            available: REVERSE_LANGS.join(", "),
+        }
+        .into());
     }
     Ok(reverse_transliterate_impl(text, lang))
 }

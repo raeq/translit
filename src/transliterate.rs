@@ -25,18 +25,16 @@ const MAX_REPLACEMENT_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MiB
 /// `errors=`/`form=`, which reject bad values. Returns an error listing the
 /// valid codes. The special `"auto"` detection mode, the BCP-47 aliases
 /// (`nb`/`nn`/`da`), and any `register_lang()` additions are also accepted.
-pub fn validate_lang(lang: Option<&str>) -> PyResult<()> {
+pub(crate) fn validate_lang(lang: Option<&str>) -> Result<(), crate::Error> {
     if let Some(l) = lang {
         if l != "auto" && !tables::is_valid_lang(l) {
             // `list_langs()` already includes any `register_lang()` codes, so
             // we only need to call out the extras it omits: the "auto" mode and
             // the BCP-47 aliases accepted by `is_valid_lang`.
-            return translit_err!(
-                "unknown language code {:?}; expected \"auto\", a BCP-47 alias \
-                 (nb, nn, da), or one of: {}",
-                l,
-                tables::list_langs().join(", ")
-            );
+            return Err(crate::Error::UnknownLang {
+                got: l.to_owned(),
+                valid: tables::list_langs().join(", "),
+            });
         }
     }
     Ok(())
@@ -80,9 +78,7 @@ pub fn _transliterate(
     // #130: Defence-in-depth — the PyO3 boundary check in each entry-point guards
     // direct Rust callers; Python callers are covered by the same check.
     if strict_iso9 && gost7034 {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "strict_iso9 and gost7034 are mutually exclusive",
-        ));
+        return Err(crate::Error::MutuallyExclusiveBare.into());
     }
     validate_lang(lang)?;
     let error_mode = ErrorMode::from_str(errors)?;
@@ -94,11 +90,11 @@ pub fn _transliterate(
     let text = match tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES) {
         Ok(t) => t,
         Err(size) => {
-            return translit_err!(
-                "registered replacements expanded the input to {} bytes, exceeding the {} byte limit",
+            return Err(crate::Error::ReplacementOutputTooLarge {
                 size,
-                MAX_REPLACEMENT_OUTPUT_BYTES
-            );
+                max: MAX_REPLACEMENT_OUTPUT_BYTES,
+            }
+            .into());
         }
     };
     Ok(transliterate_impl(
@@ -131,9 +127,7 @@ pub fn _transliterate_context(
     // #130: Defence-in-depth — the PyO3 boundary check in each entry-point guards
     // direct Rust callers; Python callers are covered by the same check.
     if strict_iso9 && gost7034 {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "strict_iso9 and gost7034 are mutually exclusive",
-        ));
+        return Err(crate::Error::MutuallyExclusiveBare.into());
     }
     validate_lang(lang)?;
     let error_mode = ErrorMode::from_str(errors)?;
@@ -144,11 +138,11 @@ pub fn _transliterate_context(
     let text = match tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES) {
         Ok(t) => t,
         Err(size) => {
-            return translit_err!(
-                "registered replacements expanded the input to {} bytes, exceeding the {} byte limit",
+            return Err(crate::Error::ReplacementOutputTooLarge {
                 size,
-                MAX_REPLACEMENT_OUTPUT_BYTES
-            );
+                max: MAX_REPLACEMENT_OUTPUT_BYTES,
+            }
+            .into());
         }
     };
     let text = text.as_ref();
@@ -194,22 +188,18 @@ pub fn _transliterate_context(
             // Dictionary not loaded — point the user at a remedy that actually works
             // (#60). Context dictionaries are not shipped in the wheel; build them
             // and expose them via TRANSLIT_DICT_DIR.
-            translit_err!(
-                "Context dictionary for {} not found. Context-aware transliteration needs \
-                 the prebuilt dictionaries: run `bash scripts/bootstrap_dicts.sh` (from a \
-                 source checkout) and set the TRANSLIT_DICT_DIR environment variable to the \
-                 output directory. See docs/user-guide/abjad-transliteration.md.",
-                lang_name
-            )
+            Err(crate::Error::ContextDictNotFound {
+                lang: lang_name.to_owned(),
+            }
+            .into())
         }
         Err(corrupt_msg) => {
             // #107: file was found but is corrupt — different remediation from "not found".
-            translit_err!(
-                "Context dictionary for {} is corrupt and could not be loaded: {}. \
-                 Rebuild it with `bash scripts/bootstrap_dicts.sh` (from a source checkout).",
-                lang_name,
-                corrupt_msg
-            )
+            Err(crate::Error::ContextDictCorrupt {
+                lang: lang_name.to_owned(),
+                reason: corrupt_msg.to_owned(),
+            }
+            .into())
         }
     }
 }
@@ -859,12 +849,9 @@ pub fn _list_langs() -> Vec<String> {
 /// Reject a registration mutation once the tables have been sealed (#64).
 /// `pub(crate)` so sibling modules (e.g. the emoji provider setter, #104) can
 /// enforce the same latch.
-pub(crate) fn check_not_sealed(op: &str) -> PyResult<()> {
+pub(crate) fn check_not_sealed(op: &str) -> Result<(), crate::Error> {
     if tables::registrations_sealed() {
-        return translit_err!(
-            "{op}: registration tables are sealed (seal_registrations() was called); \
-             register/remove/clear are not permitted after sealing"
-        );
+        return Err(crate::Error::Sealed { op: op.to_owned() });
     }
     Ok(())
 }
@@ -895,23 +882,21 @@ pub fn _register_lang(code: &str, mappings: HashMap<String, String>) -> PyResult
     if current >= tables::MAX_REGISTERED_LANGS {
         // Re-registering an existing code is always allowed (overwrite, not grow).
         if !tables::has_registered_lang(code) {
-            return Err(pyo3::exceptions::PyValueError::new_err(format!(
-                "register_lang(): maximum of {} registered languages reached; \
-                 re-registering an existing code is still allowed",
-                tables::MAX_REGISTERED_LANGS
-            )));
+            return Err(crate::Error::RegisterLangLimit {
+                max: tables::MAX_REGISTERED_LANGS,
+            }
+            .into());
         }
     }
     tables::register_lang(code, mappings).map_err(|bad_keys| {
-        pyo3::exceptions::PyValueError::new_err(format!(
-            "register_lang(): mapping keys must be exactly one Unicode character; \
-             invalid keys: {}",
-            bad_keys
+        crate::Error::RegisterLangBadKeys {
+            keys: bad_keys
                 .iter()
                 .map(|k| format!("{k:?}"))
                 .collect::<Vec<_>>()
-                .join(", ")
-        ))
+                .join(", "),
+        }
+        .into()
     })
 }
 
@@ -921,12 +906,11 @@ pub fn _register_lang(code: &str, mappings: HashMap<String, String>) -> PyResult
 pub fn _register_replacements(replacements: HashMap<String, String>) -> PyResult<()> {
     check_not_sealed("register_replacements")?;
     tables::register_replacements(replacements).map_err(|projected| {
-        pyo3::exceptions::PyValueError::new_err(format!(
-            "register_replacements(): table would exceed the maximum of {} entries \
-             (projected size: {}); call clear_replacements() first",
-            tables::MAX_REPLACEMENTS,
-            projected
-        ))
+        crate::Error::RegisterReplacementsLimit {
+            max: tables::MAX_REPLACEMENTS,
+            projected,
+        }
+        .into()
     })
 }
 
@@ -965,16 +949,14 @@ pub fn _transliterate_batch(
     // #130: Defence-in-depth — the PyO3 boundary check in each entry-point guards
     // direct Rust callers; Python callers are covered by the same check.
     if strict_iso9 && gost7034 {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "strict_iso9 and gost7034 are mutually exclusive",
-        ));
+        return Err(crate::Error::MutuallyExclusiveBare.into());
     }
     if texts.len() > crate::MAX_BATCH_SIZE {
-        return translit_err!(
-            "batch too large ({} items); maximum is {} items",
-            texts.len(),
-            crate::MAX_BATCH_SIZE
-        );
+        return Err(crate::Error::BatchTooLarge {
+            len: texts.len(),
+            max: crate::MAX_BATCH_SIZE,
+        }
+        .into());
     }
     validate_lang(lang)?;
     let error_mode = ErrorMode::from_str(errors)?;
@@ -993,9 +975,10 @@ pub fn _transliterate_batch(
                 // scalar path, including the replacement-output amplification bound.
                 let replaced = tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES)
                     .map_err(|size| {
-                        crate::TranslitError::new_err(format!(
-                            "registered replacements expanded the input to {size} bytes, exceeding the {MAX_REPLACEMENT_OUTPUT_BYTES} byte limit"
-                        ))
+                        pyo3::PyErr::from(crate::Error::ReplacementOutputTooLarge {
+                            size,
+                            max: MAX_REPLACEMENT_OUTPUT_BYTES,
+                        })
                     })?;
                 Ok(transliterate_impl(
                     &replaced,
@@ -1018,11 +1001,11 @@ pub fn _transliterate_batch(
 pub fn _strip_accents_batch(py: Python<'_>, texts: Vec<String>) -> PyResult<Vec<String>> {
     use unicode_normalization::UnicodeNormalization;
     if texts.len() > crate::MAX_BATCH_SIZE {
-        return translit_err!(
-            "batch too large ({} items); maximum is {} items",
-            texts.len(),
-            crate::MAX_BATCH_SIZE
-        );
+        return Err(crate::Error::BatchTooLarge {
+            len: texts.len(),
+            max: crate::MAX_BATCH_SIZE,
+        }
+        .into());
     }
     // Pure-Rust loop with the GIL released (#70).
     Ok(py.allow_threads(move || {

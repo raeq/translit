@@ -70,9 +70,10 @@ impl _TextPipeline {
         if let Some(form) = normalize {
             // Validate the form
             if !matches!(form, "NFC" | "NFD" | "NFKC" | "NFKD") {
-                return Err(crate::TranslitError::new_err(format!(
-                    "normalize must be 'NFC', 'NFD', 'NFKC', or 'NFKD', got '{form}'"
-                )));
+                return Err(crate::Error::InvalidPipelineNormForm {
+                    got: form.to_owned(),
+                }
+                .into());
             }
             steps |= PipelineSteps::NORMALIZE;
         }
@@ -109,9 +110,7 @@ impl _TextPipeline {
         }
 
         if strict_iso9 && gost7034 {
-            return Err(crate::TranslitError::new_err(
-                "strict_iso9 and gost7034 are mutually exclusive",
-            ));
+            return Err(crate::Error::MutuallyExclusivePipeline.into());
         }
 
         let pipeline = Self {
