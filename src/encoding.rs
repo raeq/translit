@@ -28,7 +28,7 @@ pub fn detect_encoding_impl(bytes: &[u8]) -> (String, f64) {
     // against chardetng 0.1's source that this flag was `max >= 0` where `max`
     // is initialised to 0 and only ever increases — so the general path was
     // ALWAYS confident — plus two unconditional-true shortcuts (UTF-8 and
-    // ISO-2022-JP). A differential parity test over a 50-case corpus confirmed
+    // ISO-2022-JP). A differential parity test against the 0.1.x detector confirmed
     // the flag is `true` for every input. We therefore report CONFIDENCE_HIGH
     // unconditionally, reproducing 0.1.x output exactly, and avoid depending on
     // 1.0's `find_score` API (gated behind an explicitly unstable feature).
@@ -148,7 +148,7 @@ mod tests {
     /// Regression pins for the chardetng 0.1 -> 1.0 migration (#164). These
     /// expectations were captured from a differential parity test that compared
     /// the new `guess`/`CONFIDENCE_HIGH` mechanism against the old
-    /// `guess_assess(None, true)` over a 50-case corpus (zero divergences).
+    /// `guess_assess(None, true)` across a broad differential corpus (zero divergences).
     /// Confidence is always CONFIDENCE_HIGH (0.95) because chardetng's
     /// confidence flag is always true.
     #[test]
@@ -177,7 +177,7 @@ mod tests {
             let (encoding, confidence) = detect_encoding_impl(bytes);
             assert_eq!(&encoding, expected, "encoding mismatch for {bytes:02x?}");
             assert!(
-                (confidence - 0.95).abs() < 1e-9,
+                (confidence - super::CONFIDENCE_HIGH).abs() < 1e-9,
                 "confidence should always be CONFIDENCE_HIGH, got {confidence}"
             );
         }
