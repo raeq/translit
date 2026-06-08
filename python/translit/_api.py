@@ -1572,10 +1572,9 @@ class TextPipeline:
         strip_bidi: bool = False,
         strip_zalgo: int | None = None,
     ) -> None:
-        if strip_zalgo is not None and strip_zalgo < 0:
-            raise InvalidArgumentError(
-                f"strip_zalgo (max_marks) must be non-negative, got {strip_zalgo}"
-            )
+        # Validation (e.g. strip_zalgo >= 0) lives in the Rust core's
+        # _TextPipeline constructor, the single source of truth for every
+        # caller — no Python-side duplicate to drift from it.
         self._inner = _TextPipeline(
             normalize=normalize,
             transliterate=transliterate,

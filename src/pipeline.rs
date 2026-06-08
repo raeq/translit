@@ -106,10 +106,17 @@ impl _TextPipeline {
             steps |= PipelineSteps::STRIP_BIDI;
         }
 
-        // strip_zalgo: the value is `max_marks`. Negative values are rejected
-        // on the Python side (_api.py raises InvalidArgumentError), so Rust
-        // trusts `n >= 0` here.
+        // strip_zalgo's value is `max_marks`, which must be >= 0. Validate here
+        // in the core — `new()` is the construction boundary for every caller,
+        // not just the Python wrapper — so a negative can never reach the
+        // `as usize` cast below, where it would silently wrap into an enormous
+        // cap (effectively disabling the step) instead of being rejected.
         let zalgo_max_marks = match strip_zalgo {
+            Some(n) if n < 0 => {
+                return Err(crate::InvalidArgumentError::new_err(format!(
+                    "strip_zalgo (max_marks) must be non-negative, got {n}"
+                )));
+            }
             Some(n) => {
                 steps |= PipelineSteps::STRIP_ZALGO;
                 Some(n as usize)
