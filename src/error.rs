@@ -366,6 +366,9 @@ mod tests {
                 reason: "bad".into(),
             },
             Error::RegexTooLong { len: 2, max: 1 },
+            Error::RegexCompile {
+                source: regex::Regex::new("[").unwrap_err(),
+            },
             Error::UniqueSlugAttemptsExceeded {
                 max: 1,
                 text: "x".into(),
