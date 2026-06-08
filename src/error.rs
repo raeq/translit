@@ -298,6 +298,17 @@ pub(crate) enum Error {
         /// Its byte offset in the input.
         byte_offset: usize,
     },
+
+    /// `decode_to_utf8(strict=True)` hit malformed input that would otherwise be
+    /// silently replaced with U+FFFD (#189).
+    #[error(
+        "decoding as '{encoding}' replaced malformed or invalid byte sequences \
+         (lossy); pass strict=False to accept the lossy result and inspect had_errors"
+    )]
+    LossyDecode {
+        /// The encoding that was decoded from.
+        encoding: String,
+    },
 }
 
 impl Error {
@@ -336,6 +347,7 @@ impl Error {
             Error::EncodingConfidenceTooLow { .. } => "encoding_confidence_too_low",
             Error::ReverseUnsupportedLang { .. } => "reverse_unsupported_lang",
             Error::Untranslatable { .. } => "untranslatable",
+            Error::LossyDecode { .. } => "lossy_decode",
         }
     }
 }
@@ -406,7 +418,8 @@ impl From<Error> for pyo3::PyErr {
             | Error::ContextDictNotFound { .. }
             | Error::ContextDictCorrupt { .. }
             | Error::EncodingConfidenceTooLow { .. }
-            | Error::Untranslatable { .. } => crate::TranslitError::new_err(msg),
+            | Error::Untranslatable { .. }
+            | Error::LossyDecode { .. } => crate::TranslitError::new_err(msg),
         };
 
         if let Some(cause_err) = cause {
@@ -539,6 +552,9 @@ mod tests {
             Error::Untranslatable {
                 ch: '😀',
                 byte_offset: 3,
+            },
+            Error::LossyDecode {
+                encoding: "Shift_JIS".into(),
             },
         ];
         for e in &samples {
