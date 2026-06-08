@@ -59,20 +59,15 @@ class TestCauseChains:
     instead of only flattening it into the message."""
 
     def test_regex_compile_chains_cause(self) -> None:
-        try:
+        with pytest.raises(InvalidArgumentError) as exc:
             translit.slugify("x", regex_pattern="[")
-        except InvalidArgumentError as e:
-            assert e.__cause__ is not None, "expected a chained cause"
-            assert isinstance(e.__cause__, ValueError)
-            assert "regex parse error" in str(e.__cause__)
-        else:  # pragma: no cover
-            pytest.fail("expected InvalidArgumentError")
+        cause = exc.value.__cause__
+        assert cause is not None, "expected a chained cause"
+        assert isinstance(cause, ValueError)
+        assert "regex parse error" in str(cause)
 
     def test_non_wrapping_error_has_no_cause(self) -> None:
         # A plain validation error wraps nothing — no spurious __cause__.
-        try:
+        with pytest.raises(InvalidArgumentError) as exc:
             translit.transliterate("x", lang="zz")
-        except InvalidArgumentError as e:
-            assert e.__cause__ is None
-        else:  # pragma: no cover
-            pytest.fail("expected InvalidArgumentError")
+        assert exc.value.__cause__ is None
