@@ -658,7 +658,7 @@ impl _Slugifier {
     fn new(
         separator: &str,
         lowercase: bool,
-        max_length: usize,
+        max_length: i64,
         word_boundary: bool,
         save_order: bool,
         stopwords: Vec<String>,
@@ -671,6 +671,9 @@ impl _Slugifier {
         hexadecimal: bool,
         safe_chars: &str,
     ) -> PyResult<Self> {
+        // #231: validate the non-negative contract in the core, consistent with
+        // the free `_slugify` / `_slugify_batch` entrypoints.
+        let max_length = crate::error::checked_max_length(max_length)?;
         // #119: delegate to SlugConfig::from_pyargs (shared constructor).
         let mut config = SlugConfig::from_pyargs(
             separator,
@@ -742,7 +745,7 @@ impl _UniqueSlugifier {
         check: Option<PyObject>,
         separator: &str,
         lowercase: bool,
-        max_length: usize,
+        max_length: i64,
         word_boundary: bool,
         save_order: bool,
         stopwords: Vec<String>,
@@ -755,6 +758,7 @@ impl _UniqueSlugifier {
         hexadecimal: bool,
         safe_chars: &str,
     ) -> PyResult<Self> {
+        // #231: the non-negative check is delegated to _Slugifier::new (signed param).
         // #119: delegates to _Slugifier::new which uses SlugConfig::from_pyargs.
         let inner = _Slugifier::new(
             separator,
