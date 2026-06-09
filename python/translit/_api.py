@@ -1663,6 +1663,13 @@ class TextPipeline:
             strip_zalgo=strip_zalgo,
         )
 
+    @classmethod
+    def _from_inner(cls, inner: _TextPipeline) -> TextPipeline:
+        """Wrap a core-built `_TextPipeline` (used by `get_pipeline`)."""
+        self = cls.__new__(cls)
+        self._inner = inner
+        return self
+
     def __call__(self, text: str) -> str:
         return self._inner.process(text)
 
