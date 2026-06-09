@@ -26,6 +26,7 @@ from sybil.parsers.markdown import PythonCodeBlockParser, SkipParser
 # keeps un-converted pages visibly unguarded. Paths are relative to docs/.
 EXECUTED_RECIPES = [
     "user-guide/filenames.md",
+    "user-guide/llm-pipelines.md",
     "migration/unidecode-recipes.md",
 ]
 

@@ -66,6 +66,7 @@ nav:
       - Filename Sanitization: user-guide/filenames.md
       - Text Cleaning: user-guide/text-cleaning.md
       - Text Pipeline: user-guide/pipeline.md
+      - LLM Pipelines: user-guide/llm-pipelines.md
       - Language Support: user-guide/language-support.md
       - Abjad Scripts (Arabic, Persian, Hebrew): user-guide/abjad-transliteration.md
   - API Reference:
