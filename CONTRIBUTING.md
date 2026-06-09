@@ -18,7 +18,7 @@ We'd love your help, especially with:
 - **Language profiles.** Profiles apply sparse overrides on top of the default table
   (e.g. German `ü` → `ue`). Adding or refining a profile for a language you know well
   is a high-value, self-contained contribution. See
-  [Language support](docs/user-guide/language-support.md).
+  [Language support](https://translit.readthedocs.io/user-guide/language-support.html).
 - **Coverage requests.** A confusable pair, a script, or a code point we don't yet map
   is a *known limitation* (see the [Threat Model](THREAT_MODEL.md)), not a vulnerability —
   but it is exactly how this layer improves. Use the **🗺️ Coverage / confusable-gap**
@@ -198,10 +198,10 @@ Rules:
   shell transcript mislabelled `python`) with `<!--- skip: next -->`.
 
 **Enabling a page.** A page is executed only once it is on the allowlist in
-[`docs/conftest.py`](docs/conftest.py) (`EXECUTED_RECIPES`). Convert its
-examples to asserts, add the path, and confirm `pytest docs/` is green. This is
-a deliberate ratchet: un-converted pages stay visibly unguarded until their
-claims are asserted.
+`docs/conftest.py` (the `EXECUTED_RECIPES` list). Convert its examples to
+asserts, add the path, and confirm `pytest docs/` is green. This is a deliberate
+ratchet: un-converted pages stay visibly unguarded until their claims are
+asserted.
 
 ## Submitting changes
 

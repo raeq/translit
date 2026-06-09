@@ -2,6 +2,11 @@
 
 translit provides a drop-in replacement for both [Unidecode](https://pypi.org/project/Unidecode/) and [text-unidecode](https://pypi.org/project/text-unidecode/).
 
+> **Already wrapping `unidecode` in a pipeline?** Most hand-rolled
+> `unidecode(...)` pipelines (slugs, filenames, search keys, URL-encoding) have a
+> single-call translit equivalent. See [Unidecode → translit
+> recipes](unidecode-recipes.md) for the pattern-by-pattern mapping.
+
 ## Quick migration
 
 ### Option 1: Drop-in alias

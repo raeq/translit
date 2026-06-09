@@ -26,6 +26,7 @@ from sybil.parsers.markdown import PythonCodeBlockParser, SkipParser
 # keeps un-converted pages visibly unguarded. Paths are relative to docs/.
 EXECUTED_RECIPES = [
     "user-guide/filenames.md",
+    "migration/unidecode-recipes.md",
 ]
 
 pytest_collect_file = Sybil(

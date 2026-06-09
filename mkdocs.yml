@@ -93,6 +93,7 @@ nav:
   - Migration:
       - Why Migrate: migration/index.md
       - From Unidecode: migration/from-unidecode.md
+      - "Unidecode → translit Recipes": migration/unidecode-recipes.md
       - From python-slugify: migration/from-python-slugify.md
       - From confusable_homoglyphs: migration/from-confusable-homoglyphs.md
       - From pathvalidate: migration/from-pathvalidate.md
