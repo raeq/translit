@@ -68,6 +68,7 @@ EXECUTED_RECIPES = [
     "user-guide/normalize-first.md",
     "user-guide/pipeline.md",
     "user-guide/slugification.md",
+    "user-guide/tokenizer-preprocessing.md",
     "user-guide/text-cleaning.md",
     "user-guide/transliteration.md",
 ]

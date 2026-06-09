@@ -67,6 +67,7 @@ nav:
       - Text Cleaning: user-guide/text-cleaning.md
       - Text Pipeline: user-guide/pipeline.md
       - LLM Pipelines: user-guide/llm-pipelines.md
+      - Tokenizer Preprocessing: user-guide/tokenizer-preprocessing.md
       - Language Support: user-guide/language-support.md
       - Abjad Scripts (Arabic, Persian, Hebrew): user-guide/abjad-transliteration.md
   - API Reference:
