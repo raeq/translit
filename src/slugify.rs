@@ -973,6 +973,26 @@ mod tests {
     }
 
     #[test]
+    fn custom_lang_non_ascii_value_is_lowercased() {
+        // Regression (#280 review): the lowercase step's ASCII fast path must
+        // not skip Unicode lowercasing when a registered profile emits non-ASCII.
+        // Built-in tables are ASCII (build.rs-enforced); register_lang() ones
+        // need not be. A non-ASCII key is required — ASCII keys bypass
+        // transliteration via the ASCII fast path. (Rust-side so it does not
+        // pollute the Python "all langs produce ASCII" enumeration.)
+        let mut mappings = std::collections::HashMap::new();
+        mappings.insert("\u{03A9}".to_owned(), "\u{03A8}".to_owned()); // Ω → Ψ
+        crate::tables::register_lang("slugtest_psi_rs", mappings).unwrap();
+
+        let config = SlugConfig {
+            lang: Some("slugtest_psi_rs".to_owned()),
+            ..default_config()
+        };
+        // Ψ is alphanumeric (survives the separator step); it must be folded to ψ.
+        assert_eq!(slugify_impl("\u{03A9}", &config), "\u{03C8}"); // ψ
+    }
+
+    #[test]
     fn test_separator() {
         let mut config = default_config();
         config.separator = "_".to_owned();
