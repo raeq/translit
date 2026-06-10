@@ -1606,6 +1606,14 @@ pub fn _transliterate_batch(
     if strict_iso9 && gost7034 {
         return Err(crate::Error::MutuallyExclusiveBare.into());
     }
+    // Snapshot the element references into an immutable tuple up front (one
+    // GIL-held, O(N) reference copy — not a copy of the string contents). The
+    // former `Vec<String>` extraction was atomic under the GIL; chunked
+    // extraction releases the GIL between chunks, so without this snapshot a
+    // concurrent thread could mutate the input list mid-call and later chunks
+    // would observe the change (or raise IndexError). Python strings are
+    // immutable, so the snapshot's element values are stable (#239 review).
+    let texts = texts.to_tuple();
     let len = texts.len();
     if len > crate::MAX_BATCH_SIZE {
         return Err(crate::Error::BatchTooLarge {
@@ -1627,13 +1635,14 @@ pub fn _transliterate_batch(
     let lang = lang.map(str::to_owned);
     let replace_with = replace_with.to_owned();
 
-    // #239: extract and transliterate in chunks so peak Rust-side residency is
-    // one chunk of input copies (≈ N + chunk) rather than a full Rust copy of
-    // every input up front (≈ 2N). Each chunk is extracted with the GIL held,
-    // then transliterated with the GIL released (#70) — the compute loop touches
-    // no Python objects, so other Python threads run during it. A non-str item
-    // raises the same TypeError as before, just after some compute rather than
-    // before any; there are still no partial results (all-or-raise).
+    // #239: extract Rust `String` copies from the snapshot and transliterate in
+    // chunks, so peak Rust-side string residency is one chunk rather than a full
+    // copy of every input up front (the former `Vec<String>` boundary held all N
+    // at once). Each chunk is extracted with the GIL held, then transliterated
+    // with the GIL released (#70) — the compute loop touches no Python objects,
+    // so other Python threads run during it. All-or-raise is preserved (the
+    // partial `out` is dropped on error); a non-str element raises TypeError
+    // (the public wrapper's `_validate_batch` already rejects those up front).
     let mut out: Vec<String> = Vec::with_capacity(len);
     let mut start = 0;
     while start < len {

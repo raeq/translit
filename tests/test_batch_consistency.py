@@ -168,7 +168,7 @@ class TestStripAccentsBatchConsistency:
 class TestChunkBoundary:
     """#239: batch APIs extract/process in chunks of 64. Inputs spanning many
     chunks (and the exact boundary) must still equal the single-call results,
-    and a non-str item must raise the same TypeError (just after some compute)."""
+    and a non-str item must raise TypeError (the all-or-raise contract)."""
 
     @pytest.mark.parametrize("n", [1, 63, 64, 65, 128, 200])
     def test_transliterate_across_chunks(self, n: int) -> None:
@@ -181,8 +181,10 @@ class TestChunkBoundary:
         assert slugify(texts) == [slugify(t) for t in texts]
 
     def test_non_str_item_raises_typeerror(self) -> None:
-        # A non-str item still raises TypeError (the all-or-raise contract holds;
-        # only the timing — after some compute — changed).
+        # A non-str item raises TypeError and yields no partial results — the
+        # all-or-raise contract. (The public wrappers' _validate_batch rejects
+        # non-str elements up front, so this is observable regardless of the
+        # Rust binding's chunked extraction.)
         with pytest.raises(TypeError):
             transliterate(["ok"] * 70 + [123] + ["ok"])
         with pytest.raises(TypeError):

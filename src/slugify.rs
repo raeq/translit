@@ -655,6 +655,10 @@ pub fn _slugify_batch(
     decimal: bool,
     hexadecimal: bool,
 ) -> PyResult<Vec<String>> {
+    // Snapshot the element references into an immutable tuple up front so chunked
+    // extraction stays atomic w.r.t. concurrent mutation of the input list — see
+    // the matching note in `_transliterate_batch` (#239 review).
+    let texts = texts.to_tuple();
     let len = texts.len();
     if len > crate::MAX_BATCH_SIZE {
         return Err(crate::Error::BatchTooLarge {
@@ -688,11 +692,12 @@ pub fn _slugify_batch(
     // reconstructing it on every call to slugify_impl.
     let stopset: HashSet<String> = config.stopwords.iter().cloned().collect();
 
-    // #239: extract and slugify in chunks so peak Rust-side residency is one
-    // chunk of input copies (≈ N + chunk) rather than a full Rust copy of every
-    // input up front (≈ 2N). Each chunk is extracted with the GIL held, then
+    // #239: extract Rust `String` copies from the snapshot and slugify in chunks,
+    // so peak Rust-side string residency is one chunk rather than a full copy of
+    // every input up front. Each chunk is extracted with the GIL held, then
     // slugified with the GIL released (#70) — the compute loop touches no Python
-    // objects. A non-str item raises the same TypeError, just after some compute.
+    // objects. All-or-raise is preserved; a non-str element raises TypeError (the
+    // public wrapper's `_validate_batch` already rejects those up front).
     let mut out: Vec<String> = Vec::with_capacity(len);
     let mut start = 0;
     while start < len {
