@@ -65,8 +65,10 @@ static HAS_REPLACEMENTS: AtomicBool = AtomicBool::new(false);
 /// (1–26 entries), so for real text nearly every character misses the override
 /// map and falls through to the user-registered check. Without this gate that
 /// check acquires `LANG_TABLES.read()` **per character** even when no language
-/// has ever been registered (the overwhelmingly common case). A single relaxed
-/// Acquire load lets the per-char path skip the lock entirely (#235 item 1).
+/// has ever been registered (the overwhelmingly common case). A single Acquire
+/// load lets the per-char path skip the lock entirely (#235 item 1); the
+/// Acquire pairs with the Release store in [`register_lang`] so a reader that
+/// observes `true` also observes the inserted entries.
 /// Kept in sync by [`register_lang`] (the only `LANG_TABLES` mutator).
 static HAS_REGISTERED_LANGS: AtomicBool = AtomicBool::new(false);
 
@@ -336,7 +338,7 @@ pub fn resolve_lang_map(lang: &str) -> Option<&'static phf::Map<char, &'static s
 /// Look up `ch` in the user-registered table for `lang`, if any.
 ///
 /// Gated behind [`HAS_REGISTERED_LANGS`]: when no language has been registered
-/// (the common case) this is a single relaxed atomic load and **never** touches
+/// (the common case) this is a single Acquire atomic load and **never** touches
 /// `LANG_TABLES.read()`, so the per-character hot path pays no lock. When a
 /// language *is* registered the string is cloned (not leaked), so memory stays
 /// bounded regardless of how many distinct characters are looked up.
