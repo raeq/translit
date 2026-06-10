@@ -116,8 +116,23 @@ jobs:
           echo "--- summary ---"
           python scripts/perf_fingerprint.py | sed -n '1,6p'
 
-      - name: Comparator ratio — transliterate axis (V14, flag-only)
-        run: python benchmarks/bench_vs_unidecode.py | tee ratio.txt
+      - name: Comparator ratio — transliterate axis (V14, interleaved/median, flag-only)
+        run: |
+          python benchmarks/bench_ratio.py | tee ratio.txt
+          python benchmarks/bench_ratio.py --json > ratios.json
+
+      - name: Wall-clock PR vs merge-base (V13, flag-only)
+        env:
+          PYO3_PYTHON: python3
+        run: |
+          BASE="$(git merge-base origin/${{ github.base_ref }} HEAD)"
+          CRIT=(--warm-up-time 1 --measurement-time 2 --sample-size 10)
+          # bench_personas is on the base (unlike the new bench_iai), so this
+          # wall-clock delta actually compares. Same runner/session; flag-only.
+          git checkout --detach "$BASE"
+          cargo bench --no-default-features --bench bench_personas -- --save-baseline base "${CRIT[@]}" || true
+          git checkout -
+          cargo bench --no-default-features --bench bench_personas -- --baseline base "${CRIT[@]}" | tee wallclock.txt || true
 
       - name: Short-string per-call — report only (V15)
         run: cargo bench --no-default-features --bench bench_core -- --warm-up-time 1 --measurement-time 2 --sample-size 10 || true
@@ -133,16 +148,21 @@ jobs:
           name: perf-signals
           path: |
             fingerprint.json
+            ratios.json
             ratio.txt
+            wallclock.txt
             target/perf-stat/summary.txt
           if-no-files-found: ignore
 
-      - name: Append fingerprint to perf-results (V19, best-effort)
+      - name: Append measurement to perf-results (V19, best-effort)
         run: |
           set -e
+          # One record = fingerprint + the bucketed comparator ratios (V14), so a
+          # perf-results line is self-contained and comparable within its bucket.
+          python -c "import json; fp=json.load(open('fingerprint.json')); fp['comparator_ratios']=json.load(open('ratios.json')); print(json.dumps(fp, sort_keys=True))" > record.json
           git fetch origin perf-results
           git worktree add /tmp/pr perf-results
-          cat fingerprint.json >> /tmp/pr/measurements.jsonl
+          cat record.json >> /tmp/pr/measurements.jsonl
           echo "" >> /tmp/pr/measurements.jsonl
           cd /tmp/pr
           git config user.name "github-actions[bot]"
