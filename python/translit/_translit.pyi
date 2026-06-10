@@ -99,7 +99,6 @@ class _TextPipeline:
 
 def _transliterate(
     text: str,
-    *,
     lang: str | None = None,
     errors: TransliterateErrorMode = ...,
     replace_with: str = ...,
@@ -230,7 +229,6 @@ def _seal_registrations() -> None: ...
 def _registrations_sealed() -> bool: ...
 def _transliterate_batch(
     texts: list[str],
-    *,
     lang: str | None = None,
     errors: TransliterateErrorMode = ...,
     replace_with: str = ...,
