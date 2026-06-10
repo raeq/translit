@@ -18,6 +18,21 @@ use crate::ErrorMode;
 /// input-size check cannot foresee). The pre-pass output is therefore capped.
 const MAX_REPLACEMENT_OUTPUT_BYTES: usize = 10 * 1024 * 1024; // 10 MiB
 
+/// Apply the global replacement pre-pass under the output-size bound, mapping an
+/// amplification overflow to the canonical `Error::ReplacementOutputTooLarge`.
+///
+/// Single source for the cap + error construction shared by every transliterate
+/// entrypoint (#251); previously duplicated at four sites. On the PyO3 paths the
+/// call-site `?` converts the `Error` to a `PyErr` (#181).
+fn apply_replacements_bounded(text: &str) -> Result<Cow<'_, str>, crate::Error> {
+    tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES).map_err(|size| {
+        crate::Error::ReplacementOutputTooLarge {
+            size,
+            max: MAX_REPLACEMENT_OUTPUT_BYTES,
+        }
+    })
+}
+
 /// Validate a `lang` argument eagerly (#68).
 ///
 /// An unknown code (typo like `"RU"` or `"russian"`) would otherwise silently
@@ -130,16 +145,7 @@ pub fn _transliterate(
     // fast path — so ASCII-keyed replacements take effect too. The output of the
     // replacement pre-pass is bounded (amplification guard); raw input size is
     // not capped (#80).
-    let text = match tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES) {
-        Ok(t) => t,
-        Err(size) => {
-            return Err(crate::Error::ReplacementOutputTooLarge {
-                size,
-                max: MAX_REPLACEMENT_OUTPUT_BYTES,
-            }
-            .into());
-        }
-    };
+    let text = apply_replacements_bounded(text)?;
     if errors == "strict" {
         return Ok(transliterate_strict(
             &text,
@@ -281,16 +287,7 @@ pub fn _find_untranslatable(
         return Err(crate::Error::MutuallyExclusiveBare.into());
     }
     validate_lang(lang)?;
-    let text = match tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES) {
-        Ok(t) => t,
-        Err(size) => {
-            return Err(crate::Error::ReplacementOutputTooLarge {
-                size,
-                max: MAX_REPLACEMENT_OUTPUT_BYTES,
-            }
-            .into());
-        }
-    };
+    let text = apply_replacements_bounded(text)?;
     Ok(find_untranslatable_impl(
         &text,
         lang,
@@ -326,16 +323,7 @@ pub fn _transliterate_context(
     // before context tokenisation so forward transliteration behaves the same
     // with and without context=True. Output of the pre-pass is bounded
     // (amplification guard); raw input size is not capped (#80).
-    let text = match tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES) {
-        Ok(t) => t,
-        Err(size) => {
-            return Err(crate::Error::ReplacementOutputTooLarge {
-                size,
-                max: MAX_REPLACEMENT_OUTPUT_BYTES,
-            }
-            .into());
-        }
-    };
+    let text = apply_replacements_bounded(text)?;
     let text = text.as_ref();
 
     // #107: Try to get the appropriate context dictionary, distinguishing
@@ -1239,13 +1227,7 @@ pub fn _transliterate_batch(
                 // Global pre-transliteration replacements (no-op unless registered),
                 // applied per item before transliterate_impl — parity with the
                 // scalar path, including the replacement-output amplification bound.
-                let replaced = tables::apply_replacements(text, MAX_REPLACEMENT_OUTPUT_BYTES)
-                    .map_err(|size| {
-                        pyo3::PyErr::from(crate::Error::ReplacementOutputTooLarge {
-                            size,
-                            max: MAX_REPLACEMENT_OUTPUT_BYTES,
-                        })
-                    })?;
+                let replaced = apply_replacements_bounded(text)?;
                 if strict {
                     return Ok(transliterate_strict(
                         &replaced,

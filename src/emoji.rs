@@ -128,10 +128,13 @@ fn match_emoji_at(window: &[char]) -> Option<(&'static str, usize)> {
                 // SAFETY: sep_positions[len-1] is a valid byte offset within key_buf
                 // (it was recorded from the encoded key), and key_buf contains only
                 // ASCII hex digits and '_', so the slice is valid UTF-8.
-                std::str::from_utf8(&key_buf[..sep_positions[len - 1]])
-                    .expect("key_buf is always ASCII")
+                // key_buf holds only ASCII hex digits and '_' by construction;
+                // degrade to an empty (non-matching) key rather than unwind a
+                // panic toward the FFI boundary if that invariant is ever broken
+                // by a future edit (#251 H4.3).
+                std::str::from_utf8(&key_buf[..sep_positions[len - 1]]).unwrap_or("")
             } else {
-                std::str::from_utf8(&key_buf[..total_len]).expect("key_buf is always ASCII")
+                std::str::from_utf8(&key_buf[..total_len]).unwrap_or("")
             };
 
             if let Some(name) = tables::lookup_emoji_multi(key_slice) {
@@ -152,20 +155,6 @@ fn match_emoji_at(window: &[char]) -> Option<(&'static str, usize)> {
     }
 
     None
-}
-
-/// Emit a Python `UserWarning`, falling back to stderr if `warnings.warn` fails.
-///
-/// This ensures diagnostic messages are never silently swallowed even if the
-/// Python interpreter is in a state where `warnings` is unavailable.
-fn emit_warning(py: Python<'_>, msg: &str) {
-    if py
-        .import("warnings")
-        .and_then(|w| w.call_method1("warn", (msg,)))
-        .is_err()
-    {
-        eprintln!("translit warning: {msg}");
-    }
 }
 
 /// Fixed-size sliding window over the character stream.
@@ -281,9 +270,12 @@ fn try_python_provider(
         let result = match provider.call_method1(py, "lookup", (py_seq,)) {
             Ok(r) => r,
             Err(e) => {
-                let msg =
-                    format!("EmojiProvider.lookup() raised an exception and will be ignored: {e}");
-                emit_warning(py, &msg);
+                // #251: route through the single warning helper with a uniform
+                // `translit:` prefix so all diagnostics share one log-grep token.
+                let msg = format!(
+                    "translit: EmojiProvider.lookup() raised an exception and will be ignored: {e}"
+                );
+                crate::emit_py_warning(py, &msg);
                 return None;
             }
         };
@@ -293,10 +285,10 @@ fn try_python_provider(
                 Ok(name) => return Some((name, len)),
                 Err(e) => {
                     let msg = format!(
-                        "EmojiProvider.lookup() returned a non-string value \
+                        "translit: EmojiProvider.lookup() returned a non-string value \
                          and will be ignored: {e}"
                     );
-                    emit_warning(py, &msg);
+                    crate::emit_py_warning(py, &msg);
                     return None;
                 }
             }
