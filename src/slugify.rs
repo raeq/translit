@@ -944,10 +944,8 @@ impl _UniqueSlugifier {
 
             let candidate = build_unique_candidate(&base, counter, config);
             if !self.seen.contains(&candidate) {
-                let free = match self.check {
-                    Some(ref check_fn) => {
-                        !check_fn.call1(py, (&candidate,))?.extract::<bool>(py)?
-                    }
+                let free = match self.check.as_ref() {
+                    Some(check_fn) => !check_fn.call1(py, (&candidate,))?.extract::<bool>(py)?,
                     None => true,
                 };
                 if free {
