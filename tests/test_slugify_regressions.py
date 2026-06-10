@@ -98,3 +98,47 @@ class TestControlCharEntityDecoding:
         assert slugify("caf&#233;") == "cafe"
         assert slugify("caf&#xe9;") == "cafe"
         assert slugify("&#65;BC") == "abc"
+
+
+class TestUniqueSlugifierAmortized:
+    """#242 item 3: UniqueSlugifier caches a per-base counter hint so the k-th
+    duplicate no longer re-walks suffixes 1..k (O(n²) → amortized O(n)). The hint
+    must not change output: same suffix sequence, uniqueness, check-path, reset."""
+
+    def test_bulk_duplicates_unique_and_sequenced(self) -> None:
+        from translit import UniqueSlugifier
+
+        u = UniqueSlugifier()
+        out = [u("Hello World") for _ in range(3000)]
+        assert len(set(out)) == 3000  # all unique
+        assert out[0] == "hello-world"
+        assert out[1] == "hello-world-1"
+        assert out[2999] == "hello-world-2999"
+
+    def test_interleaved_bases(self) -> None:
+        from translit import UniqueSlugifier
+
+        u = UniqueSlugifier()
+        got = [u("a"), u("b"), u("a"), u("b"), u("a")]
+        assert got == ["a", "b", "a-1", "b-1", "a-2"]
+
+    def test_check_callback_path_unchanged(self) -> None:
+        from translit import UniqueSlugifier
+
+        seen: set[str] = set()
+        u = UniqueSlugifier(check=lambda s: s in seen)
+        for _ in range(5):
+            s = u("x")
+            assert s not in seen
+            seen.add(s)
+        assert seen == {"x", "x-1", "x-2", "x-3", "x-4"}
+
+    def test_reset_clears_hint(self) -> None:
+        from translit import UniqueSlugifier
+
+        u = UniqueSlugifier()
+        assert u("Hello World") == "hello-world"
+        assert u("Hello World") == "hello-world-1"
+        u.reset()
+        # After reset the bare base must be free again (stale hint must be cleared).
+        assert u("Hello World") == "hello-world"
