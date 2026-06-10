@@ -257,20 +257,28 @@ def transliterate(
     # and batch inputs behave identically (#69). The conflict matrix lives in
     # the Rust core (single source of truth, #231); this is a thin call into it.
     #
-    # contract: this validation MUST run before any dispatch below. The
-    # `cast(ErrorMode, errors)` calls on the context paths are sound *only*
-    # because this call has already rejected the strict+context combination
-    # (#184); reordering or skipping it would make those casts unsound.
-    _validate_transliterate_args(
-        lang=lang,
-        target=target,
-        errors=errors,
-        replace_with=replace_with,
-        strict_iso9=strict_iso9,
-        gost7034=gost7034,
-        tones=tones,
-        context=context,
-    )
+    # contract: this validation MUST run before any dispatch onto a path that
+    # uses `target` or `context`. The `cast(ErrorMode, errors)` calls on the
+    # context paths are sound *only* because this call has already rejected the
+    # strict+context combination (#184); reordering or skipping it on those
+    # paths would make those casts unsound.
+    #
+    # perf (#277): the call is gated — every branch of the Rust conflict matrix
+    # requires `target` or `context`, so when both are absent the validator is
+    # a provable no-op and the extra PyO3 crossing is pure overhead. The hot
+    # forward path's own validation (lang, errors, strict_iso9 × gost7034)
+    # lives inside `_transliterate` itself (#130) and still runs on every call.
+    if target is not None or context:
+        _validate_transliterate_args(
+            lang=lang,
+            target=target,
+            errors=errors,
+            replace_with=replace_with,
+            strict_iso9=strict_iso9,
+            gost7034=gost7034,
+            tones=tones,
+            context=context,
+        )
 
     # ── Batch path ──
     if isinstance(text, list):
@@ -291,15 +299,10 @@ def transliterate(
             ]
         if target is not None:
             return [_reverse_transliterate(t, lang=target) for t in text]
-        return _transliterate_batch(
-            text,
-            lang=lang,
-            errors=errors,
-            replace_with=replace_with,
-            strict_iso9=strict_iso9,
-            gost7034=gost7034,
-            tones=tones,
-        )
+        # Positional call into the private binding (#277): PyO3 kwarg parsing is
+        # measurably slower than positional extraction. Order matches the Rust
+        # signature: (texts, lang, errors, replace_with, strict_iso9, gost7034, tones).
+        return _transliterate_batch(text, lang, errors, replace_with, strict_iso9, gost7034, tones)
 
     # ── Single-string path ──
     if not isinstance(text, str):
@@ -326,15 +329,8 @@ def transliterate(
     # call goes through it. A binding-side fast-path here skipped that validation
     # (a typo'd `lang` was silently accepted on ASCII input, re-opening #68) and
     # duplicated the core's own optimization — a per-binding drift liability.
-    return _transliterate(
-        text,
-        lang=lang,
-        errors=errors,
-        replace_with=replace_with,
-        strict_iso9=strict_iso9,
-        gost7034=gost7034,
-        tones=tones,
-    )
+    # Positional call into the private binding (#277) — see batch path note.
+    return _transliterate(text, lang, errors, replace_with, strict_iso9, gost7034, tones)
 
 
 def find_untranslatable(

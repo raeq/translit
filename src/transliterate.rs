@@ -122,7 +122,7 @@ fn transliterate_strict(
 
 /// Core transliteration: Unicode → ASCII.
 #[pyfunction]
-#[pyo3(signature = (text, *, lang=None, errors="replace", replace_with="[?]", strict_iso9=false, gost7034=false, tones=false))]
+#[pyo3(signature = (text, lang=None, errors="replace", replace_with="[?]", strict_iso9=false, gost7034=false, tones=false))]
 pub fn _transliterate(
     text: &str,
     lang: Option<&str>,
@@ -1548,7 +1548,7 @@ pub fn _clear_replacements() -> PyResult<()> {
 
 /// Batch transliteration: process a list of strings in a single PyO3 boundary crossing.
 #[pyfunction]
-#[pyo3(signature = (texts, *, lang=None, errors="replace", replace_with="[?]", strict_iso9=false, gost7034=false, tones=false))]
+#[pyo3(signature = (texts, lang=None, errors="replace", replace_with="[?]", strict_iso9=false, gost7034=false, tones=false))]
 pub fn _transliterate_batch(
     py: Python<'_>,
     texts: Vec<String>,
