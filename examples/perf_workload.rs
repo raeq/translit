@@ -28,12 +28,42 @@ mod persona_corpus;
 
 fn usage() -> ! {
     eprintln!("usage: perf_workload <persona> <op> <iters>");
+    eprintln!("       perf_workload --fingerprint");
     eprintln!("  see header comment for valid personas and ops");
     std::process::exit(2);
 }
 
+/// Emit the Rust half of the perf fingerprint (#234 gate V5) as one JSON line:
+/// the runtime corpus digest (V6) plus the facts only the compiled binary knows
+/// — the crate version and the build target it was compiled for. `scripts/
+/// perf_fingerprint.py` merges this with the host/toolchain/comparator fields.
+fn print_fingerprint() {
+    let profile = if cfg!(debug_assertions) {
+        "debug"
+    } else {
+        "release"
+    };
+    // All values are ASCII (hex digest, semver, arch/os consts) — no JSON
+    // escaping needed.
+    println!(
+        "{{\"corpus_digest\":\"{}\",\"translit_version\":\"{}\",\
+         \"build_arch\":\"{}\",\"build_os\":\"{}\",\
+         \"pointer_width_bits\":{},\"build_profile\":\"{}\"}}",
+        persona_corpus::corpus_digest(),
+        env!("CARGO_PKG_VERSION"),
+        std::env::consts::ARCH,
+        std::env::consts::OS,
+        usize::BITS,
+        profile,
+    );
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    if args.len() == 2 && args[1] == "--fingerprint" {
+        print_fingerprint();
+        return;
+    }
     if args.len() != 4 {
         usage();
     }
