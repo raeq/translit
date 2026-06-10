@@ -1593,7 +1593,7 @@ pub fn _clear_replacements() -> PyResult<()> {
 #[pyo3(signature = (texts, lang=None, errors="replace", replace_with="[?]", strict_iso9=false, gost7034=false, tones=false))]
 pub fn _transliterate_batch(
     py: Python<'_>,
-    texts: Vec<String>,
+    texts: &Bound<'_, pyo3::types::PyList>,
     lang: Option<&str>,
     errors: &str,
     replace_with: &str,
@@ -1606,9 +1606,18 @@ pub fn _transliterate_batch(
     if strict_iso9 && gost7034 {
         return Err(crate::Error::MutuallyExclusiveBare.into());
     }
-    if texts.len() > crate::MAX_BATCH_SIZE {
+    // Snapshot the element references into an immutable tuple up front (one
+    // GIL-held, O(N) reference copy — not a copy of the string contents). The
+    // former `Vec<String>` extraction was atomic under the GIL; chunked
+    // extraction releases the GIL between chunks, so without this snapshot a
+    // concurrent thread could mutate the input list mid-call and later chunks
+    // would observe the change (or raise IndexError). Python strings are
+    // immutable, so the snapshot's element values are stable (#239 review).
+    let texts = texts.to_tuple();
+    let len = texts.len();
+    if len > crate::MAX_BATCH_SIZE {
         return Err(crate::Error::BatchTooLarge {
-            len: texts.len(),
+            len,
             max: crate::MAX_BATCH_SIZE,
         }
         .into());
@@ -1622,42 +1631,61 @@ pub fn _transliterate_batch(
     } else {
         ErrorMode::from_str(errors)?
     };
-    // Own the borrowed args so the compute loop holds no Python-borrowed data,
-    // then run it with the GIL released (#70) — the loop touches no Python
-    // objects (the replacement table is a Rust RwLock), so other Python threads
-    // run in parallel for the duration of a large batch.
+    // Own the borrowed args so the compute loop holds no Python-borrowed data.
     let lang = lang.map(str::to_owned);
     let replace_with = replace_with.to_owned();
-    py.allow_threads(move || {
-        texts
-            .iter()
-            .map(|text| -> PyResult<String> {
-                // Global pre-transliteration replacements (no-op unless registered),
-                // applied per item before transliterate_impl — parity with the
-                // scalar path, including the replacement-output amplification bound.
-                let replaced = apply_replacements_bounded(text)?;
-                if strict {
-                    return Ok(transliterate_strict(
+
+    // #239: extract Rust `String` copies from the snapshot and transliterate in
+    // chunks, so peak Rust-side string residency is one chunk rather than a full
+    // copy of every input up front (the former `Vec<String>` boundary held all N
+    // at once). Each chunk is extracted with the GIL held, then transliterated
+    // with the GIL released (#70) — the compute loop touches no Python objects,
+    // so other Python threads run during it. All-or-raise is preserved (the
+    // partial `out` is dropped on error); a non-str element raises TypeError
+    // (the public wrapper's `_validate_batch` already rejects those up front).
+    let mut out: Vec<String> = Vec::with_capacity(len);
+    let mut start = 0;
+    while start < len {
+        let end = (start + crate::BATCH_CHUNK_SIZE).min(len);
+        let mut chunk: Vec<String> = Vec::with_capacity(end - start);
+        for i in start..end {
+            chunk.push(texts.get_item(i)?.extract::<String>()?);
+        }
+        let processed: Vec<String> = py.allow_threads(|| -> PyResult<Vec<String>> {
+            chunk
+                .iter()
+                .map(|text| -> PyResult<String> {
+                    // Global pre-transliteration replacements (no-op unless
+                    // registered), applied per item before transliterate_impl —
+                    // parity with the scalar path, including the replacement-output
+                    // amplification bound.
+                    let replaced = apply_replacements_bounded(text)?;
+                    if strict {
+                        return Ok(transliterate_strict(
+                            &replaced,
+                            lang.as_deref(),
+                            strict_iso9,
+                            gost7034,
+                            tones,
+                        )?);
+                    }
+                    Ok(transliterate_impl(
                         &replaced,
                         lang.as_deref(),
+                        error_mode,
+                        &replace_with,
                         strict_iso9,
                         gost7034,
                         tones,
-                    )?);
-                }
-                Ok(transliterate_impl(
-                    &replaced,
-                    lang.as_deref(),
-                    error_mode,
-                    &replace_with,
-                    strict_iso9,
-                    gost7034,
-                    tones,
-                )
-                .into_owned())
-            })
-            .collect()
-    })
+                    )
+                    .into_owned())
+                })
+                .collect()
+        })?;
+        out.extend(processed);
+        start = end;
+    }
+    Ok(out)
 }
 
 /// Batch accent stripping: process a list of strings in a single PyO3 boundary crossing.
