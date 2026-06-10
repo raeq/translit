@@ -74,29 +74,40 @@ pub fn _is_zalgo(text: &str, threshold: usize) -> bool {
 #[pyfunction]
 #[pyo3(signature = (text, *, max_marks=DEFAULT_MAX_MARKS))]
 pub fn _strip_zalgo(text: &str, max_marks: usize) -> String {
+    let mut out = String::new();
+    strip_zalgo_into(text, max_marks, &mut out);
+    out
+}
+
+/// In-place form of [`_strip_zalgo`] writing the final NFC result into `out`
+/// (cleared first), so the pipeline can reuse one buffer across steps
+/// (#236 item 7). The NFD/NFC two-pass still needs one internal temporary.
+pub fn strip_zalgo_into(text: &str, max_marks: usize, out: &mut String) {
+    out.clear();
     // Fast path: pure ASCII has no combining marks.
     if text.is_ascii() {
-        return text.to_owned();
+        out.push_str(text);
+        return;
     }
 
-    let mut result = String::with_capacity(text.len());
+    let mut filtered = String::with_capacity(text.len());
     let mut mark_count: usize = 0;
 
     for ch in text.nfd() {
         if is_combining_mark(ch) {
             mark_count += 1;
             if mark_count <= max_marks {
-                result.push(ch);
+                filtered.push(ch);
             }
             // else: drop the excess combining mark
         } else {
             mark_count = 0;
-            result.push(ch);
+            filtered.push(ch);
         }
     }
 
     // Recompose to NFC for consistency with the rest of the library.
-    result.nfc().collect()
+    out.extend(filtered.nfc());
 }
 
 #[cfg(test)]
