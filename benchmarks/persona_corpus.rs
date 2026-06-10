@@ -85,3 +85,45 @@ pub fn doc(name: &str) -> Option<String> {
         .find(|(n, _)| *n == name)
         .map(|(_, seed)| build_doc(seed))
 }
+
+// --- Corpus fingerprint (#234 gate V6) -----------------------------------
+//
+// The fingerprint emitter must hash the *generated corpus bytes at run time*,
+// not a stored constant, so that a corpus-generator change surfaces as a
+// changed digest instead of silent drift. FNV-1a/64 is used rather than a
+// crypto hash + new dependency: the corpus is non-adversarial and deterministic,
+// so all we need is collision-resistant *change detection*, and staying
+// dependency-free matches the project's dep-minimisation stance.
+
+const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
+
+fn fnv1a(mut hash: u64, bytes: &[u8]) -> u64 {
+    for &b in bytes {
+        hash ^= u64::from(b);
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    hash
+}
+
+/// FNV-1a/64 digest of the *generated* corpus bytes, in a stable order.
+///
+/// Covers `TARGET_BYTES`, every persona's name + built document, and the two
+/// short inputs. Pure function of the seeds and the build rule, identical on any
+/// machine — change one seed (or `TARGET_BYTES`) and the digest changes, with no
+/// other edit. Emitted into the perf fingerprint record so measurements can only
+/// be compared within an identical-corpus bucket.
+pub fn corpus_digest() -> String {
+    let mut hash = FNV_OFFSET;
+    hash = fnv1a(hash, &TARGET_BYTES.to_le_bytes());
+    for (name, seed) in PERSONAS {
+        hash = fnv1a(hash, name.as_bytes());
+        hash = fnv1a(hash, &[0]); // field separator — order/boundary sensitivity
+        hash = fnv1a(hash, build_doc(seed).as_bytes());
+        hash = fnv1a(hash, &[0]);
+    }
+    hash = fnv1a(hash, SHORT_ASCII.as_bytes());
+    hash = fnv1a(hash, &[0]);
+    hash = fnv1a(hash, SHORT_UNICODE.as_bytes());
+    format!("fnv1a64:{hash:016x}")
+}
