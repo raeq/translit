@@ -367,6 +367,15 @@ pub fn list_langs() -> Vec<String> {
 /// `transliterate.rs` call `check_not_sealed` before invoking this function.
 /// Any future direct-Rust API (e.g. the core split planned in #38) must add
 /// the same guard at its own boundary. (#123)
+///
+/// # Concurrency — poison recovery (#117/#251)
+///
+/// The write lock is *recovered*, not propagated, if a thread previously
+/// panicked while holding it (`recover_lock`). A panic *mid-write* can therefore
+/// leave a partially-applied registration visible to later readers — recovery
+/// deliberately favours availability over aborting the process (#64/#117). Once
+/// configuration is complete, seal the registrations (the `_seal_registrations`
+/// entry point) to freeze a known-good table and reject further mutations.
 pub fn register_lang(code: &str, mappings: HashMap<String, String>) -> Result<(), Vec<String>> {
     let mut char_map = HashMap::new();
     let mut bad_keys: Vec<String> = Vec::new();
@@ -410,6 +419,15 @@ pub fn register_lang(code: &str, mappings: HashMap<String, String>) -> Result<()
 /// `transliterate.rs` call `check_not_sealed` before invoking this function.
 /// Any future direct-Rust API (e.g. the core split planned in #38) must add
 /// the same guard at its own boundary. (#123)
+///
+/// # Concurrency — poison recovery (#117/#251)
+///
+/// The write lock is *recovered*, not propagated, if a thread previously
+/// panicked while holding it (`recover_lock`). A panic *mid-write* can therefore
+/// leave a partially-applied registration visible to later readers — recovery
+/// deliberately favours availability over aborting the process (#64/#117). Once
+/// configuration is complete, seal the registrations (the `_seal_registrations`
+/// entry point) to freeze a known-good table and reject further mutations.
 pub fn register_replacements(replacements: HashMap<String, String>) -> Result<(), usize> {
     let mut table = crate::recover_lock(GLOBAL_REPLACEMENTS.write(), "GLOBAL_REPLACEMENTS");
     // Compute worst-case size after merge: existing + all-new (ignoring overlap).
