@@ -101,14 +101,15 @@ fn transliterate_strict(
     gost7034: bool,
     tones: bool,
 ) -> Result<String, crate::Error> {
-    if let Some((ch, byte_offset)) =
-        find_untranslatable_impl(text, lang, strict_iso9, gost7034, tones)
-            .into_iter()
-            .next()
-    {
-        return Err(crate::Error::Untranslatable { ch, byte_offset });
-    }
-    Ok(transliterate_impl(
+    // #240: single pass with early exit. The former implementation ran the
+    // engine twice — once via `find_untranslatable_impl` (which materialised the
+    // *complete* Vec of every unmapped char just to read the first) and again to
+    // transliterate — so O(u) space and 2× time. Here one pass builds the result
+    // while collecting the FIRST untranslatable character and stopping there
+    // (`stop_on_first`): on success `result` IS the transliteration (no second
+    // pass); on the first offender the partial result is abandoned and reported.
+    let mut first: Vec<(char, usize)> = Vec::new();
+    let result = transliterate_impl_inner(
         text,
         lang,
         ErrorMode::Ignore,
@@ -116,8 +117,13 @@ fn transliterate_strict(
         strict_iso9,
         gost7034,
         tones,
-    )
-    .into_owned())
+        Some(&mut first),
+        true, // stop at the first untranslatable character
+    );
+    if let Some((ch, byte_offset)) = first.into_iter().next() {
+        return Err(crate::Error::Untranslatable { ch, byte_offset });
+    }
+    Ok(result.into_owned())
 }
 
 /// Core transliteration: Unicode → ASCII.
@@ -405,6 +411,7 @@ pub fn transliterate_impl<'a>(
         gost7034,
         tones,
         None,
+        false, // not strict — translate the whole input
     )
 }
 
@@ -434,6 +441,7 @@ pub fn find_untranslatable_impl(
         gost7034,
         tones,
         Some(&mut out),
+        false, // collect *all* untranslatable characters, not just the first
     );
     out
 }
@@ -453,6 +461,7 @@ fn transliterate_impl_inner<'a>(
     gost7034: bool,
     tones: bool,
     untranslatable: Option<&mut Vec<(char, usize)>>,
+    stop_on_first: bool,
 ) -> Cow<'a, str> {
     // Fast path: pure ASCII input needs no transliteration (and ASCII is always
     // translatable, so the collector stays empty).
@@ -501,6 +510,7 @@ fn transliterate_impl_inner<'a>(
             gost7034,
             tones,
             untranslatable,
+            stop_on_first,
         )
     } else if gost7034 {
         transliterate_run(
@@ -517,6 +527,7 @@ fn transliterate_impl_inner<'a>(
             gost7034,
             tones,
             untranslatable,
+            stop_on_first,
         )
     } else {
         let builtin_lang_map = lang.and_then(tables::resolve_lang_map);
@@ -535,6 +546,7 @@ fn transliterate_impl_inner<'a>(
             gost7034,
             tones,
             untranslatable,
+            stop_on_first,
         )
     }
 }
@@ -594,6 +606,7 @@ fn transliterate_run<'a, F>(
     gost7034: bool,
     tones: bool,
     mut untranslatable: Option<&mut Vec<(char, usize)>>,
+    stop_on_first: bool,
 ) -> Cow<'a, str>
 where
     F: Fn(char) -> Option<Cow<'static, str>>,
@@ -727,7 +740,7 @@ where
             // relative to the mapped path, so they live in a `#[cold]`/
             // `#[inline(never)]` helper to keep the common loop body in the µop
             // cache.
-            handle_unmapped(
+            let genuinely_untranslatable = handle_unmapped(
                 ch,
                 byte_offset,
                 &mut result,
@@ -741,6 +754,12 @@ where
                 gost7034,
                 tones,
             );
+            // #240: strict mode stops at the first untranslatable character —
+            // single pass, O(1) extra space. The partial `result` is discarded
+            // by the caller (it returns an error in that case).
+            if stop_on_first && genuinely_untranslatable {
+                break;
+            }
         }
     }
 
@@ -750,6 +769,11 @@ where
 /// Handle a character with no table mapping: attempt NFKC compatibility
 /// recovery, otherwise apply the error mode. Split out and marked `#[cold]` so
 /// the hot mapped path stays tight (#235 item 5).
+///
+/// Returns `true` when the character is **genuinely untranslatable** (no table
+/// entry and no NFKC recovery — the single point that defines the untranslatable
+/// set, #184), `false` when NFKC recovery handled it. The caller uses this to
+/// early-exit the strict single-pass on the first offender (#240).
 #[cold]
 #[inline(never)]
 #[allow(clippy::too_many_arguments)]
@@ -766,7 +790,7 @@ fn handle_unmapped(
     strict_iso9: bool,
     gost7034: bool,
     tones: bool,
-) {
+) -> bool {
     // #81: before the error fallback, try NFKC compatibility decomposition.
     // Mathematical Alphanumerics (𝕳→H) and presentation ligatures (ﬁ→fi) are
     // pure-Latin content NFKC folds to ASCII — both unidecode and anyascii
@@ -813,7 +837,7 @@ fn handle_unmapped(
             result.push_str(&sub);
             *last_appended = sub.chars().next_back();
             *prev_class = ScriptClass::Latin;
-            return;
+            return false; // NFKC-recovered → translatable
         }
     }
 
@@ -837,6 +861,7 @@ fn handle_unmapped(
         }
     }
     *prev_class = ScriptClass::Other;
+    true // genuinely untranslatable
 }
 
 /// Estimate the output buffer capacity based on a sample of the input.
@@ -1687,6 +1712,67 @@ pub fn _strip_accents_batch(py: Python<'_>, texts: Vec<String>) -> PyResult<Vec<
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// #240 — the single-pass strict transliteration must (a) succeed with the
+    /// Ignore-mode output when everything is translatable, and (b) error on the
+    /// exact first untranslatable character that `find_untranslatable_impl`
+    /// reports, never running the engine twice.
+    #[test]
+    fn strict_single_pass_matches_reference() {
+        // All-translatable input: strict succeeds with the normal output.
+        assert_eq!(
+            transliterate_strict("café Москва", None, false, false, false).unwrap(),
+            transliterate_impl(
+                "café Москва",
+                None,
+                ErrorMode::Ignore,
+                "",
+                false,
+                false,
+                false
+            )
+            .into_owned()
+        );
+
+        // Inputs containing untranslatable characters: whatever
+        // `find_untranslatable_impl` reports first, strict must report identically
+        // (same char and byte offset), and agree on the translatable case. U+E000
+        // is in the Private Use Area — guaranteed to have no transliteration and
+        // no NFKC recovery, ever — so the error branch is definitely exercised
+        // (U+1F980 also reaches it: the emoji tables drive `demojize`, not
+        // `transliterate`).
+        let mut hit_error_branch = false;
+        for s in [
+            "a\u{E000}b\u{E000}",
+            "café\u{E000}",
+            "\u{1F980}x",
+            "abc",
+            "Привет",
+        ] {
+            let reference = find_untranslatable_impl(s, None, false, false, false)
+                .into_iter()
+                .next();
+            match (
+                transliterate_strict(s, None, false, false, false),
+                reference,
+            ) {
+                (Err(crate::Error::Untranslatable { ch, byte_offset }), Some((ech, eoff))) => {
+                    assert_eq!(
+                        (ch, byte_offset),
+                        (ech, eoff),
+                        "strict first-untranslatable mismatch for {s:?}"
+                    );
+                    hit_error_branch = true;
+                }
+                (Ok(_), None) => {} // both agree the whole input is translatable
+                (got, exp) => panic!("strict/reference disagree for {s:?}: {got:?} vs {exp:?}"),
+            }
+        }
+        assert!(
+            hit_error_branch,
+            "test never exercised the strict Error::Untranslatable branch"
+        );
+    }
 
     /// #235 item 2 — the `BLOCK_CLASS` early-exit/table path must agree with the
     /// original per-range chain for **every** scalar value. Exhaustive over the
