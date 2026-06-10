@@ -24,15 +24,26 @@ pub fn _fold_case(text: &str) -> PyResult<String> {
 }
 
 pub(crate) fn fold_case_impl(text: &str) -> String {
+    let mut out = String::new();
+    fold_case_into(text, &mut out);
+    out
+}
+
+/// In-place form of [`fold_case_impl`] writing into `result` (cleared first),
+/// so the pipeline can reuse one buffer across steps (#236 item 7).
+pub(crate) fn fold_case_into(text: &str, result: &mut String) {
+    result.clear();
     // Fast path: pure ASCII — branchless bulk lowering, no heap probe.
     if text.is_ascii() {
-        return text.to_ascii_lowercase();
+        result.push_str(text);
+        result.make_ascii_lowercase();
+        return;
     }
 
     // Over-allocate by 10% to reduce reallocations when expanding chars
     // are present (e.g. ß→ss, ﬃ→ffi).  For pure non-expanding input the
     // excess is negligible; for expansion-heavy input it avoids 1–2 reallocs.
-    let mut result = String::with_capacity(text.len() + text.len() / 10);
+    result.reserve(text.len() + text.len() / 10);
 
     for ch in text.chars() {
         if ch.is_ascii() {
@@ -45,8 +56,6 @@ pub(crate) fn fold_case_impl(text: &str) -> String {
             result.push(ch);
         }
     }
-
-    result
 }
 
 #[cfg(test)]

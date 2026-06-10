@@ -542,13 +542,23 @@ fn pad_emoji_replacement(result: &mut String, text: &str) {
 /// Uses a `CharWindow` sliding buffer instead of `Vec<char>` to avoid
 /// materialising the full input for non-ASCII text.
 pub fn demojize_rust(text: &str, strip_modifiers: bool) -> String {
+    let mut out = String::new();
+    demojize_rust_into(text, strip_modifiers, &mut out);
+    out
+}
+
+/// In-place form of [`demojize_rust`] writing into `result` (cleared first), so
+/// the pipeline can reuse one buffer across steps (#236 item 7).
+pub fn demojize_rust_into(text: &str, strip_modifiers: bool, result: &mut String) {
+    result.clear();
     // Fast path: pure-ASCII text cannot contain emoji.
     if text.is_ascii() {
-        return text.to_owned();
+        result.push_str(text);
+        return;
     }
 
+    result.reserve(text.len());
     let mut win = CharWindow::new(text.chars());
-    let mut result = String::with_capacity(text.len());
     let mut last_was_emoji = false;
 
     while let Some(ch) = win.current() {
@@ -559,7 +569,7 @@ pub fn demojize_rust(text: &str, strip_modifiers: bool) -> String {
 
         if let Some((name, consumed)) = match_emoji_at(win.as_slice()) {
             let replacement = strip_modifier_suffix(name, strip_modifiers);
-            pad_emoji_replacement(&mut result, replacement);
+            pad_emoji_replacement(result, replacement);
             win.advance(consumed);
             while win.current().is_some_and(is_emoji_modifier) {
                 win.advance(1);
@@ -585,8 +595,6 @@ pub fn demojize_rust(text: &str, strip_modifiers: bool) -> String {
         last_was_emoji = false;
         win.advance(1);
     }
-
-    result
 }
 
 #[cfg(test)]

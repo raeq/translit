@@ -29,7 +29,21 @@ fn validate_target_script(target_script: &str) -> Result<(), crate::Error> {
 #[pyfunction]
 #[pyo3(signature = (text, *, target_script="latin"))]
 pub fn _normalize_confusables(text: &str, target_script: &str) -> PyResult<String> {
+    let mut out = String::new();
+    normalize_confusables_into(text, target_script, &mut out)?;
+    Ok(out)
+}
+
+/// In-place form of [`_normalize_confusables`] writing into `out` (cleared
+/// first), so the pipeline can reuse one buffer across steps (#236 item 7).
+pub fn normalize_confusables_into(
+    text: &str,
+    target_script: &str,
+    out: &mut String,
+) -> PyResult<()> {
     validate_target_script(target_script)?;
+    out.clear();
+    out.reserve(text.len());
 
     // Resolve the confusables map once (#236 / #233 review item) instead of
     // re-dispatching `target_script` for every character. `validate_target_script`
@@ -38,16 +52,14 @@ pub fn _normalize_confusables(text: &str, target_script: &str) -> PyResult<Strin
     // U+0060 `` ` ``→`'`), so ASCII input is not identity even for `target="latin"`.
     let map = tables::resolve_confusable_map(target_script);
 
-    let mut result = String::with_capacity(text.len());
-
     for ch in text.chars() {
         match map.and_then(|m| m.get(&ch).copied()) {
-            Some(replacement) => result.push_str(replacement),
-            None => result.push(ch),
+            Some(replacement) => out.push_str(replacement),
+            None => out.push(ch),
         }
     }
 
-    Ok(result)
+    Ok(())
 }
 
 /// True if text contains any characters confusable with target-script characters.

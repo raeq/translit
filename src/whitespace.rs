@@ -8,7 +8,21 @@ use pyo3::prelude::*;
 #[pyfunction]
 #[pyo3(signature = (text, *, strip_control=true, strip_zero_width=true))]
 pub fn _collapse_whitespace(text: &str, strip_control: bool, strip_zero_width: bool) -> String {
-    let mut result = String::with_capacity(text.len());
+    let mut out = String::with_capacity(text.len());
+    collapse_whitespace_into(text, strip_control, strip_zero_width, &mut out);
+    out
+}
+
+/// In-place form of [`_collapse_whitespace`] writing into `result` (cleared
+/// first). Lets the pipeline reuse one buffer across steps (#236 item 7).
+pub fn collapse_whitespace_into(
+    text: &str,
+    strip_control: bool,
+    strip_zero_width: bool,
+    result: &mut String,
+) {
+    result.clear();
+    result.reserve(text.len());
     let mut prev_was_space = false;
     // Track whether we've seen any non-whitespace yet to skip leading spaces.
     let mut seen_non_ws = false;
@@ -45,27 +59,42 @@ pub fn _collapse_whitespace(text: &str, strip_control: bool, strip_zero_width: b
     if result.ends_with(' ') {
         result.truncate(result.len() - 1);
     }
-
-    result
 }
 
 /// Strip control characters from text (excluding newline and tab).
 /// Note: `\r` (carriage return) is stripped, so `\r\n` becomes `\n`.
 pub fn strip_control_chars(text: &str) -> String {
-    text.chars()
-        .filter(|&ch| !ch.is_control() || ch == '\n' || ch == '\t')
-        .collect()
+    let mut out = String::new();
+    strip_control_chars_into(text, &mut out);
+    out
+}
+
+/// In-place form of [`strip_control_chars`] (#236 item 7).
+pub fn strip_control_chars_into(text: &str, out: &mut String) {
+    out.clear();
+    out.extend(
+        text.chars()
+            .filter(|&ch| !ch.is_control() || ch == '\n' || ch == '\t'),
+    );
 }
 
 /// Strip zero-width and invisible characters from text.
 pub fn strip_zero_width_chars(text: &str) -> String {
-    // `is_zero_width` matches no ASCII code point, so pure-ASCII input is
-    // returned unchanged — skip the filter+collect (and its allocation) on the
-    // common ASCII case (#252 O6.2). Premise guarded by `is_zero_width_has_no_ascii`.
+    let mut out = String::new();
+    strip_zero_width_chars_into(text, &mut out);
+    out
+}
+
+/// In-place form of [`strip_zero_width_chars`] (#236 item 7).
+pub fn strip_zero_width_chars_into(text: &str, out: &mut String) {
+    out.clear();
+    // `is_zero_width` matches no ASCII code point, so pure-ASCII input is copied
+    // unchanged (#252 O6.2). Premise guarded by `is_zero_width_has_no_ascii`.
     if text.is_ascii() {
-        return text.to_owned();
+        out.push_str(text);
+        return;
     }
-    text.chars().filter(|&ch| !is_zero_width(ch)).collect()
+    out.extend(text.chars().filter(|&ch| !is_zero_width(ch)));
 }
 
 /// Check if a character is invisible/zero-width and should be stripped.

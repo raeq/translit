@@ -230,45 +230,67 @@ impl _TextPipeline {
     /// worth more than that micro-optimization; the fused `_collapse_whitespace`
     /// remains available to direct callers.
     fn process(&self, text: &str) -> PyResult<String> {
-        let mut buf: Cow<'_, str> = Cow::Borrowed(text);
+        // #236 item 7: ping-pong two reusable buffers across the active steps
+        // instead of allocating a fresh String per step. `cur` holds the current
+        // text; each step writes its output into `scratch` (reusing its
+        // capacity), then we swap — recycling `cur`'s old allocation into
+        // `scratch` for the next step. Peak stays at two buffers; allocator
+        // traffic drops from O(active steps) to O(1).
+        let mut cur = text.to_owned();
+        let mut scratch = String::new();
         for (flag, _name) in STEP_ORDER {
-            if self.steps.contains(*flag) {
-                buf = self.apply_step(*flag, buf)?;
+            if self.steps.contains(*flag) && self.apply_step_into(*flag, &cur, &mut scratch)? {
+                std::mem::swap(&mut cur, &mut scratch);
             }
         }
-        Ok(buf.into_owned())
+        Ok(cur)
     }
 }
 
 impl _TextPipeline {
-    /// Apply one pipeline step to `buf`.
+    /// Apply one pipeline step, writing the transformed text into `out` (the
+    /// reused scratch buffer). Returns `true` when `out` holds the result (the
+    /// caller swaps it in) or `false` for a no-op (input unchanged, `out` left
+    /// untouched as a spare buffer).
     ///
     /// Called only with single-flag values from [`STEP_ORDER`]: `process()` owns
     /// the *ordering* (by iterating that one list), this owns the *per-step
     /// transform*. Every flag in `STEP_ORDER` must be handled here — an
     /// unhandled flag would silently no-op, which
     /// `every_step_in_order_is_actually_applied` guards against.
-    fn apply_step<'a>(&self, step: PipelineSteps, buf: Cow<'a, str>) -> PyResult<Cow<'a, str>> {
-        let out: Cow<'a, str> = if step == PipelineSteps::NORMALIZE {
+    fn apply_step_into(
+        &self,
+        step: PipelineSteps,
+        input: &str,
+        out: &mut String,
+    ) -> PyResult<bool> {
+        if step == PipelineSteps::NORMALIZE {
             match self.normalize_form {
-                Some(ref form) => Cow::Owned(normalize::_normalize(&buf, form)?),
-                None => buf,
+                Some(ref form) => {
+                    normalize::normalize_into(input, form, out)?;
+                    Ok(true)
+                }
+                None => Ok(false),
             }
         } else if step == PipelineSteps::STRIP_ZALGO {
-            Cow::Owned(zalgo::_strip_zalgo(&buf, self.zalgo_max_marks.unwrap_or(0)))
+            zalgo::strip_zalgo_into(input, self.zalgo_max_marks.unwrap_or(0), out);
+            Ok(true)
         } else if step == PipelineSteps::STRIP_BIDI {
-            Cow::Owned(crate::presets::_strip_bidi(&buf))
+            crate::presets::strip_bidi_into(input, out);
+            Ok(true)
         } else if step == PipelineSteps::DEMOJIZE {
-            Cow::Owned(emoji::demojize_rust(&buf, false))
+            emoji::demojize_rust_into(input, false, out);
+            Ok(true)
         } else if step == PipelineSteps::STRIP_ACCENTS {
-            Cow::Owned(transliterate::_strip_accents(&buf))
+            transliterate::strip_accents_into(input, out);
+            Ok(true)
         } else if step == PipelineSteps::TRANSLITERATE {
             // #236 item 5: only reallocate when transliterate actually changed
-            // the text. On a borrowed (ASCII / no-op) result, pass `buf` through
-            // unchanged instead of `into_owned()`-cloning it. Extract owned-ness
-            // first so the borrow of `buf` ends before we move it.
-            let owned = match transliterate::transliterate_impl(
-                &buf,
+            // the text. On a borrowed (ASCII / no-op) result, signal no-op so the
+            // pipeline keeps `cur` unchanged. On an owned result, move its buffer
+            // into `out` (no copy) for the caller to swap in.
+            match transliterate::transliterate_impl(
+                input,
                 self.lang.as_deref(),
                 crate::ErrorMode::Ignore,
                 "",
@@ -276,31 +298,34 @@ impl _TextPipeline {
                 self.gost7034,
                 false,
             ) {
-                Cow::Borrowed(_) => None,
-                Cow::Owned(s) => Some(s),
-            };
-            match owned {
-                Some(s) => Cow::Owned(s),
-                None => buf,
+                Cow::Borrowed(_) => Ok(false),
+                Cow::Owned(s) => {
+                    *out = s;
+                    Ok(true)
+                }
             }
         } else if step == PipelineSteps::CONFUSABLES {
-            Cow::Owned(confusables::_normalize_confusables(&buf, "latin")?)
+            confusables::normalize_confusables_into(input, "latin", out)?;
+            Ok(true)
         } else if step == PipelineSteps::FOLD_CASE {
-            Cow::Owned(case_fold::fold_case_impl(&buf))
+            case_fold::fold_case_into(input, out);
+            Ok(true)
         } else if step == PipelineSteps::STRIP_CONTROL {
-            Cow::Owned(whitespace::strip_control_chars(&buf))
+            whitespace::strip_control_chars_into(input, out);
+            Ok(true)
         } else if step == PipelineSteps::STRIP_ZERO_WIDTH {
-            Cow::Owned(whitespace::strip_zero_width_chars(&buf))
+            whitespace::strip_zero_width_chars_into(input, out);
+            Ok(true)
         } else if step == PipelineSteps::COLLAPSE_WS {
             // Collapse only — strip_control / strip_zero_width are their own
             // steps. With both flags false this preserves any control and
             // zero-width characters those steps didn't run, collapsing solely
             // whitespace runs.
-            Cow::Owned(whitespace::_collapse_whitespace(&buf, false, false))
+            whitespace::collapse_whitespace_into(input, false, false, out);
+            Ok(true)
         } else {
-            buf
-        };
-        Ok(out)
+            Ok(false)
+        }
     }
 
     /// The parameter shown for `step` in `steps()` / `__repr__`, or `None`.
@@ -551,6 +576,110 @@ mod tests {
                 out, input,
                 "step '{name}' left its witness unchanged — apply_step may be missing a branch"
             );
+        }
+    }
+
+    /// Independent oracle: apply each active step via the public *returning*
+    /// functions (the pre-#236-item-7 strategy), used to prove the new
+    /// double-buffered `process()` produces byte-identical output.
+    fn process_via_returning_fns(p: &_TextPipeline, text: &str) -> PyResult<String> {
+        let mut s = text.to_owned();
+        for (flag, _name) in STEP_ORDER {
+            if !p.steps.contains(*flag) {
+                continue;
+            }
+            s = if *flag == PipelineSteps::NORMALIZE {
+                match p.normalize_form {
+                    Some(ref form) => normalize::_normalize(&s, form)?,
+                    None => s,
+                }
+            } else if *flag == PipelineSteps::STRIP_ZALGO {
+                zalgo::_strip_zalgo(&s, p.zalgo_max_marks.unwrap_or(0))
+            } else if *flag == PipelineSteps::STRIP_BIDI {
+                crate::presets::_strip_bidi(&s)
+            } else if *flag == PipelineSteps::DEMOJIZE {
+                emoji::demojize_rust(&s, false)
+            } else if *flag == PipelineSteps::STRIP_ACCENTS {
+                transliterate::_strip_accents(&s)
+            } else if *flag == PipelineSteps::TRANSLITERATE {
+                transliterate::transliterate_impl(
+                    &s,
+                    p.lang.as_deref(),
+                    crate::ErrorMode::Ignore,
+                    "",
+                    p.strict_iso9,
+                    p.gost7034,
+                    false,
+                )
+                .into_owned()
+            } else if *flag == PipelineSteps::CONFUSABLES {
+                confusables::_normalize_confusables(&s, "latin")?
+            } else if *flag == PipelineSteps::FOLD_CASE {
+                case_fold::fold_case_impl(&s)
+            } else if *flag == PipelineSteps::STRIP_CONTROL {
+                whitespace::strip_control_chars(&s)
+            } else if *flag == PipelineSteps::STRIP_ZERO_WIDTH {
+                whitespace::strip_zero_width_chars(&s)
+            } else if *flag == PipelineSteps::COLLAPSE_WS {
+                whitespace::_collapse_whitespace(&s, false, false)
+            } else {
+                s
+            };
+        }
+        Ok(s)
+    }
+
+    #[test]
+    fn double_buffer_process_matches_returning_fns() {
+        // #236 item 7: the ping-pong double-buffer `process()` must be
+        // byte-identical to applying each step's returning function in order.
+        let inputs = [
+            "",
+            "hello world",
+            "Héllo  WÖRLD",
+            "café ☕ résumé 👨‍👩‍👧‍👦",
+            "Ｆｕｌｌｗｉｄｔｈ ＡＢＣ",
+            "a\u{0301}\u{0301}\u{0301}\u{0301}b zalgo",
+            "x\u{202e}rtl\u{202c}y",
+            "Привет, мир! Москва",
+            "北京 Beijing 2008",
+            "  leading and   trailing  ",
+            "a\u{0000}\u{200b}\u{feff}b",
+            "\u{0410}pple \u{0405}cam", // Cyrillic homoglyphs
+        ];
+
+        let mut all = pipeline(PipelineSteps::all(), Some("NFKC"));
+        all.lang = Some("ru".to_owned());
+
+        let mut translit = pipeline(
+            PipelineSteps::NORMALIZE
+                | PipelineSteps::TRANSLITERATE
+                | PipelineSteps::STRIP_ACCENTS
+                | PipelineSteps::FOLD_CASE
+                | PipelineSteps::COLLAPSE_WS,
+            Some("NFKC"),
+        );
+        translit.lang = Some("ru".to_owned());
+
+        let security = pipeline(
+            PipelineSteps::NORMALIZE
+                | PipelineSteps::CONFUSABLES
+                | PipelineSteps::STRIP_BIDI
+                | PipelineSteps::COLLAPSE_WS,
+            Some("NFKC"),
+        );
+
+        let empty = pipeline(PipelineSteps::empty(), None);
+
+        for p in [&all, &translit, &security, &empty] {
+            for input in inputs {
+                assert_eq!(
+                    p.process(input).unwrap(),
+                    process_via_returning_fns(p, input).unwrap(),
+                    "double-buffer output diverged for steps={:?} input={input:?}",
+                    p.steps
+                );
+            }
         }
     }
 

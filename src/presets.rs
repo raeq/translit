@@ -43,7 +43,15 @@ fn nfkc_normalize(text: &str) -> Cow<'_, str> {
 /// bidi isolates (U+2066–U+2069), deprecated format controls (U+206A–U+206F),
 /// and interlinear annotation marks (U+FFF9–U+FFFB).
 fn strip_bidi(text: &str) -> String {
-    text.chars().filter(|&ch| !is_bidi_or_format(ch)).collect()
+    let mut out = String::new();
+    strip_bidi_into(text, &mut out);
+    out
+}
+
+/// In-place form of [`strip_bidi`] (#236 item 7).
+pub fn strip_bidi_into(text: &str, out: &mut String) {
+    out.clear();
+    out.extend(text.chars().filter(|&ch| !is_bidi_or_format(ch)));
 }
 
 /// Make text safe to use as a path component (#248).

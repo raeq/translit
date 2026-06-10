@@ -19,22 +19,33 @@ fn validate_form(form: &str) -> Result<(), crate::Error> {
 #[pyfunction]
 #[pyo3(signature = (text, *, form="NFC"))]
 pub fn _normalize(text: &str, form: &str) -> PyResult<String> {
+    let mut out = String::new();
+    normalize_into(text, form, &mut out)?;
+    Ok(out)
+}
+
+/// In-place form of [`_normalize`] writing into `out` (cleared first), so the
+/// pipeline can reuse one buffer across steps (#236 item 7).
+pub fn normalize_into(text: &str, form: &str, out: &mut String) -> PyResult<()> {
     validate_form(form)?;
+    out.clear();
     // ASCII is invariant under all four normalization forms (no decomposition,
     // no composition), so skip the normalizer for pure-ASCII input. This fast
     // path moved down from the Python wrapper (#185) so that `form` is still
     // validated above on every call — the wrapper's version sat *before* its own
     // validation and would have accepted a typo'd form on ASCII input.
     if text.is_ascii() {
-        return Ok(text.to_owned());
+        out.push_str(text);
+        return Ok(());
     }
-    Ok(match form {
-        "NFC" => text.nfc().collect(),
-        "NFD" => text.nfd().collect(),
-        "NFKC" => text.nfkc().collect(),
-        "NFKD" => text.nfkd().collect(),
+    match form {
+        "NFC" => out.extend(text.nfc()),
+        "NFD" => out.extend(text.nfd()),
+        "NFKC" => out.extend(text.nfkc()),
+        "NFKD" => out.extend(text.nfkd()),
         _ => unreachable!(),
-    })
+    }
+    Ok(())
 }
 
 /// Check if text is already in the specified normalization form.
