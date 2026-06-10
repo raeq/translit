@@ -120,19 +120,22 @@ jobs:
         run: ls -lh dist/
       - name: Verify Linux wheels are abi3 (guard against regression of #26)
         run: |
-          # abi3 wheels are tagged cp39-abi3; a version-specific CPython Linux
-          # wheel (e.g. cp38-cp38, cp39-cp39) means the abi3 build was bypassed.
+          # abi3 wheels are tagged cpXY-abi3 (the abi3 floor — cp310-abi3 since
+          # #277/#284 raised it from cp39); a version-specific CPython Linux wheel
+          # (e.g. cp38-cp38, cp39-cp39) means the abi3 build was bypassed (#26).
+          # The check is floor-agnostic (cp3[0-9]+-abi3) so a future floor bump
+          # does not silently re-introduce this stale-guard failure.
           bad=$(ls dist/ | grep -E 'cp3[0-9]+-cp3[0-9]+.*(manylinux|linux)' || true)
           if [ -n "$bad" ]; then
             echo "::error::Found version-specific (non-abi3) CPython Linux wheel(s):"
             echo "$bad"
             exit 1
           fi
-          if ! ls dist/ | grep -qE 'cp39-abi3-manylinux.*x86_64'; then
-            echo "::error::Missing expected cp39-abi3 manylinux x86_64 wheel."
+          if ! ls dist/ | grep -qE 'cp3[0-9]+-abi3-manylinux.*x86_64'; then
+            echo "::error::Missing expected cp3XX-abi3 manylinux x86_64 wheel."
             exit 1
           fi
-          echo "OK: Linux wheels are abi3 (cp39-abi3), no version-specific CPython wheels."
+          echo "OK: Linux wheels are abi3 (cp3XX-abi3), no version-specific CPython wheels."
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
         with:
