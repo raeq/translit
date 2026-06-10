@@ -1715,12 +1715,17 @@ mod tests {
             .into_owned()
         );
 
-        // Inputs that may contain untranslatable characters: whatever
+        // Inputs containing untranslatable characters: whatever
         // `find_untranslatable_impl` reports first, strict must report identically
-        // (same char and byte offset), and agree on the translatable case.
+        // (same char and byte offset), and agree on the translatable case. U+E000
+        // is in the Private Use Area — guaranteed to have no transliteration and
+        // no NFKC recovery, ever — so the error branch is definitely exercised
+        // (U+1F980 also reaches it: the emoji tables drive `demojize`, not
+        // `transliterate`).
+        let mut hit_error_branch = false;
         for s in [
-            "a\u{1F980}b\u{1F980}",
-            "café\u{1F980}",
+            "a\u{E000}b\u{E000}",
+            "café\u{E000}",
             "\u{1F980}x",
             "abc",
             "Привет",
@@ -1738,11 +1743,16 @@ mod tests {
                         (ech, eoff),
                         "strict first-untranslatable mismatch for {s:?}"
                     );
+                    hit_error_branch = true;
                 }
                 (Ok(_), None) => {} // both agree the whole input is translatable
                 (got, exp) => panic!("strict/reference disagree for {s:?}: {got:?} vs {exp:?}"),
             }
         }
+        assert!(
+            hit_error_branch,
+            "test never exercised the strict Error::Untranslatable branch"
+        );
     }
 
     /// #235 item 2 — the `BLOCK_CLASS` early-exit/table path must agree with the
