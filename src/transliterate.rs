@@ -1437,12 +1437,29 @@ fn is_kana(ch: char) -> bool {
 #[pyfunction]
 #[pyo3(signature = (text,))]
 pub fn _strip_accents(text: &str) -> String {
+    let mut out = String::new();
+    strip_accents_into(text, &mut out);
+    out
+}
+
+/// In-place form of [`_strip_accents`] writing into `out` (cleared first), so
+/// the pipeline can reuse one buffer across steps (#236 item 7).
+pub fn strip_accents_into(text: &str, out: &mut String) {
     use unicode_normalization::UnicodeNormalization;
 
-    text.nfd()
-        .filter(|c| !unicode_normalization::char::is_combining_mark(*c))
-        .nfc()
-        .collect()
+    out.clear();
+    // ASCII has no combining marks, so NFD→strip→NFC is the identity — skip the
+    // normalization passes entirely (#236 item 6, matching `_strip_accents_batch`).
+    if text.is_ascii() {
+        out.push_str(text);
+        return;
+    }
+
+    out.extend(
+        text.nfd()
+            .filter(|c| !unicode_normalization::char::is_combining_mark(*c))
+            .nfc(),
+    );
 }
 
 /// True if all characters are ASCII (U+0000–U+007F).

@@ -29,18 +29,37 @@ fn validate_target_script(target_script: &str) -> Result<(), crate::Error> {
 #[pyfunction]
 #[pyo3(signature = (text, *, target_script="latin"))]
 pub fn _normalize_confusables(text: &str, target_script: &str) -> PyResult<String> {
-    validate_target_script(target_script)?;
+    let mut out = String::new();
+    normalize_confusables_into(text, target_script, &mut out)?;
+    Ok(out)
+}
 
-    let mut result = String::with_capacity(text.len());
+/// In-place form of [`_normalize_confusables`] writing into `out` (cleared
+/// first), so the pipeline can reuse one buffer across steps (#236 item 7).
+pub fn normalize_confusables_into(
+    text: &str,
+    target_script: &str,
+    out: &mut String,
+) -> PyResult<()> {
+    validate_target_script(target_script)?;
+    out.clear();
+    out.reserve(text.len());
+
+    // Resolve the confusables map once (#236 / #233 review item) instead of
+    // re-dispatching `target_script` for every character. `validate_target_script`
+    // above guarantees `Some`. There is deliberately no ASCII fast path: the
+    // latin table maps ASCII source code points (U+007C `|`→`l`, U+0022 `"`→`''`,
+    // U+0060 `` ` ``→`'`), so ASCII input is not identity even for `target="latin"`.
+    let map = tables::resolve_confusable_map(target_script);
 
     for ch in text.chars() {
-        match tables::lookup_confusable(ch, target_script) {
-            Some(replacement) => result.push_str(replacement),
-            None => result.push(ch),
+        match map.and_then(|m| m.get(&ch).copied()) {
+            Some(replacement) => out.push_str(replacement),
+            None => out.push(ch),
         }
     }
 
-    Ok(result)
+    Ok(())
 }
 
 /// True if text contains any characters confusable with target-script characters.
@@ -52,8 +71,9 @@ pub fn _normalize_confusables(text: &str, target_script: &str) -> PyResult<Strin
 pub fn _is_confusable(text: &str, target_script: &str) -> PyResult<bool> {
     validate_target_script(target_script)?;
 
+    let map = tables::resolve_confusable_map(target_script);
     for ch in text.chars() {
-        if tables::lookup_confusable(ch, target_script).is_some() {
+        if map.is_some_and(|m| m.contains_key(&ch)) {
             return Ok(true);
         }
     }
