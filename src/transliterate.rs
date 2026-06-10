@@ -2,8 +2,8 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyString};
 use std::borrow::Cow;
-use std::sync::{LazyLock, RwLock};
 use std::collections::HashMap;
+use std::sync::{LazyLock, RwLock};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::tables;
