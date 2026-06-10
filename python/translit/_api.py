@@ -1146,8 +1146,12 @@ def is_safe_hostname(hostname: str) -> tuple[bool, SafeHostnameDetails]:
     - ``has_confusables``: bool — True if confusable homoglyphs found.
     - ``canonical``: str — Latin-normalized form of the hostname.
 
-    A hostname is considered unsafe if it contains mixed high-risk scripts
-    (Cyrillic+Latin, Greek+Latin) or confusable homoglyphs.
+    A hostname is considered unsafe if any single label is mixed-script
+    (draws on more than one Unicode script, excluding Common/Inherited) or
+    contains confusable homoglyphs. The mixed-script rule is conservative and
+    fails closed: it flags benign combinations such as Latin+CJK as well as
+    spoofing ones, so a caller wanting a more permissive policy can inspect the
+    ``mixed_script`` and ``scripts`` fields and decide for itself.
 
     Args:
         hostname: Hostname string to check (e.g. "example.com").
