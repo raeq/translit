@@ -59,6 +59,12 @@ pub fn strip_control_chars(text: &str) -> String {
 
 /// Strip zero-width and invisible characters from text.
 pub fn strip_zero_width_chars(text: &str) -> String {
+    // Every zero-width code point is ≥ U+180E, so pure-ASCII input is unchanged.
+    // Skip the filter+collect (and its allocation) on the common ASCII case.
+    // (#252 O6.2 — `is_zero_width` has no ASCII members.)
+    if text.is_ascii() {
+        return text.to_owned();
+    }
     text.chars().filter(|&ch| !is_zero_width(ch)).collect()
 }
 

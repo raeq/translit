@@ -330,10 +330,13 @@ pub fn lookup_confusable(ch: char, target_script: &str) -> Option<&'static str> 
 pub fn list_langs() -> Vec<String> {
     let mut langs: Vec<String> = BUILTIN_LANGS.iter().map(|s| (*s).to_string()).collect();
 
-    // Add user-registered languages
+    // Add user-registered languages. Registered keys are unique (HashMap), so a
+    // key can only collide with a builtin — check an O(1) set rather than the
+    // former O(builtins) linear `langs.contains` per key (#252 O5.5).
+    let builtin: std::collections::HashSet<&str> = BUILTIN_LANGS.iter().copied().collect();
     let table = crate::recover_lock(LANG_TABLES.read(), "LANG_TABLES");
     for key in table.keys() {
-        if !langs.contains(key) {
+        if !builtin.contains(key.as_str()) {
             langs.push(key.clone());
         }
     }
