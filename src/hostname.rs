@@ -38,8 +38,12 @@ fn is_ipv6_literal(normalized: &str) -> bool {
 /// unsafe (fail closed).
 ///
 /// A hostname is considered unsafe if:
-/// - It contains characters from multiple scripts (mixed-script)
-///   AND at least one script pair is high-risk (Cyrillic+Latin, Greek+Latin)
+/// - Any single label contains characters from more than one script
+///   (mixed-script), excluding Common/Inherited (digits, punctuation,
+///   combining marks). This is conservative and fails closed (#254): it flags
+///   benign combinations (e.g. Latin + CJK) as well as spoofing ones — a caller
+///   wanting a more permissive policy can inspect the `mixed_script`/`scripts`
+///   fields.
 /// - It contains confusable characters that map to different Latin characters
 /// - An ACE label fails to decode, or a confusable check errors (fail closed)
 ///
@@ -124,26 +128,20 @@ pub fn _is_safe_hostname(hostname: &str) -> PyResult<(bool, SafeHostnameDetails)
             }
         }
 
-        // Mixed-script within a single label is suspicious
+        // Mixed-script within a single label is suspicious. Conservative policy
+        // (#254): any label drawing on two or more scripts is flagged unsafe.
+        // The former rule only flagged the four Latin-paired high-risk
+        // combinations (Cyrillic/Greek/Armenian/Cherokee + Latin), so a label
+        // mixing *two non-Latin* scripts with no Latin confusable mapping — e.g.
+        // Greek + Cyrillic — set `mixed_script = true` yet was reported safe.
+        // That contradicted this function's documented "flag anything
+        // suspicious" contract and failed open on a real spoofing vector.
+        // Callers needing a more permissive policy (e.g. allowing Latin + CJK)
+        // can read the `mixed_script` and `scripts` fields and decide for
+        // themselves; the boolean here fails closed.
         if label_scripts.len() > 1 {
-            const HIGH_RISK_PAIRS: &[(&str, &str)] = &[
-                ("Cyrillic", "Latin"),
-                ("Greek", "Latin"),
-                ("Armenian", "Latin"),
-                ("Cherokee", "Latin"),
-            ];
-
             has_mixed = true;
-
-            // High-risk script combinations (visually confusable with Latin).
-            let script_set: std::collections::HashSet<&str> =
-                label_scripts.iter().copied().collect();
-
-            for &(a, b) in HIGH_RISK_PAIRS {
-                if script_set.contains(a) && script_set.contains(b) {
-                    overall_safe = false;
-                }
-            }
+            overall_safe = false;
         }
 
         // Check confusables in this label. Fail CLOSED (#67.1): if the check
@@ -222,6 +220,27 @@ mod tests {
         // Fully Cyrillic domain — not mixed script, might have confusables
         let (_, details) = _is_safe_hostname("яндекс.ру").unwrap();
         assert!(!details.mixed_script);
+    }
+
+    #[test]
+    fn test_mixed_non_latin_scripts_unsafe() {
+        // #254: a label mixing two *non-Latin* scripts (Cyrillic я + Greek ψ)
+        // with no Latin confusable mapping used to set mixed_script=true yet
+        // report safe=true, because the old rule only flagged Latin-paired
+        // high-risk combinations. The conservative policy now flags any
+        // mixed-script label as unsafe.
+        let (safe, details) = _is_safe_hostname("\u{044F}\u{03C8}.com").unwrap();
+        assert!(!safe, "mixed Cyrillic+Greek label must be unsafe");
+        assert!(details.mixed_script);
+        // The mixed-script rule — not the confusable check — is what catches
+        // this: neither character maps to a Latin confusable.
+        assert!(
+            !details.has_confusables,
+            "neither я nor ψ is a Latin confusable; the mixed-script rule must \
+             be what flags this label"
+        );
+        assert!(details.scripts.iter().any(|s| s == "Cyrillic"));
+        assert!(details.scripts.iter().any(|s| s == "Greek"));
     }
 
     #[test]

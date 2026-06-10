@@ -156,6 +156,16 @@ class TestIsSafeHostname:
         assert safe
         assert details.scripts == ["Latin"]
 
+    def test_mixed_non_latin_scripts_unsafe(self) -> None:
+        # #254: a label mixing two non-Latin scripts (Cyrillic я + Greek ψ) with
+        # no Latin confusable used to report safe=True. The conservative policy
+        # now flags any mixed-script label as unsafe.
+        safe, details = is_safe_hostname("яψ.com")
+        assert not safe
+        assert details.mixed_script
+        # The mixed-script rule, not the confusable check, is what catches this.
+        assert not details.has_confusables
+
     def test_details_attributes(self) -> None:
         _, details = is_safe_hostname("test.com")
         assert hasattr(details, "safe")
