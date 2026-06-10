@@ -10,6 +10,103 @@ compatibility (see [RELEASING.md](RELEASING.md)).
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-06-11
+
+A **performance and hardening** release. The headline is a benchmark-gated
+optimisation programme (#233) that makes short-string `transliterate` roughly
+**15–21× faster than Unidecode** (up from ~7–9×) and **beats Unidecode on its
+own benchmark**, while *shrinking* the library's static and resident memory.
+Alongside it, a Unicode-security hardening sweep tightens `is_safe_hostname`,
+the security presets, and the stateful slugifiers. Most changes are
+behaviour-preserving; the exceptions are called out under Upgrade notes.
+
+### Upgrade notes
+
+- **Minimum Python is now 3.10** (was 3.9). The extension targets the stable-ABI
+  floor `abi3-py310`, so a single wheel runs on 3.10+ and the per-call Python→Rust
+  path crosses the boundary only once (#277). Python 3.9 wheels are no longer
+  produced.
+- **`is_safe_hostname` now flags *every* mixed-script label as unsafe** (#254),
+  not only the four Latin-paired high-risk combinations. A label combining two
+  scripts with no Latin confusable (e.g. Greek + Cyrillic) previously reported
+  `safe=True`; it now returns `safe=False`. This also flags benign combinations
+  (e.g. Latin + CJK) — read the `mixed_script` / `scripts` fields if you need a
+  more permissive policy. The check fails closed by design.
+- **Security presets no longer synthesise path separators** (#248): confusable
+  characters that normalise to `/`, `\`, or `..` can no longer pass through the
+  security/filename presets to forge path structure.
+- **`rag_ingest` now runs the confusables step** (#258): Unicode homoglyph
+  spoofs are canonicalised during RAG ingestion instead of surviving it. Output
+  of the `rag_ingest` preset may change for homoglyph-bearing input.
+- **Stateful slugifiers validate `lang`** at construction (`Slugify`,
+  `UniqueSlugify`), closing the gap the 0.7.0 validation pushdown missed (#257);
+  an invalid `lang=` now raises instead of being silently ignored. `UniqueSlugify`
+  also honours property mutations made after construction (#249).
+- **Auto-language discriminator** behaviour was reconciled with its documented
+  contract (#253) — auto-detection results may differ for a few ambiguous inputs.
+- **Correctness edge cases fixed** (#255), which may change output: reverse
+  transliteration of all-caps digraphs and a `grapheme_truncate` overflow case.
+
+### Performance
+
+- **Short-string `transliterate`: ~15–21× faster than Unidecode** (#277). A call
+  now crosses the Python→Rust boundary exactly once with Rust-side keyword
+  defaults, extracts UTF-8 zero-copy, and returns already-ASCII input as the
+  *original* `str` object via a borrowed `Cow` — roughly **70 ns** with no
+  allocation.
+- **Beats Unidecode on its own benchmark** (#281): translit wins all four cells
+  of Unidecode's `expect_ascii`/`expect_nonascii` × ASCII/non-ASCII matrix,
+  including Unidecode's strongest (ASCII-passthrough) case.
+- **Smaller static tables** (#237): the default BMP transliteration table became
+  a two-level page-table + interned-blob trie (**~1 MB → ~58 KB**), hanzi→pinyin
+  a dense interned array (**~600 KB → ~50 KB**), and the 11,172 Hangul
+  romanisations a single packed blob. No runtime data loading; no `unsafe`.
+- **Zero-copy context dictionaries** (#238): the Arabic/Persian/Hebrew
+  dictionaries are read once and indexed by `(offset, len)` spans instead of
+  parsed into nested `HashMap`s of owned strings — roughly **halving** their
+  resident memory. Lookup is binary search; the two-step bigram path allocates
+  no per-token key.
+- **Linear-time scanning via Aho-Corasick** (#242): global and slug replacements
+  use longest/first-match automata instead of repeated per-position probing; the
+  `UniqueSlugify` collision counter is amortised; and multi-codepoint emoji are
+  matched through a code-point trie.
+- Per-character hot-loop improvements — resolve-once language tables, block-table
+  dispatch, ASCII-run skipping (#235); fewer copies on the ASCII/identity path
+  (#236); chunked batch extraction that caps peak memory (#239); single-pass
+  strict mode, O(u)→O(1) in time and space (#240); further ASCII fast-paths and
+  removal of O(n·k) scans (#252).
+- A **benchmark harness with a deterministic iai-callgrind estimated-cycle gate**
+  guards every PR against regressions in CI (#234).
+
+  > Note: the batch (`list[str]`) API's advantage over a Python loop has narrowed
+  > for short strings now that a scalar call is ~70 ns — for tiny inputs it is at
+  > rough parity. Its durable value is the single GIL-released crossing (thread
+  > parallelism), not a raw per-call speedup. See `docs/performance.md`.
+
+### Added
+
+- **`TextPipeline(preset=…)`** constructor and related new-surface ergonomics
+  (#259).
+- **CLI**: `slugify` honours `--lang`; the `strip_bidi` / `strip_zalgo` steps are
+  exposed; error output is cleaned up (#250).
+- The `errors` parameter annotation now includes `"strict"` in the
+  callable-module and `Text` wrappers (#247).
+
+### Changed
+
+- `docs/performance.md` rewritten so **every claim is CI-executed (Sybil) or
+  linked to a recorded measurement**, with a stated margin policy, varied
+  scenarios, a prominent "where we are slower" section, and a credit paragraph
+  for Unidecode and its lineage (#291).
+
+### Internal
+
+- Resource-limit constants centralised in a single `src/limits.rs` module so the
+  library's resource posture has one audit surface (#256).
+- Cross-cutting Rust-core helpers (`apply_replacements`, `emit_warning`)
+  de-duplicated (#251).
+- Incorrect docstring examples in the Python wrapper modules corrected (#246).
+
 ## [0.7.0] — 2026-06-10
 
 A feature and architecture release. Headlines: a **unified, catchable exception
