@@ -18,10 +18,10 @@
 
 use std::hint::black_box;
 
-use _translit::case_fold::_fold_case;
-use _translit::slugify::{slugify_impl, SlugConfig};
-use _translit::transliterate::{_strip_accents, find_untranslatable_impl, transliterate_impl};
-use _translit::ErrorMode;
+use _disarm::case_fold::_fold_case;
+use _disarm::slugify::{slugify_impl, SlugConfig};
+use _disarm::transliterate::{_strip_accents, find_untranslatable_impl, transliterate_impl};
+use _disarm::ErrorMode;
 
 #[path = "../benchmarks/persona_corpus.rs"]
 mod persona_corpus;

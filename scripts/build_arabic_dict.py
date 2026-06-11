@@ -166,7 +166,7 @@ def process_corpus(
 #   prev_len (2 bytes) + prev (UTF-8) + curr_len (2 bytes) + curr (UTF-8)
 #   + form_len (2 bytes) + form (UTF-8)
 
-MAGIC = b"TRLD"  # translit dictionary
+MAGIC = b"TRLD"  # disarm dictionary
 VERSION = 1
 
 

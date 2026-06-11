@@ -31,7 +31,7 @@ import sysconfig
 from datetime import datetime, timezone
 from pathlib import Path
 
-SCHEMA = "translit-perf-fingerprint/v1"
+SCHEMA = "disarm-perf-fingerprint/v1"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Comparators whose exact version is part of the fingerprint (must match the
@@ -210,7 +210,7 @@ def build_record() -> dict[str, object]:
         "schema": SCHEMA,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "corpus_digest": rust.get("corpus_digest"),
-        "translit": translit_info(rust),
+        "disarm": translit_info(rust),
         "build": {
             "arch": rust.get("build_arch"),
             "os": rust.get("build_os"),
