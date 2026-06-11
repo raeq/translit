@@ -19,7 +19,7 @@ extension-module = ["pyo3/extension-module"]
 embed-dicts = []
 
 [dependencies]
-pyo3 = { version = "0.24.1", features = ["abi3-py310"] }
+pyo3 = { version = "0.24.1" }  # SPIKE: non-abi3 — full C-API for PEP 393 access
 regex = "1"
 bitflags = "2"
 unicode-normalization = "0.1"
@@ -47,7 +47,7 @@ path = "benchmarks/bench_core.rs"
 harness = false
 
 [lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"  # SPIKE ONLY: deny (overridable) so src/fastpath.rs can allow; production stays forbid
 missing_docs = "warn"
 
 [lints.clippy]

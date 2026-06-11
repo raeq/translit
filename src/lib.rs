@@ -11,6 +11,7 @@ pub mod utils;
 
 // Pure-Rust error enum + the single PyO3 boundary conversion (#181).
 pub(crate) mod error;
+pub(crate) mod fastpath;
 pub(crate) use error::Error;
 
 /// Error handling mode for operations that encounter untranslatable/unknown input.

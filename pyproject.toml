@@ -109,7 +109,7 @@ Changelog = "https://github.com/raeq/translit/blob/main/CHANGELOG.md"
 [tool.maturin]
 python-source = "python"
 module-name = "translit._translit"
-features = ["pyo3/abi3-py310"]
+features = []  # SPIKE: non-abi3 measurement build
 # Context dictionary data files (data/*.bin) are NOT shipped in the wheel. They
 # are built from source via `bash scripts/bootstrap_dicts.sh` and located at
 # runtime via the TRANSLIT_DICT_DIR environment variable (see src/context.rs).

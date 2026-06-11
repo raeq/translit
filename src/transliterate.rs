@@ -153,6 +153,17 @@ pub fn _transliterate<'py>(
         return Err(crate::Error::MutuallyExclusiveBare.into());
     }
     validate_lang(lang)?;
+    // SPIKE (#277 lever 5): header-flag ASCII fast path — no to_str(), no
+    // UTF-8 access, no replacement-pass call. Conservative conditions keep
+    // semantics identical: default error mode only (other values raise or
+    // diverge later), and no registered replacements (ASCII-keyed
+    // replacements must still fire).
+    if errors == "replace"
+        && !crate::tables::replacements_active()
+        && crate::fastpath::pystr_is_ascii(text)
+    {
+        return Ok(text.clone());
+    }
     let py = text.py();
     let s = text.to_str()?;
     // `errors` is validated below (after the strict short-circuit, since "strict"
@@ -186,7 +197,10 @@ pub fn _transliterate<'py>(
     // identical for an immutable `str` — and zero-alloc.
     match (&replaced, &out) {
         (Cow::Borrowed(_), Cow::Borrowed(_)) => Ok(text.clone()),
-        _ => Ok(PyString::new(py, &out)),
+        // SPIKE (#277 lever 5): output is ASCII by construction (build.rs
+        // enforces ASCII table values) — build the result object directly
+        // instead of re-deriving the representation via PyString::new.
+        _ => crate::fastpath::new_ascii_pystring(py, out.as_bytes()),
     }
 }
 

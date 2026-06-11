@@ -573,6 +573,12 @@ pub fn clear_replacements() {
 /// otherwise expand past the transliterate() input cap and defeat it. The
 /// output is bounded during construction, so the over-limit allocation is
 /// capped rather than realised in full.
+/// SPIKE (#277 lever 5): expose the no-replacements flag so the unsafe fast
+/// path can skip the replacement pre-pass without taking any lock.
+pub fn replacements_active() -> bool {
+    HAS_REPLACEMENTS.load(Ordering::Acquire)
+}
+
 pub fn apply_replacements(text: &str, max_len: usize) -> Result<Cow<'_, str>, usize> {
     // Fast path: no replacements registered (single Acquire atomic load,
     // pairing with the Release stores in the mutators).
