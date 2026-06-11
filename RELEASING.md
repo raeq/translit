@@ -29,8 +29,8 @@ other minor things**. A point release never introduces a new capability.
 
 Two-component. The bucket for **new capabilities or major internal refactorings** — for
 example, the extraction of the pure-Rust core — published canonically as the `disarm`
-crate on crates.io (not `disarm-core`) — and its other-language bindings is the `0.9`
-release.
+crate on crates.io (not `disarm-core`) — and its other-language bindings is the `0.10`
+release. (The `0.9` release is the `translit` → `disarm` rename; #264.)
 
 Documentation that a feature **requires** ships **with** that feature, in the same minor
 release — it is never split out into a separate point release. (Standalone documentation
@@ -106,7 +106,7 @@ see [SECURITY.md](SECURITY.md).
 ### Per-registry mechanism
 
 disarm ships to several ecosystems; the "yank" verb differs in each. The current
-artifact is PyPI; the rest arrive with the `0.8` pure-Rust core (`disarm` on crates.io)
+artifact is PyPI; the rest arrive with the `0.10` pure-Rust core (`disarm` on crates.io)
 and its bindings.
 
 | Artifact | Mechanism | Destructive? | Notes |
