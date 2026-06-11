@@ -10,6 +10,27 @@ compatibility (see [RELEASING.md](RELEASING.md)).
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-06-11
+
+The final `translit-rs` release and the close of the 0.8 performance-hardening
+arc. The project continues as **`disarm`** from `0.9.0` (#264); `0.8.1` exists to
+publish honest, production-true benchmark numbers before the rename.
+
+### Changed
+
+- **Benchmarks now run in the fresh-string regime** (#277, #302): every timed
+  call receives a newly constructed `str`, the way production traffic always
+  does. The prior cached-object measurement let CPython's per-object `AsUTF8`
+  cache hide ~105–137 ns/call of UTF-8 encode cost that only `translit` pays
+  (pure-Python comparators never call `AsUTF8`), flattering it. JSON records now
+  carry `regime: fresh-string/v2`; pre-flip history is the cached `v1` regime and
+  must not be compared across regimes.
+- **README short-string figures updated to the measured fresh-regime values**:
+  ~17× vs Unidecode (Latin), ~14× (mixed scripts), ~13× (Cyrillic/Greek); ~65 ns
+  ASCII passthrough; the four-cell Unidecode-own sweep still holds (~1.3× on
+  Unidecode's strongest case to ~25×), with a methodology note explaining the
+  regime.
+
 ## [0.8.0] — 2026-06-11
 
 A **performance and hardening** release. The headline is a benchmark-gated
