@@ -192,10 +192,10 @@ def comparator_versions() -> dict[str, str]:
     return out
 
 
-def translit_info(rust: dict[str, object]) -> dict[str, object]:
+def disarm_info(rust: dict[str, object]) -> dict[str, object]:
     commit = _run(["git", "rev-parse", "HEAD"], cwd=str(REPO_ROOT)) or None
     dirty = bool(_run(["git", "status", "--porcelain"], cwd=str(REPO_ROOT)))
-    return {"version": rust.get("translit_version"), "commit": commit, "dirty": dirty}
+    return {"version": rust.get("disarm_version"), "commit": commit, "dirty": dirty}
 
 
 def ci_image() -> dict[str, str] | None:
@@ -210,7 +210,7 @@ def build_record() -> dict[str, object]:
         "schema": SCHEMA,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "corpus_digest": rust.get("corpus_digest"),
-        "disarm": translit_info(rust),
+        "disarm": disarm_info(rust),
         "build": {
             "arch": rust.get("build_arch"),
             "os": rust.get("build_os"),

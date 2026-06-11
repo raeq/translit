@@ -117,8 +117,8 @@ jobs:
 
       - name: Run doctests
         run: |
-          TRANSLIT_DIR=$(python -c "import disarm, os; print(os.path.dirname(disarm.__file__))")
-          pytest --doctest-modules "$TRANSLIT_DIR/__init__.py" "$TRANSLIT_DIR/_compat.py" -q
+          DISARM_DIR=$(python -c "import disarm, os; print(os.path.dirname(disarm.__file__))")
+          pytest --doctest-modules "$DISARM_DIR/__init__.py" "$DISARM_DIR/_compat.py" -q
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v7

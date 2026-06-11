@@ -46,7 +46,7 @@ fn print_fingerprint() {
     // All values are ASCII (hex digest, semver, arch/os consts) — no JSON
     // escaping needed.
     println!(
-        "{{\"corpus_digest\":\"{}\",\"translit_version\":\"{}\",\
+        "{{\"corpus_digest\":\"{}\",\"disarm_version\":\"{}\",\
          \"build_arch\":\"{}\",\"build_os\":\"{}\",\
          \"pointer_width_bits\":{},\"build_profile\":\"{}\"}}",
         persona_corpus::corpus_digest(),
