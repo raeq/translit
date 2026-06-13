@@ -1,0 +1,52 @@
+# cargo-deny configuration — supply-chain policy gate (#260).
+#
+# Runs in CI as part of the "Rust checks passed" merge gate. Complements the
+# dedicated `cargo audit` job (RustSec advisories) by also policing licenses,
+# crate bans, and dependency sources. Cargo.lock is generated in CI (it is
+# gitignored for this library), so this checks the latest compatible graph.
+
+[graph]
+# Check the dependency graph with all features enabled so the extension-module
+# and embed-dicts feature dependencies are policed too.
+all-features = true
+
+[advisories]
+version = 2
+# RustSec *vulnerability* advisories are gated by the dedicated `cargo audit`
+# job, so CI runs `cargo deny check licenses bans sources` (not advisories).
+# This section only shapes a local `cargo deny check`: a yanked crate still
+# fails, but unmaintained advisories are not gated — they would otherwise flag
+# benchmark-only dev dependencies (e.g. proc-macro-error2 via iai-callgrind)
+# that never reach the published artifact.
+yanked = "deny"
+unmaintained = "none"
+
+[licenses]
+version = 2
+# Permissive licenses only. Every entry corresponds to a license actually
+# present in the dependency graph (or a near-neighbor we would accept); a new
+# dependency under any other license fails the gate and must be reviewed.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception", # target-lexicon (bench/dev graph)
+    "BSD-3-Clause",                   # encoding_rs (AND component)
+    "Unicode-3.0",                    # icu_* / unicode-ident (AND component)
+    "Unlicense",                      # aho-corasick / memchr (OR MIT)
+    "Zlib",                           # foldhash
+]
+confidence-threshold = 0.9
+
+[bans]
+# Duplicate versions are noise in a transitive graph, not a security issue, so
+# warn rather than fail. Wildcard (`*`) version requirements are banned — they
+# defeat reproducibility and let an unexpected major version slip in.
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+# Only crates.io is a trusted source; an unknown registry or a git dependency
+# (which bypasses the registry's yank/audit machinery) fails the gate.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

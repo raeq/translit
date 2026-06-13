@@ -140,3 +140,42 @@ jobs:
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
         with:
           skip-existing: true
+          # PEP 740 provenance: generate + upload a signed attestation for every
+          # distribution, binding it to this repo + workflow + commit via the
+          # OIDC trusted-publishing identity (#260). Default-on, set explicitly.
+          attestations: true
+
+  sbom:
+    name: SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    # Attach the bill of materials to the GitHub Release (not on manual dispatch,
+    # which has no release to attach to).
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
+    steps:
+      # SHA-pin every action in the provenance path (a supply-chain job must not
+      # trust mutable tags) and pin the SBOM generator version for reproducible,
+      # non-breaking release output.
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8  # stable
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32  # v2
+      - name: Generate Cargo.lock
+        run: cargo generate-lockfile
+      - name: Install cargo-cyclonedx
+        run: cargo install cargo-cyclonedx --locked --version 0.5.9
+      - name: Generate Rust SBOM (CycloneDX)
+        run: cargo cyclonedx --format json --all-features
+      - name: Collect SBOM artifact(s)
+        run: |
+          mkdir -p sbom
+          find . -name '*.cdx.json' -not -path './sbom/*' -exec cp {} sbom/ \;
+          ls -lh sbom/
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: sbom-cyclonedx
+          path: sbom/*.cdx.json
+      - name: Attach SBOM to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" sbom/*.cdx.json --clobber

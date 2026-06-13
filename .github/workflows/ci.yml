@@ -182,6 +182,29 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
 
+  # ── Supply-chain policy gate (#260: licenses, bans, sources via cargo-deny) ──
+  # Runs on every PR (like cargo audit): a dependency's license or source can
+  # change without any code change here. Cargo.lock is gitignored, so generate it
+  # first; the policy lives in deny.toml.
+  cargo-deny:
+    name: Cargo deny (supply-chain)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8  # stable
+
+      - name: Generate Cargo.lock
+        run: cargo generate-lockfile
+
+      - name: Run cargo deny
+        uses: EmbarkStudios/cargo-deny-action@8a45e1c7c9a95dfae3276e89a553705e40ae45a2  # v2.0.20
+        with:
+          # licenses / bans / sources only — RustSec advisories are owned by the
+          # dedicated `cargo audit` job above (#260).
+          command: check licenses bans sources
+
+
   # ── Status gates (always run, for branch protection) ────────────
   # These MUST run on every PR so branch protection checks report.
   # On doc-only PRs, lint/test are skipped — gates pass on those.
@@ -190,7 +213,7 @@ jobs:
   rust-ok:
     name: Rust checks passed
     if: always()
-    needs: [changes, lint, test, cargo-audit]
+    needs: [changes, lint, test, cargo-audit, cargo-deny]
     runs-on: ubuntu-latest
     steps:
       - run: |
@@ -198,10 +221,19 @@ jobs:
           LINT="${{ needs.lint.result }}"
           TEST="${{ needs.test.result }}"
           AUDIT="${{ needs['cargo-audit'].result }}"
+          DENY="${{ needs['cargo-deny'].result }}"
 
           # A RustSec advisory blocks merge regardless of code changes (#195).
           if [[ "$AUDIT" != "success" ]]; then
             echo "cargo audit ($AUDIT) — an outstanding RustSec advisory blocks merge"
+            exit 1
+          fi
+
+          # A supply-chain policy violation (license/ban/source) blocks merge on
+          # every PR (#260): a dependency's license or source can change without
+          # any code change here.
+          if [[ "$DENY" != "success" ]]; then
+            echo "cargo deny ($DENY) — a supply-chain policy violation blocks merge"
             exit 1
           fi
 
