@@ -753,7 +753,7 @@ pub fn _slugify_batch(
         for i in start..end {
             chunk.push(texts.get_item(i)?.extract::<String>()?);
         }
-        let processed: Vec<String> = py.allow_threads(|| {
+        let processed: Vec<String> = py.detach(|| {
             chunk
                 .iter()
                 .map(|text| slugify_impl_with_stopset(text, &config, Some(&stopset)))
@@ -864,7 +864,7 @@ impl _Slugifier {
 pub struct _UniqueSlugifier {
     inner: _Slugifier,
     seen: HashSet<String>,
-    check: Option<PyObject>,
+    check: Option<Py<PyAny>>,
     /// #242 item 3: per-base hint for the next suffix counter to try, so the
     /// k-th duplicate of a base does not re-walk suffixes 1..k (O(n²) →
     /// amortized O(n)). Only used when `check` is `None`: without an external
@@ -925,7 +925,7 @@ impl _UniqueSlugifier {
         safe_chars="",
     ))]
     fn new(
-        check: Option<PyObject>,
+        check: Option<Py<PyAny>>,
         separator: &str,
         lowercase: bool,
         max_length: i64,

@@ -242,7 +242,7 @@ pub fn _transliterate_entry<'py>(
     // remaining validation (lang, errors, strict_iso9 × gost7034) runs inside
     // `_transliterate` itself (#130).
     if target.is_none() && !context {
-        if let Ok(s) = text.downcast_exact::<PyString>() {
+        if let Ok(s) = text.cast_exact::<PyString>() {
             return Ok(_transliterate(
                 s,
                 lang,
@@ -1743,7 +1743,7 @@ pub fn _transliterate_batch(
         for i in start..end {
             chunk.push(texts.get_item(i)?.extract::<String>()?);
         }
-        let processed: Vec<String> = py.allow_threads(|| -> PyResult<Vec<String>> {
+        let processed: Vec<String> = py.detach(|| -> PyResult<Vec<String>> {
             chunk
                 .iter()
                 .map(|text| -> PyResult<String> {
@@ -1793,7 +1793,7 @@ pub fn _strip_accents_batch(py: Python<'_>, texts: Vec<String>) -> PyResult<Vec<
         .into());
     }
     // Pure-Rust loop with the GIL released (#70).
-    Ok(py.allow_threads(move || {
+    Ok(py.detach(move || {
         texts
             .into_iter()
             .map(|text| {

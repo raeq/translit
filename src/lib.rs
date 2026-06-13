@@ -238,7 +238,7 @@ pub(crate) fn recover_lock<T>(result: std::sync::LockResult<T>, table_name: &str
         // non-fatal. Catch that panic and fall back to stderr so recovery never
         // aborts. (#117)
         let emitted = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            pyo3::Python::with_gil(|py| emit_py_warning(py, &msg));
+            pyo3::Python::attach(|py| emit_py_warning(py, &msg));
         }));
         if emitted.is_err() {
             emit_warning_stderr(&msg);

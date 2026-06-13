@@ -103,7 +103,7 @@ pub fn _normalize_batch(py: Python<'_>, texts: Vec<String>, form: &str) -> PyRes
         "NFKD" => |t| t.nfkd().collect(),
         _ => unreachable!(),
     };
-    Ok(py.allow_threads(move || texts.iter().map(|t| normalize_one(t)).collect()))
+    Ok(py.detach(move || texts.iter().map(|t| normalize_one(t)).collect()))
 }
 
 #[cfg(test)]
