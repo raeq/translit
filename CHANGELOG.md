@@ -29,6 +29,7 @@ compatibility (see [RELEASING.md](RELEASING.md)).
 
 ### Security
 
+- **Supply-chain hardening** (#260): added `cargo deny` (license allow-list, banned/wildcard crates, crates.io-only sources via [`deny.toml`](deny.toml)) to the required *Rust checks passed* gate, alongside the existing `cargo audit`. Releases now attach a CycloneDX SBOM (`*.cdx.json`) of the Rust dependency graph, and PyPI distributions carry PEP 740 build-provenance attestations via OIDC Trusted Publishing. Verification is documented in SECURITY.md.
 - **Bumped `pyo3` 0.24 → 0.29**, resolving two upstream advisories: `GHSA-36hh-v3qg-5jq4` (HIGH — out-of-bounds read in `nth`/`nth_back` for `PyList`/`PyTuple` iterators) and `GHSA-chgr-c6px-7xpp` (MEDIUM — missing `Sync` bound on `PyCFunction::new_closure` closures). Includes the binding-layer API migration the bump requires (GIL `with_gil`/`allow_threads` → `attach`/`detach`, `PyObject` → `Py<PyAny>`, `downcast_exact` → `cast_exact`); no functional change to any transform. (#315)
 
 ### Internal
