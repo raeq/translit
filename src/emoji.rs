@@ -24,10 +24,10 @@ const VS16: char = '\u{FE0F}';
 const VS15: char = '\u{FE0E}';
 
 /// Sentinel for "no custom provider registered".
-static GLOBAL_PROVIDER: LazyLock<RwLock<Option<PyObject>>> = LazyLock::new(|| RwLock::new(None));
+static GLOBAL_PROVIDER: LazyLock<RwLock<Option<Py<PyAny>>>> = LazyLock::new(|| RwLock::new(None));
 
 /// Register a global Python emoji provider (or None to reset to default).
-pub fn set_provider(provider: Option<PyObject>) {
+pub fn set_provider(provider: Option<Py<PyAny>>) {
     let mut guard = crate::recover_lock(GLOBAL_PROVIDER.write(), "GLOBAL_PROVIDER");
     *guard = provider;
 }
@@ -268,7 +268,7 @@ impl<'a> CharWindow<'a> {
 /// always 0 from the window's perspective.
 fn try_python_provider(
     py: Python<'_>,
-    provider: &PyObject,
+    provider: &Py<PyAny>,
     window: &[char],
     max_len: usize,
 ) -> Option<(String, usize)> {
@@ -320,7 +320,7 @@ fn demojize_impl(
     strip_modifiers: bool,
     error_mode: ErrorMode,
     replace_with: &str,
-    provider: Option<&PyObject>,
+    provider: Option<&Py<PyAny>>,
 ) -> String {
     // Fast path: pure-ASCII text cannot contain emoji.
     if text.is_ascii() {
@@ -462,7 +462,7 @@ pub fn _demojize(
     strip_modifiers: bool,
     errors: &str,
     replace_with: &str,
-    provider: Option<PyObject>,
+    provider: Option<Py<PyAny>>,
 ) -> PyResult<String> {
     let error_mode = ErrorMode::from_str(errors)?;
 
@@ -470,7 +470,7 @@ pub fn _demojize(
     // 1. Explicit per-call provider
     // 2. Global registered provider
     // 3. Built-in default (None)
-    let effective_provider: Option<PyObject> = if provider.is_some() {
+    let effective_provider: Option<Py<PyAny>> = if provider.is_some() {
         provider
     } else {
         let guard = crate::recover_lock(GLOBAL_PROVIDER.read(), "GLOBAL_PROVIDER");
@@ -514,7 +514,7 @@ pub fn _demojize(
 #[pyfunction]
 #[pyo3(name = "_set_emoji_provider")]
 #[pyo3(signature = (provider=None))]
-pub fn _set_emoji_provider(provider: Option<PyObject>) -> PyResult<()> {
+pub fn _set_emoji_provider(provider: Option<Py<PyAny>>) -> PyResult<()> {
     crate::transliterate::check_not_sealed("set_emoji_provider")?;
     set_provider(provider);
     Ok(())

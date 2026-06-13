@@ -531,7 +531,7 @@ pub fn resolve_auto_lang(text: &str) -> Option<String> {
 ///   - `discriminators_hit`: list of discriminator characters found
 #[pyfunction]
 #[pyo3(signature = (text,))]
-pub fn _inspect_auto_lang(py: Python<'_>, text: &str) -> PyResult<PyObject> {
+pub fn _inspect_auto_lang(py: Python<'_>, text: &str) -> PyResult<Py<PyAny>> {
     use pyo3::types::PyDict;
 
     // Pass 1: Find primary non-Latin, non-Common script.

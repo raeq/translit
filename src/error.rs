@@ -527,7 +527,7 @@ impl From<Error> for pyo3::PyErr {
         };
 
         if let Some(cause_err) = cause {
-            pyo3::Python::with_gil(|py| err_py.set_cause(py, Some(cause_err)));
+            pyo3::Python::attach(|py| err_py.set_cause(py, Some(cause_err)));
         }
         err_py
     }
