@@ -10,7 +10,7 @@ import unicodedata
 from pathlib import Path
 
 import pytest
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
 
 from disarm import grapheme_len, grapheme_width, terminal_width
@@ -101,10 +101,11 @@ def test_iw3_additivity_across_space(a: str, b: str) -> None:
     genuine conditional invariant rather than a tautology.)
     """
     joined = f"{a} {b}"
-    if grapheme_len(joined) != grapheme_len(a) + 1 + grapheme_len(b):
-        # The inserted space merged into a neighbouring cluster (leading
-        # Extend/ZWJ/SpacingMark in b). Additivity is not expected here.
-        return
+    # Discard (don't vacuously pass) examples where the inserted space merged
+    # into a neighbouring cluster — a leading Extend/ZWJ/SpacingMark in b. Using
+    # assume() lets Hypothesis keep generating satisfying inputs instead of
+    # spending budget on cases the invariant does not cover.
+    assume(grapheme_len(joined) == grapheme_len(a) + 1 + grapheme_len(b))
     assert terminal_width(joined) == terminal_width(a) + 1 + terminal_width(b)
 
 
