@@ -17,6 +17,7 @@
 
 use std::hint::black_box;
 
+use _disarm::encoders::{escape_html_str, percent_encode_str};
 use _disarm::slugify::{slugify_impl, SlugConfig};
 use _disarm::transliterate::transliterate_impl;
 use _disarm::ErrorMode;
@@ -63,11 +64,30 @@ fn slugify_doc(text: String) -> usize {
     black_box(slugify_impl(black_box(&text), &config)).len()
 }
 
+// Output encoders (#311), fresh-string regime. escape_html on metacharacter-free
+// docs exercises the scan + Cow::Borrowed fast path; percent_encode exercises the
+// per-byte encode loop (latin = mostly-unreserved, cyrillic = mostly %XX).
+#[library_benchmark]
+#[bench::ascii(doc("ascii_doc"))]
+#[bench::latin(doc("latin_doc"))]
+fn escape_html_doc(text: String) -> usize {
+    black_box(escape_html_str(black_box(&text))).len()
+}
+
+#[library_benchmark]
+#[bench::latin(doc("latin_doc"))]
+#[bench::cyrillic(doc("cyrillic_doc"))]
+fn percent_encode_doc(text: String) -> usize {
+    black_box(percent_encode_str(black_box(&text), black_box("query")))
+        .unwrap()
+        .len()
+}
+
 library_benchmark_group!(
     name = perf_gate;
     // Cache simulation on → iai reports Estimated Cycles, the gated metric (V10).
     config = LibraryBenchmarkConfig::default().tool(Callgrind::with_args(["--cache-sim=yes"]));
-    benchmarks = transliterate_doc, slugify_doc
+    benchmarks = transliterate_doc, slugify_doc, escape_html_doc, percent_encode_doc
 );
 
 main!(library_benchmark_groups = perf_gate);

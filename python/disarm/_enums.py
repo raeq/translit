@@ -100,6 +100,19 @@ class Script(enum.Enum):
         return f"Script.{self.name}"
 
 
+class Component(enum.Enum):
+    """URL component for :func:`disarm.percent_encode`.
+
+    Selects the RFC 3986 safe set; the encoding differs by where the value is
+    placed, so the component must be stated explicitly (there is no default).
+    """
+
+    PATH = "path"  # whole path: pchar + "/"
+    SEGMENT = "segment"  # one path segment: pchar (encodes "/")
+    QUERY = "query"  # query value: unreserved only (reserved chars encoded)
+    FORM = "form"  # application/x-www-form-urlencoded (space -> "+")
+
+
 # Language code constants — European
 LANG_BG: str = "bg"  # Bulgarian
 LANG_CA: str = "ca"  # Catalan

@@ -71,6 +71,9 @@ EXPECTED_ALL = {
     # Hostname safety
     "is_suspicious_hostname",
     "HostnameAnalysis",
+    # Output encoders
+    "escape_html",
+    "percent_encode",
     # Reverse transliteration
     "reverse_langs",
     # Encoding
@@ -111,6 +114,7 @@ EXPECTED_ALL = {
     # Enums, protocols & constants
     "EmojiProvider",
     "NF",
+    "Component",
     "Script",
     # Compatibility aliases
     "casefold",
@@ -356,6 +360,9 @@ CORE_FUNCTION_PARAMS = {
     "terminal_width": ["text", "ambiguous_wide"],
     # Hostname
     "is_suspicious_hostname": ["hostname"],
+    # Output encoders
+    "escape_html": ["text"],
+    "percent_encode": ["text", "component"],
     # Reverse
     "reverse_langs": [],
     # Encoding
@@ -644,6 +651,8 @@ EXPECTED_SCRIPT_MEMBERS = {
 
 EXPECTED_NF_MEMBERS = {"C", "D", "KC", "KD"}
 
+EXPECTED_COMPONENT_MEMBERS = {"PATH", "SEGMENT", "QUERY", "FORM"}
+
 
 class TestEnumStability:
     """Enum members must not be added or removed without updating these tests."""
@@ -661,6 +670,12 @@ class TestEnumStability:
     def test_nf_members(self):
         actual = {m.name for m in NF}
         assert actual == EXPECTED_NF_MEMBERS
+
+    def test_component_members(self):
+        from disarm import Component
+
+        actual = {m.name for m in Component}
+        assert actual == EXPECTED_COMPONENT_MEMBERS
 
     def test_script_is_enum(self):
         import enum

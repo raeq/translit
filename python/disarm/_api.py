@@ -28,6 +28,7 @@ from disarm._disarm import (
     _detect_encoding,
     # Predicates
     _detect_scripts,
+    _escape_html,
     # Untranslatable scan (#184)
     _find_untranslatable,
     _fold_case,
@@ -48,6 +49,7 @@ from disarm._disarm import (
     _normalize,  # noqa: F401  (used by normalize() and internal pipelines)
     _normalize_batch,
     _normalize_confusables,
+    _percent_encode,
     _register_lang,
     _register_replacements,
     _registrations_sealed,
@@ -81,6 +83,7 @@ from disarm._disarm import (
 from disarm._enums import (
     LANG_META,
     SCRIPT_META,
+    Component,
     LangMeta,
     Script,
     ScriptMeta,
@@ -1176,6 +1179,71 @@ def is_suspicious_hostname(hostname: str) -> tuple[bool, HostnameAnalysis]:
         'google.com'
     """
     return _is_suspicious_hostname(hostname)
+
+
+# --- Output encoders (terminal, context-explicit — NOT pipeline steps) ---
+
+
+def escape_html(text: str) -> str:
+    """Escape the five HTML metacharacters for element/quoted-attribute context.
+
+    ``&`` -> ``&amp;``, ``<`` -> ``&lt;``, ``>`` -> ``&gt;``, ``"`` -> ``&quot;``,
+    ``'`` -> ``&#x27;``. Everything else passes through unchanged.
+
+    Correct for HTML **element-body and quoted-attribute** context. It is **not**
+    correct inside ``<script>``/``<style>``, unquoted attributes, URL/``href``/
+    ``src`` attributes, or HTML comments -- there, entity escaping is insufficient
+    or corrupting. This is a terminal output encoder: apply it at the sink,
+    exactly once. It is **not** idempotent (encoding twice double-encodes ``&``),
+    and disarm is not an XSS framework -- see the Threat Model.
+
+    Args:
+        text: The string to escape.
+
+    Returns:
+        The escaped string (the original object when nothing needs escaping).
+
+    Examples:
+        >>> escape_html("<b>a & b</b>")
+        '&lt;b&gt;a &amp; b&lt;/b&gt;'
+        >>> escape_html("plain text")
+        'plain text'
+    """
+    return _escape_html(text)
+
+
+def percent_encode(text: str, *, component: Component) -> str:
+    """RFC 3986 percent-encode ``text`` for a named URL ``component``.
+
+    The input is UTF-8 encoded first, then every byte outside the component's
+    safe set becomes ``%XX`` (``e`` with an accent -> ``%C3%A9``); the output is
+    pure ASCII. ``component`` is required because the safe set depends on where
+    the value is placed (:class:`Component`: ``PATH``/``SEGMENT``/``QUERY``/
+    ``FORM``; ``FORM`` uses ``application/x-www-form-urlencoded`` space -> ``+``).
+
+    Percent-encoding is **not** a defense against ``javascript:``/``data:``
+    scheme injection or open redirects -- those are URL-*construction* concerns,
+    out of scope. Apply at the output sink, exactly once.
+
+    Args:
+        text: The string to encode.
+        component: Which URL component the value will be placed in.
+
+    Returns:
+        The percent-encoded ASCII string.
+
+    Examples:
+        >>> from disarm import Component
+        >>> percent_encode("a b&c", component=Component.QUERY)
+        'a%20b%26c'
+        >>> percent_encode("a b&c", component=Component.FORM)
+        'a+b%26c'
+    """
+    # Accept a Component (the typed contract) but pass a bare string straight
+    # through so a stringly-typed caller gets the core's clear
+    # InvalidArgumentError rather than an AttributeError on ``.value``.
+    value = component.value if isinstance(component, Component) else component
+    return _percent_encode(text, component=value)
 
 
 # --- Reverse transliteration ---

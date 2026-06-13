@@ -53,6 +53,7 @@ pub mod confusables;
 pub mod context;
 #[doc(hidden)]
 pub mod emoji;
+pub mod encoders;
 mod encoding;
 #[doc(hidden)]
 pub mod filename;
@@ -120,6 +121,8 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(normalize::_is_normalized, m)?)?;
     m.add_function(wrap_pyfunction!(confusables::_normalize_confusables, m)?)?;
     m.add_function(wrap_pyfunction!(confusables::_is_confusable, m)?)?;
+    m.add_function(wrap_pyfunction!(encoders::_escape_html, m)?)?;
+    m.add_function(wrap_pyfunction!(encoders::_percent_encode, m)?)?;
     m.add_function(wrap_pyfunction!(filename::_sanitize_filename, m)?)?;
     m.add_function(wrap_pyfunction!(case_fold::_fold_case, m)?)?;
     m.add_function(wrap_pyfunction!(whitespace::_collapse_whitespace, m)?)?;
