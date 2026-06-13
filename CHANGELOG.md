@@ -29,6 +29,10 @@ compatibility (see [RELEASING.md](RELEASING.md)).
 - **Renamed policy profile `web_input_sanitize` → `normalize_web_input`.** Follows the `sanitize_user_input → normalize_user_input` rename: "sanitize" wrongly implied output/injection safety, and was especially misleading here because this profile is *lighter* than `normalize_user_input()` (NFKC + confusables only; no bidi/zero-width/control/zalgo stripping). Use `get_pipeline("normalize_web_input")`. No alias is kept.
 - **Renamed `sanitize_user_input()` → `normalize_user_input()`.** The old name implied output sanitization (injection safety); this preset performs *input Unicode normalization* only and is not an XSS/SQL defense (see Threat Model). The `PRESETS` registry key changes to match (`"normalize_user_input"`). No alias is kept — update call sites directly.
 
+### Documentation
+
+- **Stated the XSS/injection scope boundary explicitly** (#306): README, the docs site, and THREAT_MODEL now say plainly that disarm normalizes *input* and is **not** an output sanitizer — it performs no HTML/JS/SQL/shell escaping and never replaces context-aware output encoding at the sink (NFKC can even *surface* ASCII metacharacters from fullwidth lookalikes). This boundary is the conceptual basis for the renames and the new output encoders in this release.
+
 ### Security
 
 - **Supply-chain hardening** (#260): added `cargo deny` (license allow-list, banned/wildcard crates, crates.io-only sources via [`deny.toml`](https://github.com/raeq/disarm/blob/main/deny.toml)) to the required *Rust checks passed* gate, alongside the existing `cargo audit`. Releases now attach a CycloneDX SBOM (`*.cdx.json`) of the Rust dependency graph, and PyPI distributions carry PEP 740 build-provenance attestations via OIDC Trusted Publishing. Verification is documented in SECURITY.md.
