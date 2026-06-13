@@ -16,6 +16,8 @@ compatibility (see [RELEASING.md](RELEASING.md)).
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-06-13
+
 ### Added
 
 - **`strip_log_injection(text, *, replacement='\ufffd', keep_tab=False)`** (#307). A stateless, character-level encoder that makes untrusted text safe to *write* as a log line: it replaces CR/LF/NEL/LS/PS (record forging), NUL/C0/C1 controls (parser corruption), and ESC/DEL (terminal hijack via ANSI escapes) with `replacement` (default U+FFFD). `\t` is neutralized by default (`keep_tab=False`) to block TSV/logfmt column injection. Idempotent; ASCII-clean fast-path returns the original object; never emits a raw CR/LF/ESC. It owns the log-record and operator-terminal sinks but makes **no** HTML-log-viewer-safety claim (that is stored XSS — encode at the viewer with `escape_html`) and is not a log4shell defense (see Threat Model).
@@ -29,7 +31,7 @@ compatibility (see [RELEASING.md](RELEASING.md)).
 
 ### Security
 
-- **Supply-chain hardening** (#260): added `cargo deny` (license allow-list, banned/wildcard crates, crates.io-only sources via [`deny.toml`](deny.toml)) to the required *Rust checks passed* gate, alongside the existing `cargo audit`. Releases now attach a CycloneDX SBOM (`*.cdx.json`) of the Rust dependency graph, and PyPI distributions carry PEP 740 build-provenance attestations via OIDC Trusted Publishing. Verification is documented in SECURITY.md.
+- **Supply-chain hardening** (#260): added `cargo deny` (license allow-list, banned/wildcard crates, crates.io-only sources via [`deny.toml`](https://github.com/raeq/disarm/blob/main/deny.toml)) to the required *Rust checks passed* gate, alongside the existing `cargo audit`. Releases now attach a CycloneDX SBOM (`*.cdx.json`) of the Rust dependency graph, and PyPI distributions carry PEP 740 build-provenance attestations via OIDC Trusted Publishing. Verification is documented in SECURITY.md.
 - **Bumped `pyo3` 0.24 → 0.29**, resolving two upstream advisories: `GHSA-36hh-v3qg-5jq4` (HIGH — out-of-bounds read in `nth`/`nth_back` for `PyList`/`PyTuple` iterators) and `GHSA-chgr-c6px-7xpp` (MEDIUM — missing `Sync` bound on `PyCFunction::new_closure` closures). Includes the binding-layer API migration the bump requires (GIL `with_gil`/`allow_threads` → `attach`/`detach`, `PyObject` → `Py<PyAny>`, `downcast_exact` → `cast_exact`); no functional change to any transform. (#315)
 
 ### Internal
