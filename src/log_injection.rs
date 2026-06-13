@@ -41,7 +41,12 @@ fn is_log_injection_char(c: char, keep_tab: bool) -> bool {
 /// Pure core: replace every neutralized character with `replacement`.
 ///
 /// Returns `Cow::Borrowed` when the input contains no neutralized character (the
-/// common all-printable line) — an allocation-free pass-through. ANSI sequences
+/// common all-printable line) — an allocation-free pass-through. The check scans
+/// `chars()` rather than taking an `isascii()`/byte shortcut because the
+/// neutralized set includes non-ASCII code points (NEL U+0085, LS U+2028,
+/// PS U+2029, C1 controls): a clean *non-ASCII* line (e.g. `café`) must still
+/// pass through, and those scalars cannot be detected from a single byte. ANSI
+/// sequences
 /// are neutralized by replacing their *introducer* (ESC / the C1 CSI), leaving
 /// the inert, audit-visible residue (`[31m`) as printable text; full CSI/OSC
 /// sequences are not parsed (that would be stateful and fragile).
@@ -66,10 +71,10 @@ pub fn strip_log_injection_str<'a>(
 
 /// Neutralize log-injection / terminal-control characters in `text`.
 ///
-/// Replaces — never silently drops, so a redaction stays visible in the
-/// record — every CR, LF, NEL (U+0085), LS (U+2028), PS (U+2029), NUL, C0/C1
-/// control, ESC (U+001B), and DEL (U+007F) with `replacement` (default
-/// U+FFFD). `\t` is **also** neutralized by default (`keep_tab=False`): a tab is
+/// Replaces — rather than dropping, so a redaction stays visible in the record —
+/// every CR, LF, NEL (U+0085), LS (U+2028), PS (U+2029), NUL, C0/C1 control, ESC
+/// (U+001B), and DEL (U+007F) with `replacement` (default U+FFFD; pass an empty
+/// `replacement` to drop the characters instead). `\t` is **also** neutralized by default (`keep_tab=False`): a tab is
 /// a field separator in TSV/logfmt logs, so keeping it would permit column
 /// injection; opt back in with `keep_tab=True` for human-readable tabular logs.
 ///

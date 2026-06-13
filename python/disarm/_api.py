@@ -1250,9 +1250,9 @@ def percent_encode(text: str, *, component: Component) -> str:
 def strip_log_injection(text: str, *, replacement: str = "\ufffd", keep_tab: bool = False) -> str:
     """Neutralize log-injection / terminal-control characters in ``text``.
 
-    Replaces -- never silently drops, so a redaction stays visible -- every CR,
+    Replaces -- rather than dropping, so a redaction stays visible -- every CR,
     LF, NEL (U+0085), LS (U+2028), PS (U+2029), NUL, C0/C1 control, ESC, and DEL
-    with ``replacement`` (default U+FFFD). ``\t`` is **also** neutralized by
+    with ``replacement`` (default U+FFFD; pass ``replacement=""`` to drop). ``\t`` is **also** neutralized by
     default (``keep_tab=False``): a tab is a field separator in TSV/logfmt logs,
     so keeping it permits column injection; pass ``keep_tab=True`` for
     human-readable tabular logs. ANSI escape sequences are neutralized by
@@ -1266,8 +1266,9 @@ def strip_log_injection(text: str, *, replacement: str = "\ufffd", keep_tab: boo
 
     Args:
         text: The (untrusted) string destined for a log line.
-        replacement: String substituted for each neutralized character. Must not
-            itself contain a neutralized character (else ``DisarmError``).
+        replacement: String substituted for each neutralized character (``""``
+            drops them). Must not itself contain a neutralized character (else
+            ``DisarmError``).
         keep_tab: Keep ``\t`` instead of neutralizing it.
 
     Returns:

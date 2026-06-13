@@ -59,7 +59,9 @@ class TestStripLogInjection:
 
     def test_custom_replacement(self) -> None:
         assert strip_log_injection("a\nb", replacement="?") == "a?b"
-        assert strip_log_injection("a\nb", replacement="") == "ab"  # drop
+        # An empty replacement is an explicit opt-in to drop (not the default,
+        # which substitutes a visible U+FFFD).
+        assert strip_log_injection("a\nb", replacement="") == "ab"
 
     def test_replacement_with_control_rejected(self) -> None:
         with pytest.raises(DisarmError):
