@@ -24,6 +24,7 @@ from disarm._api import (
     demojize,
     detect_encoding,
     detect_scripts,
+    escape_html,
     find_untranslatable,
     fold_case,
     grapheme_len,
@@ -43,6 +44,7 @@ from disarm._api import (
     make_cached_transliterator,
     normalize,
     normalize_confusables,
+    percent_encode,
     register_lang,
     register_replacements,
     registrations_sealed,
@@ -154,6 +156,7 @@ from disarm._enums import (
     LANG_VI,
     LANG_ZH,
     SCRIPT_META,
+    Component,
     LangMeta,
     Script,
     ScriptMeta,
@@ -240,6 +243,8 @@ __all__ = [
     "terminal_width",
     # Hostname safety
     "is_suspicious_hostname",
+    "escape_html",
+    "percent_encode",
     "HostnameAnalysis",
     # Reverse transliteration
     "reverse_langs",
@@ -282,6 +287,7 @@ __all__ = [
     # Enums, protocols & constants
     "EmojiProvider",
     "NF",
+    "Component",
     "Script",
     "LANG_AM",
     "LANG_AR",

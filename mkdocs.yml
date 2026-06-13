@@ -75,6 +75,7 @@ nav:
       - Core Transforms: api/transforms.md
       - Precompiled Pipelines: api/pipelines.md
       - Predicates: api/predicates.md
+      - Output Encoders: api/encoders.md
       - Grapheme Clusters: api/graphemes.md
       - Encoding: api/encoding.md
       - Classes: api/classes.md

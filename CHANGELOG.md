@@ -16,6 +16,10 @@ compatibility (see [RELEASING.md](RELEASING.md)).
 
 ## [Unreleased]
 
+### Added
+
+- **`escape_html(text)` and `percent_encode(text, *, component)` output encoders** (#311). Standalone *terminal* encoders applied at the output sink — deliberately **not** `TextPipeline`/`PROFILES` steps (a pipeline is context-free; baking encoding in invites double-encoding and wrong-context escaping). `escape_html` escapes the five HTML metacharacters for element/quoted-attribute context (ASCII fast-path returns the original object; not idempotent by design). `percent_encode` does RFC 3986 percent-encoding for a required `Component` (`PATH`/`SEGMENT`/`QUERY`/`FORM`; UTF-8 byte-based, ASCII output, `FORM` uses space→`+`). Both are mechanism-named and carry the #306 scope-boundary discipline: they are the narrow, context-pinned exception to "disarm is not an output sanitizer," not a general XSS/injection defense (see Threat Model).
+
 ### Changed (breaking)
 
 - **Renamed `is_safe_hostname()` → `is_suspicious_hostname()` and inverted its boolean.** The old name asserted a safety it cannot guarantee — `safe=True` only meant "no mixed-script label and no *bundled-table* confusable found," yet whole-script spoofs and out-of-table confusables still returned `safe=True` (the false-assurance pattern #306/#308/#309 removed elsewhere, but as a literal `safe` boolean a caller branches on). The function now returns `(suspicious, analysis)` where `suspicious=True` means a problem was detected; the result struct `SafeHostnameDetails` → `HostnameAnalysis`, field `safe` → `suspicious` (inverted). The granular `scripts` / `mixed_script` / `has_confusables` / `canonical` fields are unchanged. No alias — invert call sites: `safe, d = is_safe_hostname(h)` → `suspicious, a = is_suspicious_hostname(h)`. (#313)

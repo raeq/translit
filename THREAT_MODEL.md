@@ -47,6 +47,8 @@ Each is a *mechanism*, defined by its data and algorithm, not by an outcome prom
 | `strip_obfuscation` / `security_clean` / `normalize_user_input` | Compose the above in a fixed order. The output is "more canonical," not "safe." |
 | `is_suspicious_hostname` | Flag **mixed-script** labels and labels containing bundled-table confusables. A not-suspicious result asserts no problem was *found*, not that the host is safe. |
 | `normalize` (NFC/NFD/NFKC/NFKD), `fold_case` | Standard Unicode normalization / full case folding for the bundled Unicode data version. |
+| `escape_html` | HTML entity escaping of the five metacharacters (`& < > " '`) for element-body / quoted-attribute context. |
+| `percent_encode` | RFC 3986 percent-encoding of a value for a named URL component (`path`/`segment`/`query`/`form`). |
 
 **Documented invariants** (these we *do* stand behind, and treat failures as bugs):
 
@@ -59,6 +61,14 @@ Each is a *mechanism*, defined by its data and algorithm, not by an outcome prom
   crate-wide (`unsafe_code = "forbid"`). (Note: `slugify` accepts a *caller-supplied*
   separator regex — bounded by an input-size cap — which is the one regex path and is not
   part of the security transforms; see the DoS item under *Out of scope*.)
+
+> **Output encoders are the narrow, context-pinned exception to "disarm is not an output
+> sanitizer."** `escape_html` and `percent_encode` are *terminal* encoders, applied at the
+> output sink **exactly once**, with the sink context stated by the caller. They are not made
+> "safe" by composing them with normalization, and disarm is still **not** a context-aware
+> auto-escaper: `escape_html` is wrong inside `<script>`/unquoted-attr/URL contexts, and
+> `percent_encode` does not vet `javascript:`/`data:` schemes or open redirects. Run them at
+> output, after (not instead of) the input-normalization layer.
 
 ## Out of scope — by design, not bugs
 
