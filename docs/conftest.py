@@ -41,7 +41,8 @@ def _reset_global_state(namespace: dict) -> None:
 # keeps un-converted pages visibly unguarded. Paths are relative to docs/.
 EXECUTED_RECIPES = [
     "index.md",
-    "performance.md",
+    # performance.md is tables-only (#322); its executable claims now live in
+    # tests/test_performance_claims.py, so it is intentionally not doctested here.
     "policy-templates.md",
     "api/classes.md",
     "api/enums.md",
