@@ -127,7 +127,10 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(transliterate::_seal_registrations, m)?)?;
     m.add_function(wrap_pyfunction!(transliterate::_registrations_sealed, m)?)?;
     m.add_function(wrap_pyfunction!(slugify::_slugify, m)?)?;
-    m.add_function(wrap_pyfunction!(log_injection::_strip_log_injection, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        py::log_injection::_strip_log_injection,
+        m
+    )?)?;
     m.add_function(wrap_pyfunction!(py::normalize::_normalize, m)?)?;
     m.add_function(wrap_pyfunction!(py::normalize::_is_normalized, m)?)?;
     m.add_function(wrap_pyfunction!(
@@ -184,8 +187,8 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<hostname::HostnameAnalysis>()?;
 
     // Encoding detection
-    m.add_function(wrap_pyfunction!(encoding::_detect_encoding, m)?)?;
-    m.add_function(wrap_pyfunction!(encoding::_decode_to_utf8, m)?)?;
+    m.add_function(wrap_pyfunction!(py::encoding::_detect_encoding, m)?)?;
+    m.add_function(wrap_pyfunction!(py::encoding::_decode_to_utf8, m)?)?;
 
     // Reverse transliteration
     m.add_function(wrap_pyfunction!(py::reverse::_reverse_transliterate, m)?)?;

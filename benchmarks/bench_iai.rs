@@ -17,8 +17,8 @@
 
 use std::hint::black_box;
 
+use _disarm::api::strip_log_injection;
 use _disarm::api::{escape_html, percent_encode, UrlComponent};
-use _disarm::log_injection::strip_log_injection_str;
 use _disarm::slugify::{slugify_impl, SlugConfig};
 use _disarm::transliterate::transliterate_impl;
 use _disarm::ErrorMode;
@@ -88,11 +88,9 @@ fn percent_encode_doc(text: String) -> usize {
 #[bench::ascii(doc("ascii_doc"))]
 #[bench::cyrillic(doc("cyrillic_doc"))]
 fn strip_log_injection_doc(text: String) -> usize {
-    black_box(strip_log_injection_str(
-        black_box(&text),
-        black_box("\u{FFFD}"),
-        black_box(false),
-    ))
+    black_box(
+        strip_log_injection(black_box(&text), black_box("\u{FFFD}"), black_box(false)).unwrap(),
+    )
     .len()
 }
 

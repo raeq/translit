@@ -10,8 +10,10 @@
 pub mod case_fold;
 pub mod confusables;
 pub mod encoders;
+pub mod encoding;
 pub mod filename;
 pub mod grapheme;
+pub mod log_injection;
 pub mod normalize;
 pub mod reverse;
 pub mod scripts;
