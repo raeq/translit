@@ -36,9 +36,12 @@ fn fold_341_idempotent() {
 }
 
 #[test]
-fn fold_341_esh_residue_preserved() {
-    // esh (U+01A9) stays a non-ASCII skeleton on purpose (#341 residue).
-    assert_eq!(nc("Σ", LATIN), "Ʃ");
+fn fold_341_sigma_folds_to_s() {
+    // esh is no longer residue (#341): TR39's sigma/summation skeleton folds to
+    // ASCII. Capital Σ → S (case-preserved); the caseless summation ∑ → s.
+    assert_eq!(nc("Σ", LATIN), "S");
+    assert_eq!(nc("∑", LATIN), "s");
+    assert!(nc("Σ", LATIN).is_ascii());
 }
 
 // ── #342: seven additive pairs collide on a shared representative ────────────

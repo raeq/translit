@@ -130,9 +130,8 @@ CUSTOM_LATIN_OVERRIDES: dict[int, str] = {
 #
 # Glyphs with no clear, non-controversial ASCII fold are deliberately LEFT as
 # non-ASCII residue (#341 "genuinely-non-ASCII, documented, not silently
-# dropped"): esh Ʃ U+01A9 — pinned as an intended TR39 skeleton (see the Python
-# test TestGreekSigmaSkeletonIsEsh) — plus ɂ U+0242 (glottal stop), Ƕ U+01F6
-# (hwair), ǂ U+01C2 (alveolar click), ÷ U+00F7 (division sign), and U+A7CE.
+# dropped"): ɂ U+0242 (glottal stop), Ƕ U+01F6 (hwair), ǂ U+01C2 (alveolar
+# click), ÷ U+00F7 (division sign), and U+A7CE.
 ASCII_FOLD: dict[str, str] = {
     # Clear single-letter representatives.
     # ꞓ/Ꞓ (C WITH BAR) is TR39's *skeleton* for the open-e / epsilon / Ukrainian-ie
@@ -167,6 +166,12 @@ ASCII_FOLD: dict[str, str] = {
     "ƨ": "s",  # LATIN SMALL LETTER TONE TWO
     "ƅ": "b",  # LATIN SMALL LETTER TONE SIX
     "Ʊ": "u",  # LATIN CAPITAL LETTER UPSILON
+    # esh is TR39's skeleton for the sigma / n-ary-summation family (Σ, ∑, ⅀, the
+    # math sigmas, Tifinagh ⵉ). Folds to s — sigma is phonetically 's' and already
+    # transliterates to S — neutralizing the Σ→S spoof that previously survived as
+    # the non-ASCII Ʃ. Reverses the pre-#341 "neutralize ≠ ASCII-fold" decision
+    # (#245); #341 makes ASCII the contract. (Σ folds to S via the Lu case rule.)
+    "Ʃ": "s",  # LATIN CAPITAL LETTER ESH — sigma/summation class (#341)
     "Ɒ": "a",  # LATIN CAPITAL LETTER TURNED ALPHA
 }
 

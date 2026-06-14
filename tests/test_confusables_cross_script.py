@@ -57,11 +57,11 @@ class TestAsciiFold341:
             once = _nc(c)
             assert _nc(once) == once
 
-    def test_esh_residue_preserved(self) -> None:
-        # esh (U+01A9) is a deliberately-retained non-ASCII skeleton (#341 leaves
-        # it as documented residue; see TestGreekSigmaSkeletonIsEsh). Guard that
-        # the #341 fold did NOT sweep it up.
-        assert _nc("Σ") == "Ʃ"  # Σ → Ʃ
+    def test_sigma_folds_to_s(self) -> None:
+        # esh is no longer residue (#341): TR39's sigma/summation skeleton (esh)
+        # folds to ASCII. Capital Σ → S (see TestGreekSigmaFoldsToS).
+        out = _nc("Σ")
+        assert out == "S" and out.isascii(), f"Σ → {out!r}"
 
 
 # ---------------------------------------------------------------------------
