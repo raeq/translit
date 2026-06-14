@@ -10,14 +10,14 @@ use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
+use _disarm::api::collapse_whitespace;
+use _disarm::api::fold_case;
+use _disarm::api::{grapheme_len, grapheme_split};
 use _disarm::api::{normalize_confusables, TargetScript};
-use _disarm::case_fold::_fold_case;
-use _disarm::grapheme::{_grapheme_len, _grapheme_split};
 use _disarm::scripts::{_detect_scripts, _is_mixed_script};
 use _disarm::slugify::{slugify_impl, SlugConfig};
 use _disarm::tables::lookup_default;
 use _disarm::transliterate::transliterate_impl;
-use _disarm::whitespace::_collapse_whitespace;
 use _disarm::ErrorMode;
 
 // ---------------------------------------------------------------------------
@@ -176,7 +176,7 @@ fn bench_fold_case(c: &mut Criterion) {
     ] {
         group.throughput(text_throughput(input));
         group.bench_with_input(BenchmarkId::new("fold", name), input, |b, text| {
-            b.iter(|| _fold_case(black_box(text)));
+            b.iter(|| fold_case(black_box(text)));
         });
     }
 
@@ -192,16 +192,16 @@ fn bench_whitespace(c: &mut Criterion) {
 
     group.throughput(text_throughput(WHITESPACE_MESSY));
     group.bench_function("messy_full_strip", |b| {
-        b.iter(|| _collapse_whitespace(black_box(WHITESPACE_MESSY), true, true));
+        b.iter(|| collapse_whitespace(black_box(WHITESPACE_MESSY), true, true));
     });
 
     group.bench_function("messy_no_strip", |b| {
-        b.iter(|| _collapse_whitespace(black_box(WHITESPACE_MESSY), false, false));
+        b.iter(|| collapse_whitespace(black_box(WHITESPACE_MESSY), false, false));
     });
 
     group.throughput(text_throughput("hello world"));
     group.bench_function("clean_passthrough", |b| {
-        b.iter(|| _collapse_whitespace(black_box("hello world"), true, true));
+        b.iter(|| collapse_whitespace(black_box("hello world"), true, true));
     });
 
     group.finish();
@@ -242,22 +242,22 @@ fn bench_grapheme(c: &mut Criterion) {
 
     group.throughput(text_throughput(ASCII_SHORT));
     group.bench_function("len_ascii", |b| {
-        b.iter(|| _grapheme_len(black_box(ASCII_SHORT)));
+        b.iter(|| grapheme_len(black_box(ASCII_SHORT)));
     });
 
     group.throughput(text_throughput(EMOJI_TEXT));
     group.bench_function("len_emoji", |b| {
-        b.iter(|| _grapheme_len(black_box(EMOJI_TEXT)));
+        b.iter(|| grapheme_len(black_box(EMOJI_TEXT)));
     });
 
     group.throughput(text_throughput(ASCII_SHORT));
     group.bench_function("split_ascii", |b| {
-        b.iter(|| _grapheme_split(black_box(ASCII_SHORT)));
+        b.iter(|| grapheme_split(black_box(ASCII_SHORT)));
     });
 
     group.throughput(text_throughput(EMOJI_TEXT));
     group.bench_function("split_emoji", |b| {
-        b.iter(|| _grapheme_split(black_box(EMOJI_TEXT)));
+        b.iter(|| grapheme_split(black_box(EMOJI_TEXT)));
     });
 
     group.finish();

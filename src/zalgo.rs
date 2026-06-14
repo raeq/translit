@@ -9,20 +9,22 @@
 //! - `is_zalgo()` — detect whether text contains excessive combining marks
 //! - `strip_zalgo()` — cap combining marks per base character, preserving
 //!   legitimate diacritics while removing the stacked abuse
+//!
+//! Layer 1 (pure-Rust core): no pyo3. Shim in `src/py/zalgo.rs`; crates.io
+//! surface is `crate::api::{is_zalgo, strip_zalgo}`.
 
-use pyo3::prelude::*;
 use unicode_normalization::char::is_combining_mark;
 use unicode_normalization::UnicodeNormalization;
 
 /// Default threshold: a base character with more than this many combining marks
 /// is considered zalgo.  Vietnamese `ệ` has 2 combining marks in NFD, so 3
 /// is a safe default that catches abuse while preserving all real-world text.
-const DEFAULT_THRESHOLD: usize = 3;
+pub(crate) const DEFAULT_THRESHOLD: usize = 3;
 
 /// Default cap for `strip_zalgo`: keep at most this many combining marks per
 /// base character.  Set to 2 to preserve all legitimate diacritics (including
 /// Vietnamese double-stacked marks) while stripping anything beyond that.
-const DEFAULT_MAX_MARKS: usize = 2;
+pub(crate) const DEFAULT_MAX_MARKS: usize = 2;
 
 /// Count consecutive combining marks after each base character in NFD form.
 /// Returns the maximum count found.
@@ -52,9 +54,7 @@ fn max_combining_run(text: &str) -> usize {
 /// - `threshold`: Maximum allowed combining marks per base character (default: 3).
 ///   Vietnamese `ệ` has 2 marks in NFD — the default of 3 is safe for all
 ///   legitimate scripts.
-#[pyfunction]
-#[pyo3(signature = (text, *, threshold=DEFAULT_THRESHOLD))]
-pub fn _is_zalgo(text: &str, threshold: usize) -> bool {
+pub(crate) fn is_zalgo(text: &str, threshold: usize) -> bool {
     // Fast path: pure ASCII has no combining marks.
     if text.is_ascii() {
         return false;
@@ -71,18 +71,16 @@ pub fn _is_zalgo(text: &str, threshold: usize) -> bool {
 /// # Parameters
 /// - `max_marks`: Maximum combining marks to keep per base character (default: 2).
 ///   Set to 0 to strip all combining marks (equivalent to `strip_accents`).
-#[pyfunction]
-#[pyo3(signature = (text, *, max_marks=DEFAULT_MAX_MARKS))]
-pub fn _strip_zalgo(text: &str, max_marks: usize) -> String {
+pub(crate) fn strip_zalgo(text: &str, max_marks: usize) -> String {
     let mut out = String::new();
     strip_zalgo_into(text, max_marks, &mut out);
     out
 }
 
-/// In-place form of [`_strip_zalgo`] writing the final NFC result into `out`
+/// In-place form of [`strip_zalgo`] writing the final NFC result into `out`
 /// (cleared first), so the pipeline can reuse one buffer across steps
 /// (#236 item 7). The NFD/NFC two-pass still needs one internal temporary.
-pub fn strip_zalgo_into(text: &str, max_marks: usize, out: &mut String) {
+pub(crate) fn strip_zalgo_into(text: &str, max_marks: usize, out: &mut String) {
     out.clear();
     // Fast path: pure ASCII has no combining marks.
     if text.is_ascii() {
@@ -116,21 +114,21 @@ mod tests {
 
     #[test]
     fn test_is_zalgo_clean_text() {
-        assert!(!_is_zalgo("hello world", 3));
-        assert!(!_is_zalgo("café résumé", 3));
-        assert!(!_is_zalgo("", 3));
+        assert!(!is_zalgo("hello world", 3));
+        assert!(!is_zalgo("café résumé", 3));
+        assert!(!is_zalgo("", 3));
     }
 
     #[test]
     fn test_is_zalgo_ascii_fast_path() {
-        assert!(!_is_zalgo("just ascii text 12345!@#$%", 3));
+        assert!(!is_zalgo("just ascii text 12345!@#$%", 3));
     }
 
     #[test]
     fn test_is_zalgo_vietnamese() {
         // Vietnamese ệ = e + combining circumflex + combining dot below (2 marks)
-        assert!(!_is_zalgo("Việt Nam", 3));
-        assert!(!_is_zalgo("ệ", 2));
+        assert!(!is_zalgo("Việt Nam", 3));
+        assert!(!is_zalgo("ệ", 2));
     }
 
     #[test]
@@ -140,7 +138,7 @@ mod tests {
         for _ in 0..10 {
             zalgo.push('\u{0300}'); // combining grave accent
         }
-        assert!(_is_zalgo(&zalgo, 3));
+        assert!(is_zalgo(&zalgo, 3));
     }
 
     #[test]
@@ -150,27 +148,27 @@ mod tests {
         for _ in 0..3 {
             text.push('\u{0300}');
         }
-        assert!(!_is_zalgo(&text, 3));
+        assert!(!is_zalgo(&text, 3));
 
         // One above threshold: zalgo
         text.push('\u{0300}');
-        assert!(_is_zalgo(&text, 3));
+        assert!(is_zalgo(&text, 3));
     }
 
     #[test]
     fn test_strip_zalgo_clean_text_unchanged() {
-        assert_eq!(_strip_zalgo("hello world", 2), "hello world");
-        assert_eq!(_strip_zalgo("café", 2), "café");
+        assert_eq!(strip_zalgo("hello world", 2), "hello world");
+        assert_eq!(strip_zalgo("café", 2), "café");
     }
 
     #[test]
     fn test_strip_zalgo_preserves_legitimate_diacritics() {
         // Vietnamese ệ has 2 combining marks — should be preserved with max_marks=2
         let input = "Việt Nam";
-        assert_eq!(_strip_zalgo(input, 2), input);
+        assert_eq!(strip_zalgo(input, 2), input);
 
         // French accents — 1 combining mark each
-        assert_eq!(_strip_zalgo("résumé", 2), "résumé");
+        assert_eq!(strip_zalgo("résumé", 2), "résumé");
     }
 
     #[test]
@@ -180,7 +178,7 @@ mod tests {
         for _ in 0..10 {
             zalgo.push('\u{0300}'); // combining grave accent
         }
-        let result = _strip_zalgo(&zalgo, 2);
+        let result = strip_zalgo(&zalgo, 2);
         // Result should be 'a' with exactly 2 combining graves (in NFC: à + 1 extra grave)
         // NFD: a + grave + grave, NFC: à + grave (combining grave after precomposed à)
         // The key assertion: no more than 2 combining marks survived
@@ -190,14 +188,14 @@ mod tests {
 
     #[test]
     fn test_strip_zalgo_max_marks_zero_strips_all() {
-        assert_eq!(_strip_zalgo("café", 0), "cafe");
-        assert_eq!(_strip_zalgo("résumé", 0), "resume");
+        assert_eq!(strip_zalgo("café", 0), "cafe");
+        assert_eq!(strip_zalgo("résumé", 0), "resume");
     }
 
     #[test]
     fn test_strip_zalgo_ascii_fast_path() {
         let input = "just ascii";
-        assert_eq!(_strip_zalgo(input, 2), input);
+        assert_eq!(strip_zalgo(input, 2), input);
     }
 
     #[test]
@@ -212,7 +210,7 @@ mod tests {
                 zalgo.push('\u{0302}');
             }
         }
-        let result = _strip_zalgo(&zalgo, 2);
+        let result = strip_zalgo(&zalgo, 2);
         // Each base char should have at most 2 combining marks
         let mut mark_count = 0;
         for ch in result.nfd() {

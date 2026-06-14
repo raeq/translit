@@ -14,7 +14,7 @@ use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
-use _disarm::case_fold::_fold_case;
+use _disarm::api::fold_case;
 use _disarm::presets::{_search_key, _security_clean};
 use _disarm::slugify::{slugify_impl, SlugConfig};
 use _disarm::transliterate::{_strip_accents, find_untranslatable_impl, transliterate_impl};
@@ -155,7 +155,7 @@ fn bench_fold_case_doc(c: &mut Criterion) {
         let doc = persona_corpus::doc(name).expect("persona exists");
         group.throughput(text_throughput(&doc));
         group.bench_with_input(BenchmarkId::new("fold", name), &doc, |b, text| {
-            b.iter(|| _fold_case(black_box(text)));
+            b.iter(|| fold_case(black_box(text)));
         });
     }
     group.finish();

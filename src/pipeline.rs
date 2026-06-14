@@ -597,7 +597,7 @@ mod tests {
                     None => s,
                 }
             } else if *flag == PipelineSteps::STRIP_ZALGO {
-                zalgo::_strip_zalgo(&s, p.zalgo_max_marks.unwrap_or(0))
+                zalgo::strip_zalgo(&s, p.zalgo_max_marks.unwrap_or(0))
             } else if *flag == PipelineSteps::STRIP_BIDI {
                 crate::presets::_strip_bidi(&s)
             } else if *flag == PipelineSteps::DEMOJIZE {
@@ -624,7 +624,7 @@ mod tests {
             } else if *flag == PipelineSteps::STRIP_ZERO_WIDTH {
                 whitespace::strip_zero_width_chars(&s)
             } else if *flag == PipelineSteps::COLLAPSE_WS {
-                whitespace::_collapse_whitespace(&s, false, false)
+                whitespace::collapse_whitespace(&s, false, false)
             } else {
                 s
             };
@@ -722,7 +722,7 @@ mod tests {
         ] {
             assert_eq!(
                 p.process(input).unwrap(),
-                whitespace::_collapse_whitespace(input, true, true),
+                whitespace::collapse_whitespace(input, true, true),
                 "tail diverged from fused pass for {input:?}"
             );
         }

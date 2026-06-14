@@ -1,21 +1,26 @@
-use pyo3::prelude::*;
+//! Layer 1 (pure-Rust core): Unicode whitespace normalization. No pyo3.
+//!
+//! The PyO3 shim lives in `src/py/whitespace.rs`; the crates.io surface is
+//! `crate::api::collapse_whitespace`.
 
 /// Normalize Unicode whitespace to single ASCII spaces.
 /// Optionally strip control characters and zero-width characters.
 ///
 /// When `strip_control` is true, `\r` (carriage return) is stripped as a
 /// control character, so Windows-style `\r\n` line endings become `\n`.
-#[pyfunction]
-#[pyo3(signature = (text, *, strip_control=true, strip_zero_width=true))]
-pub fn _collapse_whitespace(text: &str, strip_control: bool, strip_zero_width: bool) -> String {
+pub(crate) fn collapse_whitespace(
+    text: &str,
+    strip_control: bool,
+    strip_zero_width: bool,
+) -> String {
     let mut out = String::with_capacity(text.len());
     collapse_whitespace_into(text, strip_control, strip_zero_width, &mut out);
     out
 }
 
-/// In-place form of [`_collapse_whitespace`] writing into `result` (cleared
+/// In-place form of [`collapse_whitespace`] writing into `result` (cleared
 /// first). Lets the pipeline reuse one buffer across steps (#236 item 7).
-pub fn collapse_whitespace_into(
+pub(crate) fn collapse_whitespace_into(
     text: &str,
     strip_control: bool,
     strip_zero_width: bool,
@@ -63,14 +68,14 @@ pub fn collapse_whitespace_into(
 
 /// Strip control characters from text (excluding newline and tab).
 /// Note: `\r` (carriage return) is stripped, so `\r\n` becomes `\n`.
-pub fn strip_control_chars(text: &str) -> String {
+pub(crate) fn strip_control_chars(text: &str) -> String {
     let mut out = String::new();
     strip_control_chars_into(text, &mut out);
     out
 }
 
 /// In-place form of [`strip_control_chars`] (#236 item 7).
-pub fn strip_control_chars_into(text: &str, out: &mut String) {
+pub(crate) fn strip_control_chars_into(text: &str, out: &mut String) {
     out.clear();
     out.extend(
         text.chars()
@@ -79,14 +84,14 @@ pub fn strip_control_chars_into(text: &str, out: &mut String) {
 }
 
 /// Strip zero-width and invisible characters from text.
-pub fn strip_zero_width_chars(text: &str) -> String {
+pub(crate) fn strip_zero_width_chars(text: &str) -> String {
     let mut out = String::new();
     strip_zero_width_chars_into(text, &mut out);
     out
 }
 
 /// In-place form of [`strip_zero_width_chars`] (#236 item 7).
-pub fn strip_zero_width_chars_into(text: &str, out: &mut String) {
+pub(crate) fn strip_zero_width_chars_into(text: &str, out: &mut String) {
     out.clear();
     // `is_zero_width` matches no ASCII code point, so pure-ASCII input is copied
     // unchanged (#252 O6.2). Premise guarded by `is_zero_width_has_no_ascii`.
@@ -124,24 +129,24 @@ mod tests {
     #[test]
     fn test_collapse_whitespace() {
         assert_eq!(
-            _collapse_whitespace("hello   world", true, true),
+            collapse_whitespace("hello   world", true, true),
             "hello world"
         );
     }
 
     #[test]
     fn test_strip_zero_width() {
-        assert_eq!(_collapse_whitespace("he\u{200B}llo", true, true), "hello");
+        assert_eq!(collapse_whitespace("he\u{200B}llo", true, true), "hello");
     }
 
     #[test]
     fn test_strip_invisible_math_operators() {
         // U+2061–U+2064: invisible math operators that render as zero-width.
         // Common in text copy-pasted from equation editors.
-        assert_eq!(_collapse_whitespace("a\u{2061}b", true, true), "ab"); // Function Application
-        assert_eq!(_collapse_whitespace("a\u{2062}b", true, true), "ab"); // Invisible Times
-        assert_eq!(_collapse_whitespace("a\u{2063}b", true, true), "ab"); // Invisible Separator
-        assert_eq!(_collapse_whitespace("a\u{2064}b", true, true), "ab"); // Invisible Plus
+        assert_eq!(collapse_whitespace("a\u{2061}b", true, true), "ab"); // Function Application
+        assert_eq!(collapse_whitespace("a\u{2062}b", true, true), "ab"); // Invisible Times
+        assert_eq!(collapse_whitespace("a\u{2063}b", true, true), "ab"); // Invisible Separator
+        assert_eq!(collapse_whitespace("a\u{2064}b", true, true), "ab"); // Invisible Plus
     }
 
     #[test]
@@ -151,7 +156,7 @@ mod tests {
         let all_zw = "\u{200B}\u{200C}\u{200D}\u{FEFF}\u{2060}\u{180E}\
                       \u{2061}\u{2062}\u{2063}\u{2064}";
         assert_eq!(
-            _collapse_whitespace(&format!("x{all_zw}y"), true, true),
+            collapse_whitespace(&format!("x{all_zw}y"), true, true),
             "xy"
         );
         // Verify count: 10 zero-width characters
@@ -173,22 +178,19 @@ mod tests {
     #[test]
     fn test_nul_stripped_with_control() {
         // NUL (U+0000) is a C0 control character — stripped when strip_control=true.
-        assert_eq!(_collapse_whitespace("a\x00b", true, true), "ab");
+        assert_eq!(collapse_whitespace("a\x00b", true, true), "ab");
     }
 
     #[test]
     fn test_nul_preserved_without_control() {
         // With strip_control=false, NUL passes through.
-        assert_eq!(_collapse_whitespace("a\x00b", false, true), "a\x00b");
+        assert_eq!(collapse_whitespace("a\x00b", false, true), "a\x00b");
     }
 
     #[test]
     fn test_zero_width_preserved_when_disabled() {
         // With strip_zero_width=false, invisible chars should pass through.
-        assert_eq!(
-            _collapse_whitespace("a\u{2061}b", true, false),
-            "a\u{2061}b"
-        );
+        assert_eq!(collapse_whitespace("a\u{2061}b", true, false), "a\u{2061}b");
     }
 
     mod proptest_properties {
@@ -201,15 +203,15 @@ mod tests {
             /// Collapsing whitespace is idempotent.
             #[test]
             fn collapse_whitespace_idempotent(s in "\\PC*") {
-                let once = _collapse_whitespace(&s, true, true);
-                let twice = _collapse_whitespace(&once, true, true);
+                let once = collapse_whitespace(&s, true, true);
+                let twice = collapse_whitespace(&once, true, true);
                 prop_assert_eq!(&once, &twice);
             }
 
             /// Result has no leading or trailing whitespace.
             #[test]
             fn no_leading_trailing_whitespace(s in "\\PC*") {
-                let result = _collapse_whitespace(&s, true, true);
+                let result = collapse_whitespace(&s, true, true);
                 if !result.is_empty() {
                     prop_assert_ne!(result.as_bytes()[0], b' ');
                     prop_assert_ne!(result.as_bytes()[result.len() - 1], b' ');
@@ -219,14 +221,14 @@ mod tests {
             /// Result never contains consecutive spaces.
             #[test]
             fn no_consecutive_spaces(s in "\\PC*") {
-                let result = _collapse_whitespace(&s, true, true);
+                let result = collapse_whitespace(&s, true, true);
                 prop_assert!(!result.contains("  "), "double space in: {result:?}");
             }
 
             /// Pure alphanumeric ASCII passes through unchanged.
             #[test]
             fn alphanumeric_passthrough(s in "[a-zA-Z0-9]{1,50}") {
-                let result = _collapse_whitespace(&s, true, true);
+                let result = collapse_whitespace(&s, true, true);
                 prop_assert_eq!(&result, &s);
             }
         }

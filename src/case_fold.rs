@@ -1,4 +1,6 @@
-use pyo3::prelude::*;
+//! Layer 1 (pure-Rust core): full Unicode case folding. No pyo3.
+//!
+//! Shim in `src/py/case_fold.rs`; crates.io surface is `crate::api::fold_case`.
 
 use crate::tables::case_folding_data;
 
@@ -17,12 +19,6 @@ use crate::tables::case_folding_data;
 /// 2. Per-character ASCII check — uppercase A-Z are lowered inline.
 /// 3. PHF lookup — O(1) for all 1,557 Unicode case folding entries.
 /// 4. Identity fallback — characters not in the table map to themselves.
-#[pyfunction]
-#[pyo3(signature = (text,))]
-pub fn _fold_case(text: &str) -> PyResult<String> {
-    Ok(fold_case_impl(text))
-}
-
 pub(crate) fn fold_case_impl(text: &str) -> String {
     let mut out = String::new();
     fold_case_into(text, &mut out);
