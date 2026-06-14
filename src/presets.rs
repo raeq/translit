@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use pyo3::prelude::*;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{case_fold, confusables, emoji, transliterate, whitespace, zalgo};
@@ -42,14 +41,14 @@ fn nfkc_normalize(text: &str) -> Cow<'_, str> {
 /// bidi marks (U+200E–U+200F), bidi embeddings/overrides (U+202A–U+202E),
 /// bidi isolates (U+2066–U+2069), deprecated format controls (U+206A–U+206F),
 /// and interlinear annotation marks (U+FFF9–U+FFFB).
-fn strip_bidi(text: &str) -> String {
+pub(crate) fn strip_bidi(text: &str) -> String {
     let mut out = String::new();
     strip_bidi_into(text, &mut out);
     out
 }
 
 /// In-place form of [`strip_bidi`] (#236 item 7).
-pub fn strip_bidi_into(text: &str, out: &mut String) {
+pub(crate) fn strip_bidi_into(text: &str, out: &mut String) {
     out.clear();
     out.extend(text.chars().filter(|&ch| !is_bidi_or_format(ch)));
 }
@@ -144,9 +143,7 @@ fn is_bidi_or_format(ch: char) -> bool {
 /// invisible characters (e.g. soft hyphen U+00AD) can expose leading,
 /// trailing, or consecutive whitespace that `collapse_whitespace` then
 /// normalizes.  This guarantees idempotency.
-#[pyfunction]
-#[pyo3(signature = (text,))]
-pub fn _security_clean(text: &str) -> PyResult<String> {
+pub(crate) fn security_clean(text: &str) -> Result<String, crate::ErrorRepr> {
     // 1. NFKC normalization (collapses fullwidth, ligatures, superscripts)
     let buf = nfkc_normalize(text);
     // 2. Confusables → Latin (neutralizes cross-script homoglyphs)
@@ -170,19 +167,19 @@ pub fn _security_clean(text: &str) -> PyResult<String> {
 /// short-name descriptions before transliteration.
 ///
 /// # Parameters
-/// - `emoji_style`: `"cldr"` — expand emoji to CLDR short names (default).
-///                  `"none"` — leave emoji characters as-is.
-///                  Any other value raises `DisarmError`.
-#[pyfunction]
-#[pyo3(signature = (text, *, lang=None, emoji_style="cldr"))]
-pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyResult<String> {
+/// - `emoji_style`: `"cldr"` — expand emoji to CLDR short names (default);
+///   `"none"` — leave emoji characters as-is; any other value raises `DisarmError`.
+pub(crate) fn ml_normalize(
+    text: &str,
+    lang: Option<&str>,
+    emoji_style: &str,
+) -> Result<String, crate::ErrorRepr> {
     crate::transliterate::validate_lang(lang)?;
     // Validate emoji_style — only two modes are supported.
     if !matches!(emoji_style, "cldr" | "none") {
         return Err(crate::ErrorRepr::InvalidEmojiStyle {
             got: emoji_style.to_owned(),
-        }
-        .into());
+        });
     }
     // 1. NFKC normalization (borrowed for ASCII; ownership is taken below).
     let normalized = nfkc_normalize(text);
@@ -234,9 +231,11 @@ pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyRes
 ///
 /// Produces a canonical deduplication key for bibliographic titles.
 /// Optional ISO 9:1995 transliteration for Cyrillic catalog records.
-#[pyfunction]
-#[pyo3(signature = (text, *, lang=None, strict_iso9=false))]
-pub fn _catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> PyResult<String> {
+pub(crate) fn catalog_key(
+    text: &str,
+    lang: Option<&str>,
+    strict_iso9: bool,
+) -> Result<String, crate::ErrorRepr> {
     crate::transliterate::validate_lang(lang)?;
     // 1. NFKC normalization
     let buf = nfkc_normalize(text);
@@ -277,9 +276,7 @@ pub fn _catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> PyResu
 /// `strip_bidi` runs early (#93) so an invisible char (bidi override, soft
 /// hyphen) embedded in a stored value still produces the same key as the clean
 /// query — otherwise lookups silently miss.
-#[pyfunction]
-#[pyo3(signature = (text, *, lang=None))]
-pub fn _search_key(text: &str, lang: Option<&str>) -> PyResult<String> {
+pub(crate) fn search_key(text: &str, lang: Option<&str>) -> Result<String, crate::ErrorRepr> {
     crate::transliterate::validate_lang(lang)?;
     // 1. NFKC normalization
     let buf = nfkc_normalize(text);
@@ -315,9 +312,7 @@ pub fn _search_key(text: &str, lang: Option<&str>) -> PyResult<String> {
 ///
 /// `strip_bidi` runs early (#93) so invisible bidi/format chars cannot perturb
 /// the ordering of otherwise-identical strings.
-#[pyfunction]
-#[pyo3(signature = (text, *, lang=None))]
-pub fn _sort_key(text: &str, lang: Option<&str>) -> PyResult<String> {
+pub(crate) fn sort_key(text: &str, lang: Option<&str>) -> Result<String, crate::ErrorRepr> {
     crate::transliterate::validate_lang(lang)?;
     // 1. NFKC normalization
     let buf = nfkc_normalize(text);
@@ -349,13 +344,11 @@ pub fn _sort_key(text: &str, lang: Option<&str>) -> PyResult<String> {
 /// Strips bidirectional overrides (which can visually reorder text to hide
 /// malicious content), control characters, and zero-width injections, then
 /// collapses runs of whitespace to single spaces.
-#[pyfunction]
-#[pyo3(signature = (text,))]
-pub fn _display_clean(text: &str) -> PyResult<String> {
+pub(crate) fn display_clean(text: &str) -> String {
     // 1. Strip bidi overrides, isolates, marks, and soft hyphens
     let buf = strip_bidi(text);
     // 2. Collapse whitespace + strip control + strip zero-width
-    Ok(whitespace::collapse_whitespace(&buf, true, true))
+    whitespace::collapse_whitespace(&buf, true, true)
 }
 
 /// Normalize user-submitted input — Unicode hygiene, **not** an output sanitizer.
@@ -381,9 +374,7 @@ pub fn _display_clean(text: &str) -> PyResult<String> {
 /// Unlike `security_clean`, this pipeline strips zalgo text.  Unlike
 /// `catalog_key`/`search_key`, it does *not* transliterate — the original
 /// script is preserved.
-#[pyfunction]
-#[pyo3(signature = (text,))]
-pub fn _normalize_user_input(text: &str) -> PyResult<String> {
+pub(crate) fn normalize_user_input(text: &str) -> Result<String, crate::ErrorRepr> {
     // 1. NFKC normalization
     let buf = nfkc_normalize(text);
     // 2. Strip invisibles FIRST (bidi/format + zero-width + control) so they
@@ -407,21 +398,6 @@ pub fn _normalize_user_input(text: &str) -> PyResult<String> {
     //    *normalize* untrusted input must be safe to use as a path component —
     //    no synthesised '/', '\', or '..' traversal.
     Ok(neutralize_path_separators(&buf))
-}
-
-// ---------------------------------------------------------------------------
-// Also expose strip_bidi as a public utility
-// ---------------------------------------------------------------------------
-
-/// Strip bidirectional override and formatting characters (UAX #9).
-///
-/// Removes: soft hyphen (U+00AD), Arabic Letter Mark (U+061C),
-/// LRM/RLM (U+200E/F), bidi embeddings/overrides (U+202A–U+202E),
-/// bidi isolates (U+2066–U+2069).
-#[pyfunction]
-#[pyo3(signature = (text,))]
-pub fn _strip_bidi(text: &str) -> String {
-    strip_bidi(text)
 }
 
 /// Maximum-strength text deobfuscation pipeline.
@@ -449,9 +425,7 @@ pub fn _strip_bidi(text: &str) -> String {
 ///
 /// Use cases: content moderation, anti-phishing, spam detection, hate speech
 /// detection, social media NLP preprocessing.
-#[pyfunction]
-#[pyo3(signature = (text,))]
-pub fn _strip_obfuscation(text: &str) -> PyResult<String> {
+pub(crate) fn strip_obfuscation(text: &str) -> Result<String, crate::ErrorRepr> {
     // 1. NFKC normalization (collapses fullwidth, ligatures, superscripts)
     let buf = nfkc_normalize(text);
     // 2. Strip ALL combining marks (max_marks=0) — removes zalgo AND accents early
@@ -606,19 +580,19 @@ mod tests {
     #[test]
     fn test_security_clean_homoglyph() {
         // Cyrillic р and а in "раypal"
-        let result = _security_clean("\u{0440}\u{0430}ypal").unwrap();
+        let result = security_clean("\u{0440}\u{0430}ypal").unwrap();
         assert_eq!(result, "paypal");
     }
 
     #[test]
     fn test_security_clean_bidi() {
-        let result = _security_clean("admin\u{202E}user").unwrap();
+        let result = security_clean("admin\u{202E}user").unwrap();
         assert_eq!(result, "adminuser");
     }
 
     #[test]
     fn test_security_clean_arabic_letter_mark() {
-        let result = _security_clean("admin\u{061C}user").unwrap();
+        let result = security_clean("admin\u{061C}user").unwrap();
         assert_eq!(result, "adminuser");
     }
 
@@ -626,55 +600,55 @@ mod tests {
     fn test_security_clean_invisible_math_operators() {
         // Invisible math operators are stripped by collapse_whitespace (step 3),
         // so security_clean should remove them too.
-        let result = _security_clean("pass\u{2061}word").unwrap();
+        let result = security_clean("pass\u{2061}word").unwrap();
         assert_eq!(result, "password");
     }
 
     #[test]
     fn test_security_clean_soft_hyphen() {
-        let result = _security_clean("pass\u{00AD}word").unwrap();
+        let result = security_clean("pass\u{00AD}word").unwrap();
         assert_eq!(result, "password");
     }
 
     #[test]
     fn test_security_clean_zwsp() {
-        let result = _security_clean("admin\u{200B}user").unwrap();
+        let result = security_clean("admin\u{200B}user").unwrap();
         assert_eq!(result, "adminuser");
     }
 
     #[test]
     fn test_ml_normalize_basic() {
-        let result = _ml_normalize("Café Résumé", None, "cldr").unwrap();
+        let result = ml_normalize("Café Résumé", None, "cldr").unwrap();
         assert_eq!(result, "cafe resume");
     }
 
     #[test]
     fn test_ml_normalize_ligature() {
-        let result = _ml_normalize("\u{FB01}lter", None, "cldr").unwrap();
+        let result = ml_normalize("\u{FB01}lter", None, "cldr").unwrap();
         assert_eq!(result, "filter");
     }
 
     #[test]
     fn test_catalog_key_dedup() {
-        let a = _catalog_key("Café", None, false).unwrap();
-        let b = _catalog_key("café", None, false).unwrap();
-        let c = _catalog_key("CAFÉ", None, false).unwrap();
+        let a = catalog_key("Café", None, false).unwrap();
+        let b = catalog_key("café", None, false).unwrap();
+        let c = catalog_key("CAFÉ", None, false).unwrap();
         assert_eq!(a, b);
         assert_eq!(b, c);
     }
 
     #[test]
     fn test_catalog_key_iso9() {
-        let result = _catalog_key("\u{0419}\u{043E}\u{0433}\u{0430}", None, true).unwrap();
+        let result = catalog_key("\u{0419}\u{043E}\u{0433}\u{0430}", None, true).unwrap();
         // Transliterate first with ISO 9: Й→J, о→o, г→g, а→a → "joga"
         assert_eq!(result, "joga");
     }
 
     #[test]
     fn test_search_key_accent_insensitive() {
-        let a = _search_key("Café", None).unwrap();
-        let b = _search_key("cafe", None).unwrap();
-        let c = _search_key("CAFÉ", None).unwrap();
+        let a = search_key("Café", None).unwrap();
+        let b = search_key("cafe", None).unwrap();
+        let c = search_key("CAFÉ", None).unwrap();
         assert_eq!(a, "cafe");
         assert_eq!(a, b);
         assert_eq!(b, c);
@@ -682,33 +656,33 @@ mod tests {
 
     #[test]
     fn test_search_key_cyrillic() {
-        assert_eq!(_search_key("Москва", None).unwrap(), "moskva");
+        assert_eq!(search_key("Москва", None).unwrap(), "moskva");
     }
 
     #[test]
     fn test_search_key_greek() {
-        assert_eq!(_search_key("ΩMEGA", None).unwrap(), "omega");
+        assert_eq!(search_key("ΩMEGA", None).unwrap(), "omega");
     }
 
     #[test]
     fn test_sort_key_preserves_accents_as_base() {
         // sort_key does NOT strip accents — fold_case handles ß→ss etc.
         // but accented chars stay as their base after transliteration
-        let result = _sort_key("Über", None).unwrap();
+        let result = sort_key("Über", None).unwrap();
         assert_eq!(result, "uber");
     }
 
     #[test]
     fn test_sort_key_cyrillic() {
-        assert_eq!(_sort_key("Война и мир", None).unwrap(), "voyna i mir");
+        assert_eq!(sort_key("Война и мир", None).unwrap(), "voyna i mir");
     }
 
     #[test]
     fn test_sort_key_vs_search_key() {
         // Both produce lowercase ASCII for non-Latin
         assert_eq!(
-            _sort_key("Москва", None).unwrap(),
-            _search_key("Москва", None).unwrap()
+            sort_key("Москва", None).unwrap(),
+            search_key("Москва", None).unwrap()
         );
     }
 
@@ -723,18 +697,18 @@ mod tests {
             ("x\u{061C}y", "xy"),             // Arabic Letter Mark
         ] {
             assert_eq!(
-                _search_key(stored, None).unwrap(),
-                _search_key(clean, None).unwrap(),
+                search_key(stored, None).unwrap(),
+                search_key(clean, None).unwrap(),
                 "search_key must collide for {stored:?} vs {clean:?}"
             );
             assert_eq!(
-                _catalog_key(stored, None, false).unwrap(),
-                _catalog_key(clean, None, false).unwrap(),
+                catalog_key(stored, None, false).unwrap(),
+                catalog_key(clean, None, false).unwrap(),
                 "catalog_key must collide for {stored:?} vs {clean:?}"
             );
             assert_eq!(
-                _sort_key(stored, None).unwrap(),
-                _sort_key(clean, None).unwrap(),
+                sort_key(stored, None).unwrap(),
+                sort_key(clean, None).unwrap(),
                 "sort_key must collide for {stored:?} vs {clean:?}"
             );
         }
@@ -742,19 +716,19 @@ mod tests {
 
     #[test]
     fn test_display_clean_basic() {
-        assert_eq!(_display_clean("hello   world").unwrap(), "hello world");
-        assert_eq!(_display_clean("hello\x00world").unwrap(), "helloworld");
-        assert_eq!(_display_clean("hello\u{200B}world").unwrap(), "helloworld");
+        assert_eq!(display_clean("hello   world"), "hello world");
+        assert_eq!(display_clean("hello\x00world"), "helloworld");
+        assert_eq!(display_clean("hello\u{200B}world"), "helloworld");
     }
 
     #[test]
     fn test_display_clean_strips_bidi() {
         // RLO can visually reorder rendered text to hide malicious content
-        assert_eq!(_display_clean("admin\u{202E}user").unwrap(), "adminuser");
+        assert_eq!(display_clean("admin\u{202E}user"), "adminuser");
         // Soft hyphen can split security keywords invisibly
-        assert_eq!(_display_clean("pass\u{00AD}word").unwrap(), "password");
+        assert_eq!(display_clean("pass\u{00AD}word"), "password");
         // Arabic Letter Mark
-        assert_eq!(_display_clean("hello\u{061C}world").unwrap(), "helloworld");
+        assert_eq!(display_clean("hello\u{061C}world"), "helloworld");
     }
 
     // ── normalize_user_input ──────────────────────────────────
@@ -762,7 +736,7 @@ mod tests {
     #[test]
     fn test_normalize_user_input_clean_text() {
         assert_eq!(
-            _normalize_user_input("Hello, world!").unwrap(),
+            normalize_user_input("Hello, world!").unwrap(),
             "Hello, world!"
         );
     }
@@ -770,7 +744,7 @@ mod tests {
     #[test]
     fn test_normalize_user_input_preserves_script() {
         // Original script is preserved (no transliteration)
-        let result = _normalize_user_input("Москва").unwrap();
+        let result = normalize_user_input("Москва").unwrap();
         // Confusables maps some Cyrillic to Latin, but that's intentional
         // for homoglyph protection — the key point is no transliteration step
         assert!(!result.is_empty());
@@ -783,7 +757,7 @@ mod tests {
             zalgo.push('\u{0300}');
         }
         zalgo.push_str(" world");
-        let result = _normalize_user_input(&zalgo).unwrap();
+        let result = normalize_user_input(&zalgo).unwrap();
         // Zalgo marks stripped down to max 2 per base
         assert!(result.len() < zalgo.len());
         assert!(result.contains("world"));
@@ -792,7 +766,7 @@ mod tests {
     #[test]
     fn test_normalize_user_input_strips_bidi() {
         assert_eq!(
-            _normalize_user_input("admin\u{202E}user").unwrap(),
+            normalize_user_input("admin\u{202E}user").unwrap(),
             "adminuser"
         );
     }
@@ -800,7 +774,7 @@ mod tests {
     #[test]
     fn test_normalize_user_input_strips_zero_width() {
         assert_eq!(
-            _normalize_user_input("pass\u{200B}word").unwrap(),
+            normalize_user_input("pass\u{200B}word").unwrap(),
             "password"
         );
     }
@@ -808,14 +782,14 @@ mod tests {
     #[test]
     fn test_normalize_user_input_preserves_accents() {
         // Legitimate diacritics are preserved — no transliteration or accent stripping
-        assert_eq!(_normalize_user_input("café").unwrap(), "café");
-        assert_eq!(_normalize_user_input("résumé").unwrap(), "résumé");
+        assert_eq!(normalize_user_input("café").unwrap(), "café");
+        assert_eq!(normalize_user_input("résumé").unwrap(), "résumé");
     }
 
     #[test]
     fn test_normalize_user_input_homoglyph() {
         // Cyrillic а in "pаypal" → Latin a
-        let result = _normalize_user_input("p\u{0430}ypal").unwrap();
+        let result = normalize_user_input("p\u{0430}ypal").unwrap();
         assert_eq!(result, "paypal");
     }
 
@@ -891,50 +865,50 @@ mod tests {
 
             #[test]
             fn security_clean_idempotent(s in adversarial()) {
-                let once = _security_clean(&s).unwrap();
-                let twice = _security_clean(&once).unwrap();
+                let once = security_clean(&s).unwrap();
+                let twice = security_clean(&once).unwrap();
                 prop_assert_eq!(nfc(&once), nfc(&twice));
             }
 
             #[test]
             fn strip_obfuscation_idempotent(s in adversarial()) {
-                let once = _strip_obfuscation(&s).unwrap();
-                let twice = _strip_obfuscation(&once).unwrap();
+                let once = strip_obfuscation(&s).unwrap();
+                let twice = strip_obfuscation(&once).unwrap();
                 prop_assert_eq!(nfc(&once), nfc(&twice));
             }
 
             #[test]
             fn normalize_user_input_idempotent(s in adversarial()) {
-                let once = _normalize_user_input(&s).unwrap();
-                let twice = _normalize_user_input(&once).unwrap();
+                let once = normalize_user_input(&s).unwrap();
+                let twice = normalize_user_input(&once).unwrap();
                 prop_assert_eq!(nfc(&once), nfc(&twice));
             }
 
             #[test]
             fn strip_bidi_idempotent(s in adversarial()) {
-                let once = _strip_bidi(&s);
-                prop_assert_eq!(&once, &_strip_bidi(&once));
+                let once = strip_bidi(&s);
+                prop_assert_eq!(&once, &strip_bidi(&once));
             }
 
             // No bidi/format control survives a pipeline that strips bidi.
             #[test]
             fn no_bidi_after_strip_bidi(s in adversarial()) {
-                prop_assert!(!_strip_bidi(&s).chars().any(is_bidi_or_format));
+                prop_assert!(!strip_bidi(&s).chars().any(is_bidi_or_format));
             }
 
             #[test]
             fn no_bidi_after_security_clean(s in adversarial()) {
-                prop_assert!(!_security_clean(&s).unwrap().chars().any(is_bidi_or_format));
+                prop_assert!(!security_clean(&s).unwrap().chars().any(is_bidi_or_format));
             }
 
             #[test]
             fn no_bidi_after_strip_obfuscation(s in adversarial()) {
-                prop_assert!(!_strip_obfuscation(&s).unwrap().chars().any(is_bidi_or_format));
+                prop_assert!(!strip_obfuscation(&s).unwrap().chars().any(is_bidi_or_format));
             }
 
             #[test]
             fn no_bidi_after_normalize_user_input(s in adversarial()) {
-                prop_assert!(!_normalize_user_input(&s).unwrap().chars().any(is_bidi_or_format));
+                prop_assert!(!normalize_user_input(&s).unwrap().chars().any(is_bidi_or_format));
             }
         }
     }
