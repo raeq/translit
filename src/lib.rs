@@ -137,8 +137,8 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(encoders::_escape_html, m)?)?;
     m.add_function(wrap_pyfunction!(encoders::_percent_encode, m)?)?;
     m.add_function(wrap_pyfunction!(filename::_sanitize_filename, m)?)?;
-    m.add_function(wrap_pyfunction!(case_fold::_fold_case, m)?)?;
-    m.add_function(wrap_pyfunction!(whitespace::_collapse_whitespace, m)?)?;
+    m.add_function(wrap_pyfunction!(py::case_fold::_fold_case, m)?)?;
+    m.add_function(wrap_pyfunction!(py::whitespace::_collapse_whitespace, m)?)?;
     m.add_function(wrap_pyfunction!(scripts::_detect_scripts, m)?)?;
     m.add_function(wrap_pyfunction!(scripts::_is_mixed_script, m)?)?;
     m.add_function(wrap_pyfunction!(scripts::_inspect_auto_lang, m)?)?;
@@ -168,13 +168,13 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(presets::_strip_obfuscation, m)?)?;
 
     // Zalgo detection and stripping
-    m.add_function(wrap_pyfunction!(zalgo::_is_zalgo, m)?)?;
-    m.add_function(wrap_pyfunction!(zalgo::_strip_zalgo, m)?)?;
+    m.add_function(wrap_pyfunction!(py::zalgo::_is_zalgo, m)?)?;
+    m.add_function(wrap_pyfunction!(py::zalgo::_strip_zalgo, m)?)?;
 
     // Grapheme cluster functions
-    m.add_function(wrap_pyfunction!(grapheme::_grapheme_len, m)?)?;
-    m.add_function(wrap_pyfunction!(grapheme::_grapheme_split, m)?)?;
-    m.add_function(wrap_pyfunction!(grapheme::_grapheme_truncate, m)?)?;
+    m.add_function(wrap_pyfunction!(py::grapheme::_grapheme_len, m)?)?;
+    m.add_function(wrap_pyfunction!(py::grapheme::_grapheme_split, m)?)?;
+    m.add_function(wrap_pyfunction!(py::grapheme::_grapheme_truncate, m)?)?;
     m.add_function(wrap_pyfunction!(py::width::_terminal_width, m)?)?;
     m.add_function(wrap_pyfunction!(py::width::_grapheme_width, m)?)?;
 

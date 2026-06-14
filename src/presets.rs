@@ -154,7 +154,7 @@ pub fn _security_clean(text: &str) -> PyResult<String> {
     // 3. Strip bidi overrides, isolates, marks, and soft hyphens
     let buf = strip_bidi(&buf);
     // 4. Collapse whitespace + strip control + strip zero-width
-    let buf = whitespace::_collapse_whitespace(&buf, true, true);
+    let buf = whitespace::collapse_whitespace(&buf, true, true);
     // 5. Path-safety guarantee (#248): never emit a synthesised '/', '\', or
     //    '..' traversal (a confusable like U+2044 must not become an actionable
     //    separator in security-preset output).
@@ -216,7 +216,7 @@ pub fn _ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> PyRes
     // 5. Unicode case folding (ß→ss, ﬁ→fi, etc.)
     buf = case_fold::fold_case_impl(&buf);
     // 6. Collapse whitespace + strip control + strip zero-width
-    buf = whitespace::_collapse_whitespace(&buf, true, true);
+    buf = whitespace::collapse_whitespace(&buf, true, true);
     Ok(buf)
 }
 
@@ -262,7 +262,7 @@ pub fn _catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> PyResu
     // 6. Unicode case folding
     let buf = case_fold::fold_case_impl(&buf);
     // 7. Collapse whitespace + strip control + strip zero-width
-    let buf = whitespace::_collapse_whitespace(&buf, true, true);
+    let buf = whitespace::collapse_whitespace(&buf, true, true);
     Ok(buf)
 }
 
@@ -301,7 +301,7 @@ pub fn _search_key(text: &str, lang: Option<&str>) -> PyResult<String> {
     // 5. Unicode case folding
     let buf = case_fold::fold_case_impl(&buf);
     // 6. Collapse whitespace + strip control + strip zero-width
-    let buf = whitespace::_collapse_whitespace(&buf, true, true);
+    let buf = whitespace::collapse_whitespace(&buf, true, true);
     Ok(buf)
 }
 
@@ -337,7 +337,7 @@ pub fn _sort_key(text: &str, lang: Option<&str>) -> PyResult<String> {
     // 4. Unicode case folding
     let buf = case_fold::fold_case_impl(&buf);
     // 5. Collapse whitespace + strip control + strip zero-width
-    let buf = whitespace::_collapse_whitespace(&buf, true, true);
+    let buf = whitespace::collapse_whitespace(&buf, true, true);
     Ok(buf)
 }
 
@@ -355,7 +355,7 @@ pub fn _display_clean(text: &str) -> PyResult<String> {
     // 1. Strip bidi overrides, isolates, marks, and soft hyphens
     let buf = strip_bidi(text);
     // 2. Collapse whitespace + strip control + strip zero-width
-    Ok(whitespace::_collapse_whitespace(&buf, true, true))
+    Ok(whitespace::collapse_whitespace(&buf, true, true))
 }
 
 /// Normalize user-submitted input — Unicode hygiene, **not** an output sanitizer.
@@ -398,11 +398,11 @@ pub fn _normalize_user_input(text: &str) -> PyResult<String> {
     let buf = whitespace::strip_zero_width_chars(&buf);
     let buf = whitespace::strip_control_chars(&buf);
     // 3. Cap combining marks at 2 per base character (zalgo)
-    let buf = zalgo::_strip_zalgo(&buf, 2);
+    let buf = zalgo::strip_zalgo(&buf, 2);
     // 4. Confusables → Latin (neutralizes cross-script homoglyphs)
     let buf = confusables::normalize_confusables(&buf, "latin")?;
     // 5. Collapse whitespace + strip control + strip zero-width
-    let buf = whitespace::_collapse_whitespace(&buf, true, true);
+    let buf = whitespace::collapse_whitespace(&buf, true, true);
     // 6. Path-safety guarantee (#248): the output of a function named to
     //    *normalize* untrusted input must be safe to use as a path component —
     //    no synthesised '/', '\', or '..' traversal.
@@ -455,7 +455,7 @@ pub fn _strip_obfuscation(text: &str) -> PyResult<String> {
     // 1. NFKC normalization (collapses fullwidth, ligatures, superscripts)
     let buf = nfkc_normalize(text);
     // 2. Strip ALL combining marks (max_marks=0) — removes zalgo AND accents early
-    let buf = zalgo::_strip_zalgo(&buf, 0);
+    let buf = zalgo::strip_zalgo(&buf, 0);
     // 3. Strip bidi overrides, isolates, marks, and soft hyphens
     let buf = strip_bidi(&buf);
     // 4. Strip zero-width chars (ZWS, ZWNJ, ZWJ, WJ, BOM)
@@ -470,7 +470,7 @@ pub fn _strip_obfuscation(text: &str) -> PyResult<String> {
     // 7. Strip accents (NFD decompose + strip combining marks)
     let buf = transliterate::_strip_accents(&buf);
     // 8. Collapse whitespace (final cleanup) — case is NOT folded
-    Ok(whitespace::_collapse_whitespace(&buf, true, true))
+    Ok(whitespace::collapse_whitespace(&buf, true, true))
 }
 
 #[cfg(test)]

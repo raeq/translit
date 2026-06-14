@@ -70,6 +70,73 @@ pub fn grapheme_width(cluster: &str, ambiguous_wide: bool) -> usize {
     crate::width::grapheme_width_opts(cluster, ambiguous_wide)
 }
 
+// ── Whitespace ───────────────────────────────────────────────────────────────
+
+/// Normalize Unicode whitespace runs to single ASCII spaces, trimming the ends.
+///
+/// `strip_control` also removes C0/C1 control characters (so `\r\n` → `\n`);
+/// `strip_zero_width` also removes zero-width / invisible characters.
+pub fn collapse_whitespace(text: &str, strip_control: bool, strip_zero_width: bool) -> String {
+    crate::whitespace::collapse_whitespace(text, strip_control, strip_zero_width)
+}
+
+/// Remove C0/C1 control characters (keeping `\n` and `\t`); `\r` is stripped, so
+/// `\r\n` becomes `\n`. A composable primitive of [`collapse_whitespace`].
+pub fn strip_control_chars(text: &str) -> String {
+    crate::whitespace::strip_control_chars(text)
+}
+
+/// Remove zero-width / invisible characters (ZWSP, ZWJ/ZWNJ, BOM, word joiner,
+/// the invisible math operators). A composable primitive of [`collapse_whitespace`].
+pub fn strip_zero_width_chars(text: &str) -> String {
+    crate::whitespace::strip_zero_width_chars(text)
+}
+
+// ── Zalgo (combining-mark abuse) ─────────────────────────────────────────────
+
+/// True if any base character carries more than `threshold` consecutive
+/// combining marks in NFD (zalgo-style abuse). A sane default is 3.
+pub fn is_zalgo(text: &str, threshold: usize) -> bool {
+    crate::zalgo::is_zalgo(text, threshold)
+}
+
+/// Cap combining marks at `max_marks` per base character (recomposed to NFC),
+/// stripping zalgo stacking while preserving legitimate diacritics. `max_marks`
+/// of 0 strips all combining marks.
+pub fn strip_zalgo(text: &str, max_marks: usize) -> String {
+    crate::zalgo::strip_zalgo(text, max_marks)
+}
+
+// ── Case folding ─────────────────────────────────────────────────────────────
+
+/// Full Unicode case folding per CaseFolding.txt (status C + F) — stronger than
+/// `str::to_lowercase` (folds ß→ss, ﬁ→fi, ς→σ, and ~1,500 other mappings). Use
+/// for caseless matching, not display.
+pub fn fold_case(text: &str) -> String {
+    crate::case_fold::fold_case_impl(text)
+}
+
+// ── Grapheme clusters (UAX #29) ──────────────────────────────────────────────
+
+/// Number of user-perceived characters (extended grapheme clusters): `"👩‍👩‍👧‍👦"` → 1.
+pub fn grapheme_len(text: &str) -> usize {
+    crate::grapheme::grapheme_len(text)
+}
+
+/// Split `text` into its extended grapheme clusters, one user-perceived
+/// character per element.
+pub fn grapheme_split(text: &str) -> Vec<String> {
+    crate::grapheme::grapheme_split(text)
+}
+
+/// Truncate `text` to at most `max_graphemes` clusters without ever splitting a
+/// cluster (so emoji / combining sequences stay intact). Returned unchanged if
+/// already within the limit. Infallible — `usize` rules out the negative count
+/// the Python binding must guard against.
+pub fn grapheme_truncate(text: &str, max_graphemes: usize) -> String {
+    crate::grapheme::truncate_to_graphemes(text, max_graphemes)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

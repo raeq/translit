@@ -18,7 +18,7 @@
 
 use std::hint::black_box;
 
-use _disarm::case_fold::_fold_case;
+use _disarm::api::fold_case;
 use _disarm::slugify::{slugify_impl, SlugConfig};
 use _disarm::transliterate::{_strip_accents, find_untranslatable_impl, transliterate_impl};
 use _disarm::ErrorMode;
@@ -100,10 +100,7 @@ fn main() {
             )
             .len(),
             "slugify" => slugify_impl(black_box(&doc), &config).len(),
-            "fold_case" => match _fold_case(black_box(&doc)) {
-                Ok(s) => s.len(),
-                Err(_) => 0,
-            },
+            "fold_case" => fold_case(black_box(&doc)).len(),
             "strip_accents" => _strip_accents(black_box(&doc)).len(),
             "strict_scan" => {
                 find_untranslatable_impl(black_box(&doc), None, false, false, false).len()

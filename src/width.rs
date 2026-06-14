@@ -223,7 +223,7 @@ mod tests {
     fn iw2_bounds() {
         for s in ["世界", "café", "😀🇫🇷", "a\u{0301}b", "한국어"] {
             let w = terminal_width(s);
-            let upper = 2 * crate::grapheme::_grapheme_len(s);
+            let upper = 2 * crate::grapheme::grapheme_len(s);
             assert!(w <= upper, "I_w2: {w} <= {upper} for {s:?}");
         }
     }
@@ -251,7 +251,7 @@ mod tests {
         let fitzpatrick = "\u{1F3FB}"; // GCB=Extend, base has Emoji_Presentation
         let joined = format!(" {fitzpatrick}");
         // The space + modifier are a single cluster of width 1.
-        assert_eq!(crate::grapheme::_grapheme_len(&joined), 1);
+        assert_eq!(crate::grapheme::grapheme_len(&joined), 1);
         assert_eq!(terminal_width(&joined), 1);
         // The lone modifier is its own cluster, width 2.
         assert_eq!(terminal_width(fitzpatrick), 2);

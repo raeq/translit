@@ -1,4 +1,8 @@
-use pyo3::prelude::*;
+//! Layer 1 (pure-Rust core): UAX #29 grapheme segmentation. No pyo3.
+//!
+//! Shims in `src/py/grapheme.rs`; crates.io surface is
+//! `crate::api::{grapheme_len, grapheme_split, grapheme_truncate}`.
+
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Iterate the extended grapheme clusters (UAX #29) of `text`.
@@ -20,9 +24,7 @@ pub(crate) fn clusters(text: &str) -> impl Iterator<Item = &str> {
 ///   grapheme_len("café")  → 4  (not 5 if NFD-decomposed)
 ///   grapheme_len("🏳️‍🌈")   → 1  (rainbow flag: 4 codepoints, 1 grapheme)
 ///   grapheme_len("👩‍👩‍👧‍👦")  → 1  (family emoji: 7 codepoints, 1 grapheme)
-#[pyfunction]
-#[pyo3(signature = (text,))]
-pub fn _grapheme_len(text: &str) -> usize {
+pub(crate) fn grapheme_len(text: &str) -> usize {
     clusters(text).count()
 }
 
@@ -30,29 +32,12 @@ pub fn _grapheme_len(text: &str) -> usize {
 ///
 /// Each element is a user-perceived character. This is the correct way
 /// to iterate over "characters" in Unicode text.
-#[pyfunction]
-#[pyo3(signature = (text,))]
-pub fn _grapheme_split(text: &str) -> Vec<String> {
+pub(crate) fn grapheme_split(text: &str) -> Vec<String> {
     clusters(text).map(std::borrow::ToOwned::to_owned).collect()
 }
 
-/// Truncate text to at most `max_graphemes` user-perceived characters.
-///
-/// Unlike byte-level or codepoint-level truncation, this never splits
-/// a grapheme cluster (which could corrupt emoji, combining sequences,
-/// or Hangul syllables).
-///
-/// If the text is already within the limit, it is returned unchanged.
-#[pyfunction]
-#[pyo3(signature = (text, max_graphemes))]
-pub fn _grapheme_truncate(text: &str, max_graphemes: i64) -> PyResult<String> {
-    // #231: validate the non-negative contract in the core, not the binding.
-    let max_graphemes = crate::error::checked_max_graphemes(max_graphemes)?;
-    Ok(truncate_to_graphemes(text, max_graphemes))
-}
-
-/// Truncate `text` to at most `max_graphemes` clusters. The validated core of
-/// [`_grapheme_truncate`], split out so callers with a known-good `usize`
+/// Truncate `text` to at most `max_graphemes` clusters. The core of
+/// `crate::api::grapheme_truncate`, split out so callers with a known-good `usize`
 /// (tests, internal callers) skip the boundary conversion.
 pub(crate) fn truncate_to_graphemes(text: &str, max_graphemes: usize) -> String {
     let mut result = String::with_capacity(text.len());
@@ -71,46 +56,46 @@ mod tests {
 
     #[test]
     fn test_grapheme_len_ascii() {
-        assert_eq!(_grapheme_len("hello"), 5);
+        assert_eq!(grapheme_len("hello"), 5);
     }
 
     #[test]
     fn test_grapheme_len_cafe_nfc() {
-        assert_eq!(_grapheme_len("caf\u{00E9}"), 4); // NFC é
+        assert_eq!(grapheme_len("caf\u{00E9}"), 4); // NFC é
     }
 
     #[test]
     fn test_grapheme_len_cafe_nfd() {
-        assert_eq!(_grapheme_len("cafe\u{0301}"), 4); // NFD e + combining accent = 1 grapheme
+        assert_eq!(grapheme_len("cafe\u{0301}"), 4); // NFD e + combining accent = 1 grapheme
     }
 
     #[test]
     fn test_grapheme_len_family_emoji() {
         // 👩‍👩‍👧‍👦 = 4 person codepoints + 3 ZWJ = 7 codepoints, 1 grapheme
-        assert_eq!(_grapheme_len("👩\u{200D}👩\u{200D}👧\u{200D}👦"), 1);
+        assert_eq!(grapheme_len("👩\u{200D}👩\u{200D}👧\u{200D}👦"), 1);
     }
 
     #[test]
     fn test_grapheme_len_flag() {
         // 🇬🇧 = 2 regional indicators, 1 grapheme
-        assert_eq!(_grapheme_len("🇬🇧"), 1);
+        assert_eq!(grapheme_len("🇬🇧"), 1);
     }
 
     #[test]
     fn test_grapheme_len_hangul() {
         // 한 = 1 precomposed Hangul syllable
-        assert_eq!(_grapheme_len("한"), 1);
+        assert_eq!(grapheme_len("한"), 1);
     }
 
     #[test]
     fn test_grapheme_split_basic() {
-        let parts = _grapheme_split("café");
+        let parts = grapheme_split("café");
         assert_eq!(parts, vec!["c", "a", "f", "é"]);
     }
 
     #[test]
     fn test_grapheme_split_nfd() {
-        let parts = _grapheme_split("cafe\u{0301}");
+        let parts = grapheme_split("cafe\u{0301}");
         assert_eq!(parts.len(), 4); // e + combining accent is one grapheme
         assert_eq!(parts[3], "e\u{0301}");
     }
@@ -159,15 +144,15 @@ mod tests {
             /// len(grapheme_split(s)) == grapheme_len(s).
             #[test]
             fn split_len_consistent(s in "\\PC*") {
-                let parts = _grapheme_split(&s);
-                let len = _grapheme_len(&s);
+                let parts = grapheme_split(&s);
+                let len = grapheme_len(&s);
                 prop_assert_eq!(parts.len(), len);
             }
 
             /// Joining grapheme_split recovers the original string (lossless partition).
             #[test]
             fn split_roundtrip(s in "\\PC*") {
-                let parts = _grapheme_split(&s);
+                let parts = grapheme_split(&s);
                 let joined: String = parts.concat();
                 prop_assert_eq!(&joined, &s);
             }
@@ -176,7 +161,7 @@ mod tests {
             #[test]
             fn truncate_respects_limit(s in "\\PC*", n in 0..200usize) {
                 let result = truncate_to_graphemes(&s, n);
-                prop_assert!(_grapheme_len(&result) <= n);
+                prop_assert!(grapheme_len(&result) <= n);
             }
 
             /// grapheme_truncate returns a byte-prefix of the original.
@@ -189,7 +174,7 @@ mod tests {
             /// Truncating at grapheme_len(s) returns the string unchanged.
             #[test]
             fn truncate_at_full_length_is_identity(s in "\\PC*") {
-                let len = _grapheme_len(&s);
+                let len = grapheme_len(&s);
                 let result = truncate_to_graphemes(&s, len);
                 prop_assert_eq!(&result, &s);
             }
