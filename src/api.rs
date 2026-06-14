@@ -498,6 +498,21 @@ pub fn slugify(text: &str, config: &SlugConfig) -> String {
     crate::slugify::slugify_impl(text, config)
 }
 
+// ── Emoji ────────────────────────────────────────────────────────────────────
+
+/// Expand emoji sequences in `text` to their CLDR short-name text descriptions
+/// (e.g. `"😀"` → `"grinning face"`). The matching engine handles ZWJ sequences,
+/// skin-tone modifiers, flag/keycap sequences, and presentation selectors;
+/// `strip_modifiers` drops the modifier suffix (`": light skin tone"`, etc.) from
+/// each name. Pure-ASCII input is returned unchanged.
+///
+/// This uses the **built-in CLDR data** (latest English). The custom Python
+/// `EmojiProvider` override exposed by the `disarm` package is binding-layer-only
+/// (Python-only) and is intentionally **not** part of the Rust surface.
+pub fn demojize(text: &str, strip_modifiers: bool) -> String {
+    crate::emoji::demojize_rust(text, strip_modifiers)
+}
+
 // ── Transliteration ──────────────────────────────────────────────────────────
 
 /// Remove diacritical marks while preserving base characters (NFD → strip
