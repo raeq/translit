@@ -15,8 +15,8 @@ use std::hint::black_box;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 use _disarm::api::fold_case;
+use _disarm::api::{slugify, SlugConfig};
 use _disarm::presets::{_search_key, _security_clean};
-use _disarm::slugify::{slugify_impl, SlugConfig};
 use _disarm::transliterate::{_strip_accents, find_untranslatable_impl, transliterate_impl};
 use _disarm::ErrorMode;
 
@@ -123,7 +123,7 @@ fn bench_slugify_doc(c: &mut Criterion) {
         let doc = persona_corpus::doc(name).expect("persona exists");
         group.throughput(text_throughput(&doc));
         group.bench_with_input(BenchmarkId::new("default", name), &doc, |b, text| {
-            b.iter(|| slugify_impl(black_box(text), &config));
+            b.iter(|| slugify(black_box(text), &config));
         });
     }
     group.finish();
@@ -192,7 +192,7 @@ fn bench_short_per_call(c: &mut Criterion) {
         b.iter(|| engine(black_box(SHORT_UNICODE), None));
     });
     group.bench_function("slugify_short_ascii", |b| {
-        b.iter(|| slugify_impl(black_box("Hello World This Is A Title"), &config));
+        b.iter(|| slugify(black_box("Hello World This Is A Title"), &config));
     });
     group.finish();
 }

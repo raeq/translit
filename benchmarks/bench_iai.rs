@@ -19,7 +19,7 @@ use std::hint::black_box;
 
 use _disarm::api::strip_log_injection;
 use _disarm::api::{escape_html, percent_encode, UrlComponent};
-use _disarm::slugify::{slugify_impl, SlugConfig};
+use _disarm::api::{slugify, SlugConfig};
 use _disarm::transliterate::transliterate_impl;
 use _disarm::ErrorMode;
 
@@ -62,7 +62,7 @@ fn transliterate_doc(text: String) -> usize {
 #[bench::latin(doc("latin_doc"))]
 fn slugify_doc(text: String) -> usize {
     let config = SlugConfig::default();
-    black_box(slugify_impl(black_box(&text), &config)).len()
+    black_box(slugify(black_box(&text), &config)).len()
 }
 
 // Output encoders (#311), fresh-string regime. escape_html on metacharacter-free

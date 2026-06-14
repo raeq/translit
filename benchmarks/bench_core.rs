@@ -15,7 +15,7 @@ use _disarm::api::fold_case;
 use _disarm::api::{detect_scripts, is_mixed_script};
 use _disarm::api::{grapheme_len, grapheme_split};
 use _disarm::api::{normalize_confusables, TargetScript};
-use _disarm::slugify::{slugify_impl, SlugConfig};
+use _disarm::api::{slugify, SlugConfig};
 use _disarm::tables::lookup_default;
 use _disarm::transliterate::transliterate_impl;
 use _disarm::ErrorMode;
@@ -140,7 +140,7 @@ fn bench_slugify(c: &mut Criterion) {
     ] {
         group.throughput(text_throughput(input));
         group.bench_with_input(BenchmarkId::new("default", name), input, |b, text| {
-            b.iter(|| slugify_impl(black_box(text), &default_config));
+            b.iter(|| slugify(black_box(text), &default_config));
         });
     }
 
@@ -153,7 +153,7 @@ fn bench_slugify(c: &mut Criterion) {
     let bounded_input = "The Quick Brown Fox Jumps Over The Lazy Dog";
     group.throughput(text_throughput(bounded_input));
     group.bench_function("bounded_30_word_boundary", |b| {
-        b.iter(|| slugify_impl(black_box(bounded_input), &bounded_config));
+        b.iter(|| slugify(black_box(bounded_input), &bounded_config));
     });
 
     group.finish();
