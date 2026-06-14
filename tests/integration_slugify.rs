@@ -1,18 +1,18 @@
 //! Integration tests for slugification.
 
-use _disarm::slugify::{slugify_impl, SlugConfig};
+use _disarm::api::{slugify, SlugConfig};
 
 #[test]
 fn basic_slugify() {
     let config = SlugConfig::default();
-    let result = slugify_impl("Hello World", &config);
+    let result = slugify("Hello World", &config);
     assert_eq!(result, "hello-world");
 }
 
 #[test]
 fn slugify_unicode() {
     let config = SlugConfig::default();
-    let result = slugify_impl("Héllo Wörld", &config);
+    let result = slugify("Héllo Wörld", &config);
     assert_eq!(result, "hello-world");
 }
 
@@ -22,7 +22,7 @@ fn slugify_custom_separator() {
         separator: "_".to_owned(),
         ..Default::default()
     };
-    let result = slugify_impl("Hello World", &config);
+    let result = slugify("Hello World", &config);
     assert_eq!(result, "hello_world");
 }
 
@@ -32,7 +32,7 @@ fn slugify_max_length() {
         max_length: 5,
         ..Default::default()
     };
-    let result = slugify_impl("Hello World", &config);
+    let result = slugify("Hello World", &config);
     assert!(result.len() <= 5, "expected max 5 chars, got: {result:?}");
 }
 
@@ -42,42 +42,42 @@ fn slugify_no_lowercase() {
         lowercase: false,
         ..Default::default()
     };
-    let result = slugify_impl("Hello World", &config);
+    let result = slugify("Hello World", &config);
     assert!(result.contains('H') || result.contains('W'));
 }
 
 #[test]
 fn slugify_empty_input() {
     let config = SlugConfig::default();
-    assert_eq!(slugify_impl("", &config), "");
+    assert_eq!(slugify("", &config), "");
 }
 
 #[test]
 fn slugify_only_special_chars() {
     let config = SlugConfig::default();
-    let result = slugify_impl("!@#$%^&*()", &config);
+    let result = slugify("!@#$%^&*()", &config);
     assert!(result.is_empty() || result == "-");
 }
 
 #[test]
 fn slugify_cjk() {
     let config = SlugConfig::default();
-    let result = slugify_impl("中文测试", &config);
+    let result = slugify("中文测试", &config);
     assert!(result.is_ascii());
 }
 
 #[test]
 fn slugify_idempotent() {
     let config = SlugConfig::default();
-    let once = slugify_impl("Hello World", &config);
-    let twice = slugify_impl(&once, &config);
+    let once = slugify("Hello World", &config);
+    let twice = slugify(&once, &config);
     assert_eq!(once, twice, "slugify should be idempotent");
 }
 
 #[test]
 fn slugify_consecutive_separators_collapsed() {
     let config = SlugConfig::default();
-    let result = slugify_impl("hello---world", &config);
+    let result = slugify("hello---world", &config);
     assert!(
         !result.contains("--"),
         "consecutive separators should be collapsed"
@@ -89,14 +89,14 @@ fn slugify_consecutive_separators_collapsed() {
 #[test]
 fn slugify_multibyte_with_entities() {
     let config = SlugConfig::default();
-    let result = slugify_impl("café &amp; résumé", &config);
+    let result = slugify("café &amp; résumé", &config);
     assert_eq!(result, "cafe-resume", "full slug for 'café &amp; résumé'");
 }
 
 #[test]
 fn slugify_cjk_with_entities() {
     let config = SlugConfig::default();
-    let result = slugify_impl("中文 &amp; test", &config);
+    let result = slugify("中文 &amp; test", &config);
     assert!(result.contains("test"), "expected 'test' in: {result:?}");
 }
 
@@ -110,7 +110,7 @@ fn slugify_malformed_entity_multibyte_no_panic() {
         max_length: 1,
         ..Default::default()
     };
-    let result = slugify_impl("&#AaAA a0\u{1ACF0}\u{2D30}", &config);
+    let result = slugify("&#AaAA a0\u{1ACF0}\u{2D30}", &config);
     assert!(result.len() <= 1);
 }
 
@@ -124,7 +124,7 @@ fn slugify_decimal_disabled() {
     };
     // &#65; is 'A' — with decimal=false it should NOT be decoded,
     // so the raw &#65; characters appear in the transliteration input.
-    let result = slugify_impl("&#65;", &config);
+    let result = slugify("&#65;", &config);
     // The '&', '#', '6', '5', ';' should survive as ASCII and produce something
     assert!(!result.is_empty());
     // Hex entities should still decode: &#x41; → 'A'
@@ -132,7 +132,7 @@ fn slugify_decimal_disabled() {
         decimal: false,
         ..Default::default()
     };
-    let result_hex = slugify_impl("&#x41;", &config_hex);
+    let result_hex = slugify("&#x41;", &config_hex);
     assert!(
         result_hex.contains('a'),
         "hex entity should decode to 'A' → 'a': {result_hex:?}"
@@ -146,14 +146,14 @@ fn slugify_hexadecimal_disabled() {
         ..Default::default()
     };
     // &#x41; should NOT be decoded
-    let result = slugify_impl("&#x41;", &config);
+    let result = slugify("&#x41;", &config);
     assert!(!result.is_empty());
     // Decimal entities should still decode: &#65; → 'A'
     let config_dec = SlugConfig {
         hexadecimal: false,
         ..Default::default()
     };
-    let result_dec = slugify_impl("&#65;", &config_dec);
+    let result_dec = slugify("&#65;", &config_dec);
     assert!(
         result_dec.contains('a'),
         "decimal entity should decode to 'A' → 'a': {result_dec:?}"
@@ -168,7 +168,7 @@ fn slugify_stopwords() {
         stopwords: vec!["the".to_owned(), "a".to_owned()],
         ..Default::default()
     };
-    let result = slugify_impl("The quick brown fox", &config);
+    let result = slugify("The quick brown fox", &config);
     assert!(
         !result.contains("the"),
         "stopword 'the' should be removed: {result:?}"
@@ -188,7 +188,7 @@ fn slugify_entities_disabled() {
         ..Default::default()
     };
     // With entities disabled, &amp; is treated as literal characters
-    let result = slugify_impl("AT&amp;T", &config);
+    let result = slugify("AT&amp;T", &config);
     assert!(
         result.contains("amp"),
         "with entities=false, 'amp' should appear in slug: {result:?}"
@@ -203,7 +203,7 @@ fn slugify_allow_unicode() {
         allow_unicode: true,
         ..Default::default()
     };
-    let result = slugify_impl("café latte", &config);
+    let result = slugify("café latte", &config);
     assert!(
         result.contains("café"),
         "allow_unicode should preserve 'café': {result:?}"
@@ -218,7 +218,7 @@ fn slugify_replacements() {
         replacements: vec![("@".to_owned(), "at".to_owned())],
         ..Default::default()
     };
-    let result = slugify_impl("user@example", &config);
+    let result = slugify("user@example", &config);
     assert!(
         result.contains("at"),
         "replacement '@' → 'at' should apply: {result:?}"
@@ -235,7 +235,7 @@ fn slugify_word_boundary_truncation() {
         word_boundary: true,
         ..Default::default()
     };
-    let result = slugify_impl("hello world foo bar", &config);
+    let result = slugify("hello world foo bar", &config);
     assert!(result.len() <= 12, "should respect max_length: {result:?}");
     // Should truncate at a word boundary (separator), not mid-word
     assert!(

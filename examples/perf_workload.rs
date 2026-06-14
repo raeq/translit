@@ -19,7 +19,7 @@
 use std::hint::black_box;
 
 use _disarm::api::fold_case;
-use _disarm::slugify::{slugify_impl, SlugConfig};
+use _disarm::api::{slugify, SlugConfig};
 use _disarm::transliterate::{_strip_accents, find_untranslatable_impl, transliterate_impl};
 use _disarm::ErrorMode;
 
@@ -99,7 +99,7 @@ fn main() {
                 false,
             )
             .len(),
-            "slugify" => slugify_impl(black_box(&doc), &config).len(),
+            "slugify" => slugify(black_box(&doc), &config).len(),
             "fold_case" => fold_case(black_box(&doc)).len(),
             "strip_accents" => _strip_accents(black_box(&doc)).len(),
             "strict_scan" => {

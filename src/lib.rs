@@ -126,7 +126,7 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(transliterate::_clear_replacements, m)?)?;
     m.add_function(wrap_pyfunction!(transliterate::_seal_registrations, m)?)?;
     m.add_function(wrap_pyfunction!(transliterate::_registrations_sealed, m)?)?;
-    m.add_function(wrap_pyfunction!(slugify::_slugify, m)?)?;
+    m.add_function(wrap_pyfunction!(py::slugify::_slugify, m)?)?;
     m.add_function(wrap_pyfunction!(
         py::log_injection::_strip_log_injection,
         m
@@ -150,12 +150,12 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Batch APIs (single PyO3 boundary crossing for N strings)
     m.add_function(wrap_pyfunction!(transliterate::_transliterate_batch, m)?)?;
     m.add_function(wrap_pyfunction!(transliterate::_strip_accents_batch, m)?)?;
-    m.add_function(wrap_pyfunction!(slugify::_slugify_batch, m)?)?;
+    m.add_function(wrap_pyfunction!(py::slugify::_slugify_batch, m)?)?;
     m.add_function(wrap_pyfunction!(py::normalize::_normalize_batch, m)?)?;
 
     // Stateful classes
-    m.add_class::<slugify::_Slugifier>()?;
-    m.add_class::<slugify::_UniqueSlugifier>()?;
+    m.add_class::<py::slugify::_Slugifier>()?;
+    m.add_class::<py::slugify::_UniqueSlugifier>()?;
     m.add_class::<pipeline::_TextPipeline>()?;
     m.add_function(wrap_pyfunction!(pipeline::_get_pipeline, m)?)?;
     m.add_function(wrap_pyfunction!(pipeline::_list_profiles, m)?)?;

@@ -423,6 +423,25 @@ pub fn strip_log_injection<'a>(
     ))
 }
 
+// ── Slugification ────────────────────────────────────────────────────────────
+
+pub use crate::slugify::SlugConfig;
+
+/// Generate a URL-safe slug from `text` according to `config` (separator, max
+/// length, case folding, stopwords, custom regex, HTML-entity handling, …).
+///
+/// Build a [`SlugConfig`] from [`SlugConfig::default`] plus field updates.
+///
+/// Infallible by design — and therefore **`config.lang` is not validated**: an
+/// unknown language code is treated as "best effort" and falls back to the
+/// default transliterator (the same lenient behaviour as the underlying engine),
+/// rather than erroring. This differs from the Python `slugify`, whose convenience
+/// wrapper eagerly validates `lang` and raises. If you need strict validation in
+/// Rust, check the code against [`list_langs`] before building the config.
+pub fn slugify(text: &str, config: &SlugConfig) -> String {
+    crate::slugify::slugify_impl(text, config)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -525,5 +544,19 @@ mod tests {
         let err = strip_log_injection("x", "\r", false).unwrap_err();
         assert_eq!(err.kind(), crate::ErrorKind::InvalidArgument);
         assert_eq!(err.code(), "invalid_log_replacement");
+    }
+
+    #[test]
+    fn slugify_with_config() {
+        assert_eq!(
+            slugify("Héllo Wörld", &SlugConfig::default()),
+            "hello-world"
+        );
+        let bounded = SlugConfig {
+            max_length: 5,
+            word_boundary: true,
+            ..SlugConfig::default()
+        };
+        assert_eq!(slugify("hello world", &bounded), "hello");
     }
 }
