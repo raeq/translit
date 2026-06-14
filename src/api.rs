@@ -547,6 +547,10 @@ pub fn list_langs() -> Vec<String> {
 /// Returns `Cow::Borrowed` for pure-ASCII input (zero allocation), `Cow::Owned`
 /// otherwise. Infallible: wraps the Layer-1 engine
 /// [`crate::transliterate::transliterate_impl`].
+///
+/// Note: the public bool order is intentionally `(tones, strict_iso9, gost7034)`
+/// to mirror the Python keyword order; the wrapper reorders onto the engine's
+/// `(strict_iso9, gost7034, tones)`. Keep the public order stable.
 #[allow(clippy::too_many_arguments)]
 pub fn transliterate<'a>(
     text: &'a str,
@@ -573,6 +577,10 @@ pub fn transliterate<'a>(
 /// an empty vector. Mirrors [`transliterate`]'s engine, so the reported set is
 /// exactly what that transform would replace/ignore/preserve. Wraps the Layer-1
 /// core [`crate::transliterate::find_untranslatable_impl`].
+///
+/// As with [`transliterate`], the public bool order is intentionally
+/// `(tones, strict_iso9, gost7034)`; the wrapper reorders onto the engine's
+/// `(strict_iso9, gost7034, tones)`.
 pub fn find_untranslatable(
     text: &str,
     lang: Option<&str>,
