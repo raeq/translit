@@ -150,7 +150,7 @@ pub fn _security_clean(text: &str) -> PyResult<String> {
     // 1. NFKC normalization (collapses fullwidth, ligatures, superscripts)
     let buf = nfkc_normalize(text);
     // 2. Confusables → Latin (neutralizes cross-script homoglyphs)
-    let buf = confusables::_normalize_confusables(&buf, "latin")?;
+    let buf = confusables::normalize_confusables(&buf, "latin")?;
     // 3. Strip bidi overrides, isolates, marks, and soft hyphens
     let buf = strip_bidi(&buf);
     // 4. Collapse whitespace + strip control + strip zero-width
@@ -256,7 +256,7 @@ pub fn _catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> PyResu
     )
     .into_owned();
     // 4. Confusables → Latin (normalize any remaining cross-script homoglyphs)
-    let buf = confusables::_normalize_confusables(&buf, "latin")?;
+    let buf = confusables::normalize_confusables(&buf, "latin")?;
     // 5. Strip accents
     let buf = transliterate::_strip_accents(&buf);
     // 6. Unicode case folding
@@ -400,7 +400,7 @@ pub fn _normalize_user_input(text: &str) -> PyResult<String> {
     // 3. Cap combining marks at 2 per base character (zalgo)
     let buf = zalgo::_strip_zalgo(&buf, 2);
     // 4. Confusables → Latin (neutralizes cross-script homoglyphs)
-    let buf = confusables::_normalize_confusables(&buf, "latin")?;
+    let buf = confusables::normalize_confusables(&buf, "latin")?;
     // 5. Collapse whitespace + strip control + strip zero-width
     let buf = whitespace::_collapse_whitespace(&buf, true, true);
     // 6. Path-safety guarantee (#248): the output of a function named to
@@ -466,7 +466,7 @@ pub fn _strip_obfuscation(text: &str) -> PyResult<String> {
     //    Runs AFTER demojize so that typographic punctuation in emoji names
     //    (e.g. the ’ in "woman’s hat") is folded too; otherwise a second pass
     //    would fold it and strip_obfuscation would not be idempotent.
-    let buf = confusables::_normalize_confusables(&buf, "latin")?;
+    let buf = confusables::normalize_confusables(&buf, "latin")?;
     // 7. Strip accents (NFD decompose + strip combining marks)
     let buf = transliterate::_strip_accents(&buf);
     // 8. Collapse whitespace (final cleanup) — case is NOT folded

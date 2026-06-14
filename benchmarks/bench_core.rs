@@ -10,8 +10,8 @@ use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
+use _disarm::api::{normalize_confusables, TargetScript};
 use _disarm::case_fold::_fold_case;
-use _disarm::confusables::_normalize_confusables;
 use _disarm::grapheme::{_grapheme_len, _grapheme_split};
 use _disarm::scripts::{_detect_scripts, _is_mixed_script};
 use _disarm::slugify::{slugify_impl, SlugConfig};
@@ -276,14 +276,14 @@ fn bench_confusables(c: &mut Criterion) {
     let ascii = "The quick brown fox jumps over the lazy dog. ".repeat(8);
     group.throughput(text_throughput(&ascii));
     group.bench_function("ascii_doc", |b| {
-        b.iter(|| _normalize_confusables(black_box(&ascii), black_box("latin")).unwrap());
+        b.iter(|| normalize_confusables(black_box(&ascii), black_box(TargetScript::Latin)));
     });
 
     // Cyrillic/Greek homoglyphs — the fold actually fires here.
     let homoglyph = "Москва раураl Ελλάδα gооgle ".repeat(8);
     group.throughput(text_throughput(&homoglyph));
     group.bench_function("homoglyph_doc", |b| {
-        b.iter(|| _normalize_confusables(black_box(&homoglyph), black_box("latin")).unwrap());
+        b.iter(|| normalize_confusables(black_box(&homoglyph), black_box(TargetScript::Latin)));
     });
 
     group.finish();

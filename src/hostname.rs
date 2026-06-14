@@ -153,7 +153,7 @@ pub fn _is_suspicious_hostname(hostname: &str) -> PyResult<(bool, HostnameAnalys
         // Check confusables in this label. Fail CLOSED (#67.1): if the check
         // errors we cannot prove the label clean, so flag it as suspicious
         // rather than silently degrading to "not confusable".
-        match confusables::_is_confusable(&label, "latin") {
+        match confusables::is_confusable(&label, "latin") {
             Ok(true) => {
                 has_confusables = true;
                 suspicious = true;
@@ -168,7 +168,7 @@ pub fn _is_suspicious_hostname(hostname: &str) -> PyResult<(bool, HostnameAnalys
     // Generate canonical Latin form from the decoded labels.
     let decoded_hostname = decoded_labels.join(".");
     let canonical =
-        confusables::_normalize_confusables(&decoded_hostname, "latin").unwrap_or(decoded_hostname);
+        confusables::normalize_confusables(&decoded_hostname, "latin").unwrap_or(decoded_hostname);
 
     Ok((
         suspicious,

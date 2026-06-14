@@ -46,6 +46,8 @@ impl ErrorMode {
 
 // Core modules — `pub` so Criterion benchmarks (external crate) can access
 // the pure-Rust implementation functions directly.
+// Layer 2: the idiomatic, pyo3-free Rust API (the future crates.io surface, #38).
+pub mod api;
 #[doc(hidden)]
 pub mod case_fold;
 #[doc(hidden)]
@@ -90,6 +92,12 @@ pub mod width;
 #[doc(hidden)]
 pub mod zalgo;
 
+// Layer 3b: the PyO3 binding shims (#38). Currently ungated because `pyo3` is a
+// non-optional dependency; the final extraction sub-PR makes `pyo3` optional and
+// gates this whole module behind `feature = "extension-module"`.
+#[doc(hidden)]
+mod py;
+
 /// Internal Rust module. Not part of the public Python API.
 /// All public access goes through python/disarm/__init__.py.
 #[pymodule]
@@ -121,8 +129,11 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(log_injection::_strip_log_injection, m)?)?;
     m.add_function(wrap_pyfunction!(normalize::_normalize, m)?)?;
     m.add_function(wrap_pyfunction!(normalize::_is_normalized, m)?)?;
-    m.add_function(wrap_pyfunction!(confusables::_normalize_confusables, m)?)?;
-    m.add_function(wrap_pyfunction!(confusables::_is_confusable, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        py::confusables::_normalize_confusables,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(py::confusables::_is_confusable, m)?)?;
     m.add_function(wrap_pyfunction!(encoders::_escape_html, m)?)?;
     m.add_function(wrap_pyfunction!(encoders::_percent_encode, m)?)?;
     m.add_function(wrap_pyfunction!(filename::_sanitize_filename, m)?)?;

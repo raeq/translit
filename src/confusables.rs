@@ -1,4 +1,13 @@
-use pyo3::prelude::*;
+//! Layer 1 (pure-Rust core): TR39 confusable folding. No pyo3.
+//!
+//! The PyO3 shims for these functions live in `src/py/confusables.rs`; the
+//! idiomatic crates.io surface is `crate::api::{normalize_confusables,
+//! is_confusable}`. This module is the algorithm, returning the native
+//! [`crate::Error`] (never a `PyErr`).
+//!
+//! These fns are `pub(crate)` while [`crate::Error`] is `pub(crate)` (avoiding a
+//! private-in-public leak). They are promoted to `pub` together with the opaque
+//! public `Error` in the first fallible-module extraction sub-PR (#38).
 
 use crate::tables;
 
@@ -25,22 +34,23 @@ fn validate_target_script(target_script: &str) -> Result<(), crate::Error> {
 /// See: <https://paultendo.github.io/posts/unicode-confusables-nfkc-conflict/>
 ///
 /// # Valid `target_script` values
-/// Currently only `"latin"` is supported. Any other value raises `DisarmError`.
-#[pyfunction]
-#[pyo3(signature = (text, *, target_script="latin"))]
-pub fn _normalize_confusables(text: &str, target_script: &str) -> PyResult<String> {
+/// `"latin"` or `"cyrillic"`. Any other value returns [`crate::Error`].
+pub(crate) fn normalize_confusables(
+    text: &str,
+    target_script: &str,
+) -> Result<String, crate::Error> {
     let mut out = String::new();
     normalize_confusables_into(text, target_script, &mut out)?;
     Ok(out)
 }
 
-/// In-place form of [`_normalize_confusables`] writing into `out` (cleared
+/// In-place form of [`normalize_confusables`] writing into `out` (cleared
 /// first), so the pipeline can reuse one buffer across steps (#236 item 7).
-pub fn normalize_confusables_into(
+pub(crate) fn normalize_confusables_into(
     text: &str,
     target_script: &str,
     out: &mut String,
-) -> PyResult<()> {
+) -> Result<(), crate::Error> {
     validate_target_script(target_script)?;
     out.clear();
     out.reserve(text.len());
@@ -65,10 +75,8 @@ pub fn normalize_confusables_into(
 /// True if text contains any characters confusable with target-script characters.
 ///
 /// # Valid `target_script` values
-/// Currently only `"latin"` is supported. Any other value raises `DisarmError`.
-#[pyfunction]
-#[pyo3(signature = (text, *, target_script="latin"))]
-pub fn _is_confusable(text: &str, target_script: &str) -> PyResult<bool> {
+/// `"latin"` or `"cyrillic"`. Any other value returns [`crate::Error`].
+pub(crate) fn is_confusable(text: &str, target_script: &str) -> Result<bool, crate::Error> {
     validate_target_script(target_script)?;
 
     let map = tables::resolve_confusable_map(target_script);
@@ -87,36 +95,36 @@ mod tests {
     #[test]
     fn test_normalize_confusables_cyrillic() {
         // Cyrillic 'а' (U+0430) → Latin 'a'
-        let result = _normalize_confusables("\u{0430}", "latin").unwrap();
+        let result = normalize_confusables("\u{0430}", "latin").unwrap();
         assert_eq!(result, "a");
     }
 
     #[test]
     fn test_normalize_confusables_passthrough() {
-        let result = _normalize_confusables("hello", "latin").unwrap();
+        let result = normalize_confusables("hello", "latin").unwrap();
         assert_eq!(result, "hello");
     }
 
     #[test]
     fn test_normalize_confusables_empty() {
-        let result = _normalize_confusables("", "latin").unwrap();
+        let result = normalize_confusables("", "latin").unwrap();
         assert_eq!(result, "");
     }
 
     #[test]
     fn test_is_confusable_true() {
         // Cyrillic 'а' is confusable with Latin 'a'
-        assert!(_is_confusable("\u{0430}", "latin").unwrap());
+        assert!(is_confusable("\u{0430}", "latin").unwrap());
     }
 
     #[test]
     fn test_is_confusable_false() {
-        assert!(!_is_confusable("hello", "latin").unwrap());
+        assert!(!is_confusable("hello", "latin").unwrap());
     }
 
     #[test]
     fn test_is_confusable_empty() {
-        assert!(!_is_confusable("", "latin").unwrap());
+        assert!(!is_confusable("", "latin").unwrap());
     }
 
     #[test]
@@ -141,7 +149,7 @@ mod tests {
     fn test_normalize_confusables_mixed_long() {
         // String with confusable Cyrillic chars interspersed with ASCII
         let input = "h\u{0435}ll\u{043E} w\u{043E}rld"; // Cyrillic е and о
-        let result = _normalize_confusables(input, "latin").unwrap();
+        let result = normalize_confusables(input, "latin").unwrap();
         // Cyrillic е→e, о→o
         assert_eq!(result, "hello world");
     }
@@ -151,7 +159,7 @@ mod tests {
         // Confusable lookup operates on individual codepoints; NFC and NFD
         // should both work (combining marks aren't confusable targets).
         let nfc = "\u{00e9}"; // é as single codepoint
-        let result = _normalize_confusables(nfc, "latin").unwrap();
+        let result = normalize_confusables(nfc, "latin").unwrap();
         // é is not a confusable — it should pass through unchanged
         assert_eq!(result, nfc);
     }
@@ -171,8 +179,8 @@ mod tests {
             /// characters are never themselves confusable.
             #[test]
             fn normalize_confusables_idempotent(s in "\\PC*") {
-                let once = _normalize_confusables(&s, "latin").unwrap();
-                let twice = _normalize_confusables(&once, "latin").unwrap();
+                let once = normalize_confusables(&s, "latin").unwrap();
+                let twice = normalize_confusables(&once, "latin").unwrap();
                 prop_assert_eq!(&once, &twice,
                     "normalize_confusables is not idempotent on: {:?}", s);
             }
@@ -182,8 +190,8 @@ mod tests {
             /// no confusable characters survive normalization.
             #[test]
             fn normalized_is_not_confusable(s in "\\PC*") {
-                let normalized = _normalize_confusables(&s, "latin").unwrap();
-                let still_confusable = _is_confusable(&normalized, "latin").unwrap();
+                let normalized = normalize_confusables(&s, "latin").unwrap();
+                let still_confusable = is_confusable(&normalized, "latin").unwrap();
                 prop_assert!(!still_confusable,
                     "is_confusable returned true after normalize_confusables on: {:?} → {:?}",
                     s, normalized);
@@ -194,7 +202,7 @@ mod tests {
             /// (replacements may expand, e.g. a ligature confusable, but never shrink).
             #[test]
             fn normalize_confusables_never_drops_chars(s in "\\PC*") {
-                let result = _normalize_confusables(&s, "latin").unwrap();
+                let result = normalize_confusables(&s, "latin").unwrap();
                 prop_assert!(
                     result.chars().count() >= s.chars().count(),
                     "normalize_confusables dropped chars: {:?} ({} chars) → {:?} ({} chars)",
@@ -206,7 +214,7 @@ mod tests {
             /// true since we return String, but this catches memory corruption).
             #[test]
             fn normalize_confusables_valid_utf8(s in "\\PC*") {
-                let result = _normalize_confusables(&s, "latin").unwrap();
+                let result = normalize_confusables(&s, "latin").unwrap();
                 // If this compiles and doesn't panic, the result is valid UTF-8.
                 let _ = result.len(); // forces evaluation
             }
