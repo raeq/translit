@@ -371,6 +371,58 @@ pub fn sanitize_filename(
     .map_err(Error::from)
 }
 
+// ── Encoding detection & decoding ────────────────────────────────────────────
+
+/// Detect the probable character encoding of `bytes` (chardetng, Firefox's
+/// detector), returning `(whatwg_label, confidence)`. Detection is probabilistic
+/// — prefer explicit encoding metadata for critical pipelines.
+pub fn detect_encoding(bytes: &[u8]) -> (String, f64) {
+    crate::encoding::detect_encoding_impl(bytes)
+}
+
+/// Decode `bytes` to UTF-8. `encoding = None` auto-detects (rejecting a guess
+/// below `min_confidence`, in `0.0..=1.0`). Returns `(text, had_errors)` where
+/// `had_errors` flags inserted U+FFFD replacements; in `strict` mode a lossy
+/// decode is an error instead.
+///
+/// Fails ([`ErrorKind`](crate::ErrorKind)) on an unknown, unsupported, or
+/// low-confidence encoding, an out-of-range `min_confidence`, or (strict) a
+/// lossy decode.
+pub fn decode_to_utf8(
+    bytes: &[u8],
+    encoding: Option<&str>,
+    min_confidence: f64,
+    strict: bool,
+) -> Result<(String, bool), Error> {
+    crate::encoding::decode_to_utf8_impl(bytes, encoding, min_confidence, strict)
+        .map_err(Error::from)
+}
+
+// ── Log-injection neutralization ─────────────────────────────────────────────
+
+/// Neutralize log-injection / terminal-control characters in `text` so it is
+/// safe to *write* as a log line: each CR, LF, NEL, LS, PS, NUL, C0/C1 control,
+/// ESC, and DEL (and tab, unless `keep_tab`) is replaced with `replacement`
+/// (use `""` to drop them). Returns `Cow::Borrowed` for an already-clean line.
+///
+/// Not an HTML/SQL sanitizer and not a defense against logging-framework
+/// interpolation — encode at the *viewer's* sink for those. Fails
+/// ([`ErrorKind::InvalidArgument`](crate::ErrorKind)) if `replacement` itself
+/// contains a character this call neutralizes (which would break the
+/// no-raw-CR/LF and idempotency guarantees).
+pub fn strip_log_injection<'a>(
+    text: &'a str,
+    replacement: &str,
+    keep_tab: bool,
+) -> Result<Cow<'a, str>, Error> {
+    crate::log_injection::validate_log_replacement(replacement, keep_tab).map_err(Error::from)?;
+    Ok(crate::log_injection::strip_log_injection_str(
+        text,
+        replacement,
+        keep_tab,
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -441,5 +493,37 @@ mod tests {
         assert_eq!(err.kind(), crate::ErrorKind::InvalidArgument);
         // Opaque: no inner source leaks.
         assert!(std::error::Error::source(&err).is_none());
+    }
+
+    #[test]
+    fn decode_to_utf8_explicit_and_error() {
+        // Explicit encoding round-trips; "café" in ISO-8859-1 is 0x63 61 66 E9.
+        let (text, had_errors) =
+            decode_to_utf8(&[0x63, 0x61, 0x66, 0xE9], Some("ISO-8859-1"), 0.0, false).unwrap();
+        assert_eq!(text, "café");
+        assert!(!had_errors);
+        // An unknown label surfaces the opaque Error (InvalidArgument).
+        let err = decode_to_utf8(b"hi", Some("FAKE-999"), 0.0, false).unwrap_err();
+        assert_eq!(err.kind(), crate::ErrorKind::InvalidArgument);
+        // detect_encoding is infallible.
+        let (label, conf) = detect_encoding(b"hello world");
+        assert!(!label.is_empty() && conf > 0.0);
+    }
+
+    #[test]
+    fn strip_log_injection_and_bad_replacement() {
+        // CR/LF/NUL are neutralized; a clean line borrows.
+        assert_eq!(
+            strip_log_injection("a\r\nb\0c", "\u{FFFD}", false).unwrap(),
+            "a\u{FFFD}\u{FFFD}b\u{FFFD}c"
+        );
+        assert!(matches!(
+            strip_log_injection("plain line", "\u{FFFD}", false).unwrap(),
+            std::borrow::Cow::Borrowed(_)
+        ));
+        // A replacement that itself contains a neutralized char (CR) is rejected.
+        let err = strip_log_injection("x", "\r", false).unwrap_err();
+        assert_eq!(err.kind(), crate::ErrorKind::InvalidArgument);
+        assert_eq!(err.code(), "invalid_log_replacement");
     }
 }

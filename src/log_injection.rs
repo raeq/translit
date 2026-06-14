@@ -15,11 +15,11 @@
 //! evaluation flaw, not a character-level one. It does no NFKC / confusable
 //! folding, so it preserves the message's meaning and does not unmask
 //! metacharacters.
+//!
+//! Layer 1 (pure-Rust core): no pyo3. Shim in `src/py/log_injection.rs`;
+//! crates.io surface is `crate::api::strip_log_injection`.
 
 use std::borrow::Cow;
-
-use pyo3::prelude::*;
-use pyo3::types::PyString;
 
 /// Whether `c` is a character `strip_log_injection` neutralizes.
 ///
@@ -50,7 +50,7 @@ fn is_log_injection_char(c: char, keep_tab: bool) -> bool {
 /// are neutralized by replacing their *introducer* (ESC / the C1 CSI), leaving
 /// the inert, audit-visible residue (`[31m`) as printable text; full CSI/OSC
 /// sequences are not parsed (that would be stateful and fragile).
-pub fn strip_log_injection_str<'a>(
+pub(crate) fn strip_log_injection_str<'a>(
     text: &'a str,
     replacement: &str,
     keep_tab: bool,
@@ -69,47 +69,22 @@ pub fn strip_log_injection_str<'a>(
     Cow::Owned(out)
 }
 
-/// Neutralize log-injection / terminal-control characters in `text`.
-///
-/// Replaces — rather than dropping, so a redaction stays visible in the record —
-/// every CR, LF, NEL (U+0085), LS (U+2028), PS (U+2029), NUL, C0/C1 control, ESC
-/// (U+001B), and DEL (U+007F) with `replacement` (default U+FFFD; pass an empty
-/// `replacement` to drop the characters instead). `\t` is **also** neutralized by default (`keep_tab=False`): a tab is
-/// a field separator in TSV/logfmt logs, so keeping it would permit column
-/// injection; opt back in with `keep_tab=True` for human-readable tabular logs.
-///
-/// Idempotent, and the output never contains a raw CR/LF/ESC. **Not** an HTML/
-/// SQL output sanitizer and **not** a defense against logging-framework
-/// interpolation (log4shell); it makes a log line safe to *write*, not safe to
-/// later *render as HTML*. See `THREAT_MODEL.md`.
-// No defaults in the FFI signature: the Python wrapper supplies them. (A
-// non-ASCII default like U+FFFD in `__text_signature__` is unparseable by
-// `inspect.signature`, which the stub-drift test relies on.)
-#[pyfunction]
-#[pyo3(signature = (text, *, replacement, keep_tab))]
-pub fn _strip_log_injection<'py>(
-    text: &Bound<'py, PyString>,
+/// Validate a `strip_log_injection` `replacement`: it must contain none of the
+/// characters this call neutralizes, or the "no raw CR/LF/ESC in output" and
+/// idempotency guarantees would not hold.
+pub(crate) fn validate_log_replacement(
     replacement: &str,
     keep_tab: bool,
-) -> PyResult<Bound<'py, PyString>> {
-    // The "never emit a raw CR/LF/ESC" guarantee and idempotency hold only if the
-    // replacement itself contains none of the characters this call neutralizes.
+) -> Result<(), crate::ErrorRepr> {
     if let Some(c) = replacement
         .chars()
         .find(|&c| is_log_injection_char(c, keep_tab))
     {
-        return Err(crate::InvalidArgumentError::new_err(format!(
-            "replacement must not contain a character this call neutralizes \
-             (found U+{:04X})",
-            c as u32
-        )));
+        return Err(crate::ErrorRepr::InvalidLogReplacement {
+            codepoint: c as u32,
+        });
     }
-    let s = text.to_cow()?;
-    match strip_log_injection_str(&s, replacement, keep_tab) {
-        // Clean line → hand back the original object (refcount bump, no copy).
-        Cow::Borrowed(_) => Ok(text.clone()),
-        Cow::Owned(out) => Ok(PyString::new(text.py(), &out)),
-    }
+    Ok(())
 }
 
 #[cfg(test)]

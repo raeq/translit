@@ -380,6 +380,18 @@ pub(crate) enum ErrorRepr {
         /// The offending value.
         got: i64,
     },
+
+    /// `replacement` for `strip_log_injection` contains a character the call
+    /// itself neutralizes — it would break the "no raw CR/LF/ESC in output" and
+    /// idempotency guarantees.
+    #[error(
+        "replacement must not contain a character this call neutralizes \
+         (found U+{codepoint:04X})"
+    )]
+    InvalidLogReplacement {
+        /// The offending character's code point.
+        codepoint: u32,
+    },
 }
 
 impl ErrorRepr {
@@ -399,6 +411,7 @@ impl ErrorRepr {
             ErrorRepr::InvalidEmojiStyle { .. } => "invalid_emoji_style",
             ErrorRepr::InvalidPlatform { .. } => "invalid_platform",
             ErrorRepr::InvalidTargetScript { .. } => "invalid_target_script",
+            ErrorRepr::InvalidLogReplacement { .. } => "invalid_log_replacement",
             ErrorRepr::UnknownLang { .. } => "unknown_lang",
             ErrorRepr::MutuallyExclusiveBare | ErrorRepr::MutuallyExclusivePipeline => {
                 "mutually_exclusive"
@@ -490,6 +503,7 @@ impl From<ErrorRepr> for pyo3::PyErr {
             | ErrorRepr::InvalidEmojiStyle { .. }
             | ErrorRepr::InvalidPlatform { .. }
             | ErrorRepr::InvalidTargetScript { .. }
+            | ErrorRepr::InvalidLogReplacement { .. }
             | ErrorRepr::UnknownLang { .. }
             | ErrorRepr::MutuallyExclusiveBare
             | ErrorRepr::MutuallyExclusivePipeline
@@ -581,6 +595,7 @@ impl Error {
             | ErrorRepr::InvalidEmojiStyle { .. }
             | ErrorRepr::InvalidPlatform { .. }
             | ErrorRepr::InvalidTargetScript { .. }
+            | ErrorRepr::InvalidLogReplacement { .. }
             | ErrorRepr::UnknownLang { .. }
             | ErrorRepr::MutuallyExclusiveBare
             | ErrorRepr::MutuallyExclusivePipeline
@@ -759,6 +774,7 @@ mod tests {
             ErrorRepr::InvalidEmojiStyle { got: "x".into() },
             ErrorRepr::InvalidPlatform { got: "x".into() },
             ErrorRepr::InvalidTargetScript { got: "x".into() },
+            ErrorRepr::InvalidLogReplacement { codepoint: 0x0A },
             ErrorRepr::UnknownLang {
                 got: "x".into(),
                 suggestion: String::new(),

@@ -1,5 +1,7 @@
-use pyo3::prelude::*;
-use pyo3::types::PyBytes;
+//! Layer 1 (pure-Rust core): encoding detection + decoding. No pyo3.
+//!
+//! Shims in `src/py/encoding.rs`; crates.io surface is
+//! `crate::api::{detect_encoding, decode_to_utf8}`.
 
 /// Confidence score reported for a successful chardetng detection.
 ///
@@ -13,7 +15,7 @@ const CONFIDENCE_HIGH: f64 = 0.95;
 /// Pure Rust encoding detection — no Python dependency.
 ///
 /// Returns (encoding_name, confidence).
-pub fn detect_encoding_impl(bytes: &[u8]) -> (String, f64) {
+pub(crate) fn detect_encoding_impl(bytes: &[u8]) -> (String, f64) {
     use chardetng::{EncodingDetector, Iso2022JpDetection, Utf8Detection};
 
     // chardetng 1.0 split `guess_assess` into `guess` (encoding only). We pass
@@ -82,7 +84,7 @@ const COMMON_ENCODING_LABELS: &[&str] = &[
 /// In `strict` mode (#189) a lossy decode — malformed bytes replaced with U+FFFD
 /// — is a hard error rather than a silent `had_errors = true` the caller might
 /// ignore.
-pub fn decode_to_utf8_impl(
+pub(crate) fn decode_to_utf8_impl(
     bytes: &[u8],
     encoding: Option<&str>,
     min_confidence: f64,
@@ -135,58 +137,6 @@ pub fn decode_to_utf8_impl(
         });
     }
     Ok((decoded.into_owned(), had_errors))
-}
-
-/// Detect the encoding of a byte sequence.
-///
-/// Returns a tuple of (encoding_name, confidence) where confidence is
-/// a float between 0.0 and 1.0. The encoding name follows WHATWG encoding
-/// labels (e.g., "UTF-8", "windows-1252", "Shift_JIS", "EUC-KR").
-///
-/// Uses the chardetng algorithm (Firefox's encoding detector).
-///
-/// Important: automatic encoding detection is inherently probabilistic.
-/// A high confidence score does NOT guarantee correctness. For critical
-/// pipelines, always prefer explicit encoding metadata over detection.
-#[pyfunction]
-#[pyo3(signature = (data,))]
-pub fn _detect_encoding(data: &Bound<'_, PyBytes>) -> (String, f64) {
-    detect_encoding_impl(data.as_bytes())
-}
-
-/// Decode a byte sequence to UTF-8 using the specified encoding.
-///
-/// Returns a tuple of (decoded_text, had_errors) where had_errors is True
-/// if U+FFFD REPLACEMENT CHARACTERs were inserted during decoding.
-///
-/// Important: had_errors=False does NOT guarantee lossless conversion.
-/// Encodings such as Windows-1252 map every byte to a valid codepoint
-/// without inserting U+FFFD, so had_errors will be False even if the
-/// decoded text differs from what another encoding would produce.
-/// For strict fidelity checks, re-encode the result and compare against
-/// the original bytes.
-///
-/// If encoding is None, uses detect_encoding to guess the encoding.
-/// min_confidence (0.0–1.0) sets the minimum acceptable detection confidence
-/// when auto-detecting; raises DisarmError if the threshold is not met.
-///
-/// Supported encodings: all WHATWG encodings (UTF-8, windows-1252,
-/// ISO-8859-1, Shift_JIS, EUC-JP, EUC-KR, Big5, GB18030, etc.).
-// Default min_confidence requires HIGH confidence (#103): detection always
-// reports CONFIDENCE_HIGH (0.95) — chardetng's confidence flag is always true —
-// so the 0.95 default accepts every successful auto-detection while still
-// letting callers reject auto-detection entirely by passing min_confidence > 0.95
-// (e.g. 1.0). Pass min_confidence=0.0 to be explicit about accepting any guess.
-#[pyfunction]
-#[pyo3(signature = (data, encoding=None, min_confidence=0.95, strict=false))]
-pub fn _decode_to_utf8(
-    data: &Bound<'_, PyBytes>,
-    encoding: Option<&str>,
-    min_confidence: f64,
-    strict: bool,
-) -> PyResult<(String, bool)> {
-    decode_to_utf8_impl(data.as_bytes(), encoding, min_confidence, strict)
-        .map_err(pyo3::PyErr::from)
 }
 
 #[cfg(test)]
