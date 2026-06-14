@@ -9,7 +9,7 @@
 //! emoji-width policy into its base width, so it is not a clean EAW oracle for
 //! disarm's A6 "only Emoji_Presentation widens" rule.)
 
-use _disarm::api::grapheme_width;
+use disarm::api::grapheme_width;
 
 /// Exhaustive bounds + no-panic over every Unicode scalar (I_w2 base case, A7).
 #[test]

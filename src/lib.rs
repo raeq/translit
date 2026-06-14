@@ -1,7 +1,25 @@
-//! Fast Unicode transliteration, slugification, and text normalization — Rust core.
+//! Fast Unicode transliteration, slugification, and text normalization.
 //!
-//! All public access goes through the Python package `disarm`.
-//! Rust-internal modules are marked `#[doc(hidden)]` and not part of the public API.
+//! `disarm` is a pure-Rust core (no Python, no pyo3 in the default build) for
+//! Unicode text-security and canonicalization: TR39 confusable folding, bidi /
+//! zero-width / zalgo neutralization, normalization, grapheme/width measurement,
+//! slugification, and standards-based transliteration.
+//!
+//! The public Rust API lives in [`mod@crate::api`]; the error types are
+//! [`Error`], [`ErrorKind`], and [`ErrorMode`]. Everything else is an internal
+//! implementation detail (`pub(crate)` or `#[doc(hidden)]`) and carries no
+//! stability guarantee — see `docs/RUST_API.md`.
+//!
+//! The Python extension (`disarm._core`) is an opt-in layer behind the
+//! `extension-module` feature and is not built into the default crate.
+//!
+//! ```
+//! use disarm::api;
+//! // ASCII passes through unchanged; non-ASCII is romanized to ASCII.
+//! assert_eq!(api::strip_accents("café"), "cafe");
+//! let moscow = api::transliterate("Москва", None, disarm::ErrorMode::Replace, "?", false, false, false);
+//! assert!(moscow.is_ascii() && !moscow.is_empty());
+//! ```
 
 // In the pure crates.io build (`default = []`, no `extension-module`), the
 // shim-backing Layer-1 helpers — the Python-entry validators/dispatchers
@@ -55,53 +73,48 @@ impl ErrorMode {
     }
 }
 
-// Core modules — `pub` so Criterion benchmarks (external crate) can access
-// the pure-Rust implementation functions directly.
-// Layer 2: the idiomatic, pyo3-free Rust API (the future crates.io surface, #38).
+// Layer 2: the idiomatic, pyo3-free Rust API — the published crates.io surface
+// (#38/#42). This and the error types (`Error`, `ErrorKind`, `ErrorMode`) are the
+// ONLY public, semver-governed Rust API; everything below is `pub(crate)`.
 pub mod api;
-#[doc(hidden)]
-pub mod case_fold;
-#[doc(hidden)]
-pub mod confusables;
-pub mod context;
+
+// Layer 1: the pure-Rust algorithm cores. `pub(crate)` — reachable by `api` and
+// the PyO3 shims, but not part of the public crate surface (#42).
+pub(crate) mod case_fold;
+pub(crate) mod confusables;
+pub(crate) mod context;
+pub(crate) mod encoders;
+pub(crate) mod encoding;
+pub(crate) mod filename;
+pub(crate) mod grapheme;
+pub(crate) mod hostname;
+pub(crate) mod limits;
+pub(crate) mod log_injection;
+pub(crate) mod normalize;
+pub(crate) mod pipeline;
+pub(crate) mod presets;
+pub(crate) mod reverse;
+pub(crate) mod scripts;
+pub(crate) mod slugify;
+pub(crate) mod unicode_ranges;
+pub(crate) mod whitespace;
+pub(crate) mod width;
+pub(crate) mod zalgo;
+
+// `#[doc(hidden)] pub` rather than `pub(crate)`: these three carry deep
+// implementation entrypoints that the in-repo Criterion/iai benchmarks (separate
+// crates, so they can only see `pub` items) measure directly. `#[doc(hidden)]`
+// keeps them off docs.rs and out of the semver contract (cargo-semver-checks
+// ignores hidden items) — they are NOT public API. See docs/RUST_API.md.
 #[doc(hidden)]
 pub mod emoji;
-pub mod encoders;
-mod encoding;
 #[doc(hidden)]
-pub mod filename;
-#[doc(hidden)]
-pub mod grapheme;
-mod hostname;
-#[doc(hidden)]
-pub mod limits;
-pub mod log_injection;
-#[doc(hidden)]
-pub mod normalize;
-mod pipeline;
-#[doc(hidden)]
-pub mod presets;
-#[doc(hidden)]
-pub mod reverse;
-#[doc(hidden)]
-pub mod scripts;
-#[doc(hidden)]
-pub mod slugify;
+pub mod transliterate;
 // Generated PHF code contains unseparated integer literals and non-NFC
 // Unicode confusable characters (which is the point of the confusables table).
 #[allow(clippy::unreadable_literal, clippy::unicode_not_nfc)]
 #[doc(hidden)]
 pub mod tables;
-#[doc(hidden)]
-pub mod transliterate;
-#[doc(hidden)]
-pub mod unicode_ranges;
-#[doc(hidden)]
-pub mod whitespace;
-#[doc(hidden)]
-pub mod width;
-#[doc(hidden)]
-pub mod zalgo;
 
 // Layer 3b: the PyO3 binding shims (#38). Gated behind `feature = "extension-module"`
 // (#42): `pyo3` is an optional dependency, so the pure crates.io core (`default = []`)
@@ -111,12 +124,12 @@ pub mod zalgo;
 #[doc(hidden)]
 mod py;
 
-/// Internal Rust module. Not part of the public Python API.
-/// All public access goes through python/disarm/__init__.py.
+/// The private compiled extension module, imported as `disarm._core` (the public
+/// Python API in `python/disarm/__init__.py` wraps it). Not a public interface.
 #[cfg(feature = "extension-module")]
 #[pymodule]
-#[pyo3(name = "_disarm")]
-fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
+#[pyo3(name = "_core")]
+fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core transforms
     m.add_function(wrap_pyfunction!(py::transliterate::_transliterate, m)?)?;
     m.add_function(wrap_pyfunction!(

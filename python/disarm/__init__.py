@@ -61,7 +61,7 @@ from disarm._api import (
     terminal_width,
     transliterate,
 )
-from disarm._disarm import (
+from disarm._core import (
     DisarmError,
     HostnameAnalysis,
     InvalidArgumentError,

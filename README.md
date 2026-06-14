@@ -55,6 +55,51 @@ import disarm
 
 Requires Python 3.10+. Wheels are available for Linux, macOS, and Windows.
 
+## Use from Rust
+
+`disarm` is also a standalone Rust crate. The **default build is pure Rust** — no
+Python, no `pyo3`, no `libpython` — so it drops into any Rust project as an
+ordinary dependency:
+
+```bash
+cargo add disarm
+```
+
+The public surface is the [`disarm::api`](https://docs.rs/disarm/latest/disarm/api/)
+module plus the error types (`Error`, `ErrorKind`, `ErrorMode`):
+
+```rust
+use disarm::{api, ErrorMode};
+
+fn main() {
+    // TR39 confusable folding (Cyrillic look-alikes → Latin)
+    assert_eq!(api::normalize_confusables("раypal", api::TargetScript::Latin), "paypal");
+
+    // Standards-based transliteration to ASCII (infallible; ASCII passes through)
+    let s = api::transliterate("Москва", None, ErrorMode::Replace, "?", false, false, false);
+    assert_eq!(s, "Moskva");
+
+    // Canonicalization primitives
+    assert_eq!(api::strip_accents("café"), "cafe");
+    assert_eq!(api::fold_case("ﬁ"), "fi");
+    assert_eq!(api::slugify("Héllo Wörld", &api::SlugConfig::default()), "hello-world");
+
+    // IDN / hostname spoofing check
+    let (suspicious, _why) = api::is_suspicious_hostname("раypal.com");
+    assert!(suspicious);
+}
+```
+
+Fallible operations (`sanitize_filename`, `decode_to_utf8`, `strip_log_injection`,
+the key/clean presets) return `Result<_, disarm::Error>`; inspect
+[`Error::kind()`](https://docs.rs/disarm/latest/disarm/struct.Error.html) for a
+stable [`ErrorKind`](https://docs.rs/disarm/latest/disarm/enum.ErrorKind.html).
+
+The `extension-module` Cargo feature (which pulls in `pyo3`) is used **only** to
+build the Python wheel — Rust consumers never enable it. See the [Rust API &
+semver policy](docs/RUST_API.md) and the full reference on
+[docs.rs/disarm](https://docs.rs/disarm).
+
 ## Features
 
 - **[Confusable & homoglyph analysis (TR39)](docs/security/adversarial-defense.md)**: visual [confusable mapping](docs/user-guide/confusables.md), bidi-control / zalgo / zero-width / invisible-character stripping, and the `strip_obfuscation` pipeline (defense-in-depth — see the [Threat Model](THREAT_MODEL.md))

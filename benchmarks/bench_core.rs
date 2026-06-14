@@ -10,15 +10,15 @@ use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
-use _disarm::api::collapse_whitespace;
-use _disarm::api::fold_case;
-use _disarm::api::transliterate;
-use _disarm::api::{detect_scripts, is_mixed_script};
-use _disarm::api::{grapheme_len, grapheme_split};
-use _disarm::api::{normalize_confusables, TargetScript};
-use _disarm::api::{slugify, SlugConfig};
-use _disarm::tables::lookup_default;
-use _disarm::ErrorMode;
+use disarm::api::collapse_whitespace;
+use disarm::api::fold_case;
+use disarm::api::transliterate;
+use disarm::api::{detect_scripts, is_mixed_script};
+use disarm::api::{grapheme_len, grapheme_split};
+use disarm::api::{normalize_confusables, TargetScript};
+use disarm::api::{slugify, SlugConfig};
+use disarm::tables::lookup_default;
+use disarm::ErrorMode;
 
 // ---------------------------------------------------------------------------
 // Input corpus

@@ -21,7 +21,7 @@ from collections.abc import Callable
 from typing import Any
 
 from disarm import find_untranslatable, strip_accents, transliterate
-from disarm._disarm import (
+from disarm._core import (
     InvalidArgumentError,
     UnsupportedError,
     _Slugifier,

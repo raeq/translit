@@ -128,12 +128,16 @@ impl ContextDict {
     ///
     /// Every read is bounds-checked: a truncated or malformed buffer yields an
     /// `Err` instead of an out-of-bounds panic.
+    // Exercised by the unit tests; the runtime loaders use `from_owned`/`from_static`.
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
         Self::build(Cow::Owned(data.to_vec()))
     }
 
     /// Load a context dictionary directly from `'static` bytes (the embedded
     /// `.rodata` table). True zero-copy — the bytes are borrowed, never copied.
+    // Only the `embed-dicts` loader calls this; allowed-unused otherwise.
+    #[cfg_attr(not(feature = "embed-dicts"), allow(dead_code))]
     pub fn from_static(data: &'static [u8]) -> Result<Self, String> {
         Self::build(Cow::Borrowed(data))
     }
@@ -340,6 +344,8 @@ impl ContextDict {
     }
 
     /// Return dictionary statistics: (unigram count, total bigram entry count).
+    // Used by the unit tests to assert dictionary parsing.
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn stats(&self) -> (usize, usize) {
         (self.unigrams.len(), self.bi_entries.len())
     }
