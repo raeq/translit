@@ -5,8 +5,11 @@
 //! (`src/py/`) and the planned C-ABI consume the same Layer-1 core, so this is
 //! the one place the public Rust behaviour is defined.
 //!
-//! This module is migrated incrementally (sub-PR by sub-PR); `confusables` is
-//! the first module to land here as the canonical Layer-1/Layer-2/Layer-3 template.
+//! This module is built up incrementally (sub-PR by sub-PR) as each algorithm
+//! module is migrated to the Layer-1/Layer-2/Layer-3 split; `confusables` was the
+//! first, landing the canonical template.
+
+// ── Confusables (TR39) ──────────────────────────────────────────────────────
 
 /// Target script for confusable folding (see [`normalize_confusables`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -48,6 +51,25 @@ pub fn is_confusable(text: &str, target: TargetScript) -> bool {
         .expect("TargetScript always maps to a supported target script")
 }
 
+// ── Terminal width (UAX #11 / UAX #29) ───────────────────────────────────────
+
+/// Total terminal column width of `text`, summed over UAX #29 grapheme clusters
+/// (#224). Measures cells, not pixels; does not expand tabs or model wrapping.
+///
+/// `ambiguous_wide` selects the East-Asian Ambiguous policy (UAX #11): when
+/// `true`, ambiguous-width characters count as 2 cells, otherwise 1.
+pub fn terminal_width(text: &str, ambiguous_wide: bool) -> usize {
+    crate::width::terminal_width_opts(text, ambiguous_wide)
+}
+
+/// Column width of a single grapheme cluster (see [`terminal_width`]).
+///
+/// `ambiguous_wide` selects the East-Asian Ambiguous policy (UAX #11): when
+/// `true`, ambiguous-width characters count as 2 cells, otherwise 1.
+pub fn grapheme_width(cluster: &str, ambiguous_wide: bool) -> usize {
+    crate::width::grapheme_width_opts(cluster, ambiguous_wide)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -73,5 +95,28 @@ mod tests {
     fn target_script_tokens() {
         assert_eq!(TargetScript::Latin.as_str(), "latin");
         assert_eq!(TargetScript::Cyrillic.as_str(), "cyrillic");
+    }
+
+    #[test]
+    fn terminal_width_sums_clusters() {
+        assert_eq!(terminal_width("hello", false), 5);
+        assert_eq!(terminal_width("世界", false), 4); // wide CJK
+        assert_eq!(terminal_width("", false), 0);
+    }
+
+    #[test]
+    fn grapheme_width_single_cluster() {
+        assert_eq!(grapheme_width("a", false), 1);
+        assert_eq!(grapheme_width("世", false), 2);
+        assert_eq!(grapheme_width("👨\u{200D}👩\u{200D}👧\u{200D}👦", false), 2);
+        // ZWJ family
+    }
+
+    #[test]
+    fn ambiguous_wide_policy() {
+        // U+00A1 INVERTED EXCLAMATION MARK is East Asian Ambiguous.
+        assert_eq!(terminal_width("\u{00A1}", false), 1);
+        assert_eq!(terminal_width("\u{00A1}", true), 2);
+        assert_eq!(grapheme_width("\u{00A1}", true), 2);
     }
 }

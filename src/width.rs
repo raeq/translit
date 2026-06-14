@@ -8,14 +8,16 @@
 //!
 //! See the axioms A0–A8 and invariants I_w1–I_w5 in #224. Width data is generated
 //! at build time from the pinned UCD (`scripts/gen_width_data.py`).
+//!
+//! Layer 1 (pure-Rust core): no pyo3. The PyO3 shims live in `src/py/width.rs`;
+//! the idiomatic crates.io surface is `crate::api::{terminal_width,
+//! grapheme_width}`.
 
 // The generated range tables are bare code-point literals (e.g. `(12288, 12289, 2)`);
 // underscore grouping would be noise in machine-generated data.
 #![allow(clippy::unreadable_literal)]
 
 use std::cmp::Ordering;
-
-use pyo3::prelude::*;
 
 use crate::grapheme::clusters;
 
@@ -73,7 +75,7 @@ fn resolve(class: u8, ambiguous_wide: bool) -> usize {
 /// Column width of a single grapheme cluster, with the `ambiguous_wide` policy.
 ///
 /// This is the workhorse; [`grapheme_width`] is the `ambiguous_wide = false` form.
-pub fn grapheme_width_opts(cluster: &str, ambiguous_wide: bool) -> usize {
+pub(crate) fn grapheme_width_opts(cluster: &str, ambiguous_wide: bool) -> usize {
     let mut rest = cluster.chars();
     let Some(base) = rest.next() else {
         return 0;
@@ -124,46 +126,29 @@ pub fn grapheme_width_opts(cluster: &str, ambiguous_wide: bool) -> usize {
     resolve(base_class, ambiguous_wide)
 }
 
-/// Column width of a single grapheme cluster. Ambiguous-width characters are 1.
-#[must_use]
-pub fn grapheme_width(cluster: &str) -> usize {
-    grapheme_width_opts(cluster, false)
-}
-
 /// Total terminal column width of `text`, summed over grapheme clusters, with the
 /// `ambiguous_wide` policy.
 #[must_use]
-pub fn terminal_width_opts(text: &str, ambiguous_wide: bool) -> usize {
+pub(crate) fn terminal_width_opts(text: &str, ambiguous_wide: bool) -> usize {
     clusters(text)
         .map(|cluster| grapheme_width_opts(cluster, ambiguous_wide))
         .sum()
 }
 
-/// Total terminal column width of `text`. Ambiguous-width characters are 1.
-#[must_use]
-pub fn terminal_width(text: &str) -> usize {
-    terminal_width_opts(text, false)
-}
-
-// --- PyO3 bindings ---------------------------------------------------------
-
-/// `terminal_width(text, *, ambiguous_wide=False) -> int`
-#[pyfunction]
-#[pyo3(signature = (text, *, ambiguous_wide = false))]
-pub fn _terminal_width(text: &str, ambiguous_wide: bool) -> usize {
-    terminal_width_opts(text, ambiguous_wide)
-}
-
-/// `grapheme_width(cluster, *, ambiguous_wide=False) -> int`
-#[pyfunction]
-#[pyo3(signature = (cluster, *, ambiguous_wide = false))]
-pub fn _grapheme_width(cluster: &str, ambiguous_wide: bool) -> usize {
-    grapheme_width_opts(cluster, ambiguous_wide)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // The no-arg (`ambiguous_wide = false`) convenience forms — the default
+    // policy used throughout the golden vectors. The public surface is
+    // `crate::api::{terminal_width, grapheme_width}`, which take the flag
+    // explicitly; here they keep the assertions terse.
+    fn grapheme_width(cluster: &str) -> usize {
+        grapheme_width_opts(cluster, false)
+    }
+    fn terminal_width(text: &str) -> usize {
+        terminal_width_opts(text, false)
+    }
 
     // --- Golden vectors (A2–A6) ---
 

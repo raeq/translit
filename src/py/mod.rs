@@ -8,3 +8,4 @@
 //! and the `pyo3` dependency becomes optional (the final extraction sub-PR).
 
 pub mod confusables;
+pub mod width;

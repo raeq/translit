@@ -175,8 +175,8 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(grapheme::_grapheme_len, m)?)?;
     m.add_function(wrap_pyfunction!(grapheme::_grapheme_split, m)?)?;
     m.add_function(wrap_pyfunction!(grapheme::_grapheme_truncate, m)?)?;
-    m.add_function(wrap_pyfunction!(width::_terminal_width, m)?)?;
-    m.add_function(wrap_pyfunction!(width::_grapheme_width, m)?)?;
+    m.add_function(wrap_pyfunction!(py::width::_terminal_width, m)?)?;
+    m.add_function(wrap_pyfunction!(py::width::_grapheme_width, m)?)?;
 
     // Hostname safety
     m.add_function(wrap_pyfunction!(hostname::_is_suspicious_hostname, m)?)?;

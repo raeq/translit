@@ -9,7 +9,7 @@
 //! emoji-width policy into its base width, so it is not a clean EAW oracle for
 //! disarm's A6 "only Emoji_Presentation widens" rule.)
 
-use _disarm::width::grapheme_width;
+use _disarm::api::grapheme_width;
 
 /// Exhaustive bounds + no-panic over every Unicode scalar (I_w2 base case, A7).
 #[test]
@@ -20,7 +20,7 @@ fn width_bounds_no_panic_all_scalars() {
             continue;
         };
         let mut buf = [0u8; 4];
-        let w = grapheme_width(c.encode_utf8(&mut buf));
+        let w = grapheme_width(c.encode_utf8(&mut buf), false);
         assert!(w <= 2, "U+{cp:04X}: width {w} exceeds 2");
     }
 }
