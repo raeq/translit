@@ -20,8 +20,9 @@
 #   danger   confusable-vision danger weight for the pair (informative)
 #   note     the pair / decision this row encodes
 #
-# All rows are ADDITIVE (fill a pass-through gap) except the two #343 ι rows,
-# which RE-POINT the bare Greek iota from the i-class to the l/vertical-bar class.
+# All rows are ADDITIVE (fill a pass-through gap) except the #343 ι row (03B9,
+# both columns), which RE-POINTs the bare Greek iota from the i-class to the
+# l/vertical-bar class.
 #
 # source	latin	cyrillic	danger	note
 03AF	i	і	1.000	ί GREEK SMALL LETTER IOTA WITH TONOS / і (pair 1)

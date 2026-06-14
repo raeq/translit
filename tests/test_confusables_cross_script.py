@@ -87,7 +87,8 @@ class TestAdditivePairs342:
         assert shared.isascii()
 
     def test_iota_dialytika_pair_10(self) -> None:
-        # Pair 10: ϊ (U+03CA) and ї (U+0457) both pass-through today → both i.
+        # Pair 10: ϊ (U+03CA) and ї (U+0457) were both pass-through; #342 maps
+        # both to i so the pair collides.
         assert _nc("ϊ") == "i"
         assert _nc("ї") == "i"
 

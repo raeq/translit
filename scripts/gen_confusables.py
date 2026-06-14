@@ -243,13 +243,18 @@ def load_supplement(path: Path) -> dict[str, dict[int, str]]:
     mappings, so they can both ADD a missing fold and RE-POINT an existing one.
     """
     overrides: dict[str, dict[int, str]] = {"latin": {}, "cyrillic": {}}
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         line = raw.rstrip("\n")
         if not line or line.lstrip().startswith("#"):
             continue
         parts = line.split("\t")
+        # Fail fast: this file feeds security-critical confusable mappings, so a
+        # malformed row must error rather than be silently dropped.
         if len(parts) < 3:
-            continue
+            raise ValueError(
+                f"{path.name}:{lineno}: malformed supplement row (need >=3 "
+                f"tab-separated columns: source, latin, cyrillic): {raw!r}"
+            )
         cp = int(parts[0].strip(), 16)
         for target, cell in (("latin", parts[1]), ("cyrillic", parts[2])):
             value = cell.strip()
