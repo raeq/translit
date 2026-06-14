@@ -2,7 +2,7 @@
 name = "disarm"
 version = "0.9.1"
 edition = "2021"
-rust-version = "1.80"
+rust-version = "1.81"
 license = "MIT"
 description = "Unicode canonicalization and TR39 confusable analysis: building blocks for text-security pipelines (homoglyph/bidi/zalgo handling) plus standards-based transliteration"
 repository = "https://github.com/raeq/disarm"

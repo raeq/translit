@@ -66,6 +66,13 @@ fn main() {
     );
 
     // --- Confusables (Latin target) ---
+    // H1 invariant (#38): `api::normalize_confusables` / `api::is_confusable` are
+    // infallible because every `TargetScript` variant maps to a populated table.
+    // build.rs is a separate compilation unit and cannot call the crate's
+    // `resolve_confusable_map`, so the guarantee is encoded here: these two blocks
+    // assert the source TSVs backing the Latin and Cyrillic maps are non-empty. If
+    // either were ever dropped, this build fails rather than the Layer-2 `.expect()`
+    // panicking at runtime.
     {
         let entries = read_char_str_tsv(&data_dir.join("confusables_to_latin.tsv"));
         assert!(

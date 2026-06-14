@@ -616,7 +616,7 @@ mod tests {
                 )
                 .into_owned()
             } else if *flag == PipelineSteps::CONFUSABLES {
-                confusables::_normalize_confusables(&s, "latin")?
+                confusables::normalize_confusables(&s, "latin")?
             } else if *flag == PipelineSteps::FOLD_CASE {
                 case_fold::fold_case_impl(&s)
             } else if *flag == PipelineSteps::STRIP_CONTROL {
