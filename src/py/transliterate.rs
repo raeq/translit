@@ -173,7 +173,7 @@ pub fn _transliterate_entry<'py>(
     let Some(fallback) = fallback else {
         return Err(PyRuntimeError::new_err(
             "disarm internal error: transliterate dispatcher not registered — \
-             import the `disarm` package rather than `disarm._disarm` directly",
+             import the `disarm` package rather than `disarm._core` directly",
         ));
     };
     let kwargs = PyDict::new(py);

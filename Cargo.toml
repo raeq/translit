@@ -32,8 +32,8 @@ include = [
 
 [lib]
 # The Rust crate exposes the pure `disarm::api` surface (#42). The Python
-# extension module is still imported as `disarm._disarm` — maturin pins that via
-# `module-name` in pyproject.toml and the `#[pymodule] fn _disarm`, both of which
+# extension module is imported as `disarm._core` — maturin pins that via
+# `module-name` in pyproject.toml and the `#[pymodule] fn _core`, both of which
 # are independent of this lib name.
 name = "disarm"
 crate-type = ["cdylib", "lib"]

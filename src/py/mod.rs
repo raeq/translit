@@ -1,4 +1,4 @@
-//! Layer 3b: the PyO3 binding shims for `disarm._disarm`.
+//! Layer 3b: the PyO3 binding shims for `disarm._core`.
 //!
 //! Each shim is a thin wrapper over a Layer-1 algorithm fn (or a Layer-2
 //! [`crate::api`] fn), exposing the underscore-prefixed names the extension

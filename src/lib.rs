@@ -10,7 +10,7 @@
 //! implementation detail (`pub(crate)` or `#[doc(hidden)]`) and carries no
 //! stability guarantee — see `docs/RUST_API.md`.
 //!
-//! The Python extension (`disarm._disarm`) is an opt-in layer behind the
+//! The Python extension (`disarm._core`) is an opt-in layer behind the
 //! `extension-module` feature and is not built into the default crate.
 //!
 //! ```
