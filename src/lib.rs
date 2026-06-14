@@ -177,20 +177,20 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Stateful classes
     m.add_class::<py::slugify::_Slugifier>()?;
     m.add_class::<py::slugify::_UniqueSlugifier>()?;
-    m.add_class::<pipeline::_TextPipeline>()?;
-    m.add_function(wrap_pyfunction!(pipeline::_get_pipeline, m)?)?;
-    m.add_function(wrap_pyfunction!(pipeline::_list_profiles, m)?)?;
+    m.add_class::<py::pipeline::_TextPipeline>()?;
+    m.add_function(wrap_pyfunction!(py::pipeline::_get_pipeline, m)?)?;
+    m.add_function(wrap_pyfunction!(py::pipeline::_list_profiles, m)?)?;
 
     // Precompiled pipelines
-    m.add_function(wrap_pyfunction!(presets::_security_clean, m)?)?;
-    m.add_function(wrap_pyfunction!(presets::_ml_normalize, m)?)?;
-    m.add_function(wrap_pyfunction!(presets::_catalog_key, m)?)?;
-    m.add_function(wrap_pyfunction!(presets::_display_clean, m)?)?;
-    m.add_function(wrap_pyfunction!(presets::_search_key, m)?)?;
-    m.add_function(wrap_pyfunction!(presets::_sort_key, m)?)?;
-    m.add_function(wrap_pyfunction!(presets::_strip_bidi, m)?)?;
-    m.add_function(wrap_pyfunction!(presets::_normalize_user_input, m)?)?;
-    m.add_function(wrap_pyfunction!(presets::_strip_obfuscation, m)?)?;
+    m.add_function(wrap_pyfunction!(py::presets::_security_clean, m)?)?;
+    m.add_function(wrap_pyfunction!(py::presets::_ml_normalize, m)?)?;
+    m.add_function(wrap_pyfunction!(py::presets::_catalog_key, m)?)?;
+    m.add_function(wrap_pyfunction!(py::presets::_display_clean, m)?)?;
+    m.add_function(wrap_pyfunction!(py::presets::_search_key, m)?)?;
+    m.add_function(wrap_pyfunction!(py::presets::_sort_key, m)?)?;
+    m.add_function(wrap_pyfunction!(py::presets::_strip_bidi, m)?)?;
+    m.add_function(wrap_pyfunction!(py::presets::_normalize_user_input, m)?)?;
+    m.add_function(wrap_pyfunction!(py::presets::_strip_obfuscation, m)?)?;
 
     // Zalgo detection and stripping
     m.add_function(wrap_pyfunction!(py::zalgo::_is_zalgo, m)?)?;
@@ -204,8 +204,8 @@ fn _disarm(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py::width::_grapheme_width, m)?)?;
 
     // Hostname safety
-    m.add_function(wrap_pyfunction!(hostname::_is_suspicious_hostname, m)?)?;
-    m.add_class::<hostname::HostnameAnalysis>()?;
+    m.add_function(wrap_pyfunction!(py::hostname::_is_suspicious_hostname, m)?)?;
+    m.add_class::<py::hostname::HostnameAnalysis>()?;
 
     // Encoding detection
     m.add_function(wrap_pyfunction!(py::encoding::_detect_encoding, m)?)?;

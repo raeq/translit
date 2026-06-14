@@ -315,6 +315,62 @@ pub fn inspect_auto_lang(text: &str) -> AutoLangInspection {
     }
 }
 
+// ── Hostname homoglyph safety ────────────────────────────────────────────────
+
+/// Findings from a hostname homoglyph analysis — returned by
+/// [`is_suspicious_hostname`].
+///
+/// Reports factual findings; it claims nothing about absolute safety. A
+/// `suspicious == false` result is **not** a safety certificate (see
+/// [`is_suspicious_hostname`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct HostnameAnalysis {
+    /// Whether the hostname is flagged suspicious overall (the same value
+    /// returned as the first element of [`is_suspicious_hostname`]'s tuple).
+    pub suspicious: bool,
+    /// Scripts detected across all labels, in order of first appearance
+    /// (Common / Inherited excluded), as stable UCD script identifiers.
+    pub scripts: Vec<String>,
+    /// Whether any single label mixes characters from more than one script.
+    pub mixed_script: bool,
+    /// Whether any label contains a character confusable with a Latin one.
+    pub has_confusables: bool,
+    /// The Latin-normalized (canonical) form of the hostname.
+    pub canonical: String,
+}
+
+/// Detect whether a hostname is *suspicious* for Unicode homoglyph spoofing,
+/// returning `(is_suspicious, analysis)`.
+///
+/// `xn--` (ACE) labels are decoded to their Unicode form via UTS#46 before
+/// analysis (#63); a malformed ACE label fails closed (suspicious). A hostname
+/// is flagged when any single label is mixed-script (conservative, #254), when
+/// any label contains a Latin-confusable character, or when an ACE label fails
+/// to decode.
+///
+/// Infallible: the analysis runs against the fixed `"latin"` target script,
+/// which is always supported.
+///
+/// **A `false` (not-suspicious) result is NOT a safety guarantee.** It means
+/// only that no mixed-script label and no confusable *from the bundled TR39
+/// table* was found. Base allow/deny decisions on the granular `scripts` /
+/// `mixed_script` / `has_confusables` fields plus your own policy — a detector
+/// can attest the *presence* of a problem, never the *absence* of all problems.
+pub fn is_suspicious_hostname(hostname: &str) -> (bool, HostnameAnalysis) {
+    let (suspicious, core) = crate::hostname::is_suspicious_hostname(hostname);
+    (
+        suspicious,
+        HostnameAnalysis {
+            suspicious: core.suspicious,
+            scripts: core.scripts,
+            mixed_script: core.mixed_script,
+            has_confusables: core.has_confusables,
+            canonical: core.canonical,
+        },
+    )
+}
+
 // ── Filename sanitization ────────────────────────────────────────────────────
 
 /// Target platform whose illegal-character set and reserved-name rules drive
@@ -512,6 +568,100 @@ pub fn find_untranslatable(
     crate::transliterate::find_untranslatable_impl(text, lang, strict_iso9, gost7034, tones)
 }
 
+// ── Precompiled pipeline presets ──────────────────────────────────────────────
+
+/// Security-focused text canonicalization (homoglyph / bidi / zero-width / control
+/// neutralization with a path-safety guarantee).
+///
+/// Pipeline: NFKC → confusables → strip bidi/format → collapse whitespace →
+/// path-separator neutralization. Fallible only through the confusables stage,
+/// whose target script is fixed internally, so in practice this never errors;
+/// the [`Result`] keeps the surface uniform with the other key/clean presets.
+pub fn security_clean(text: &str) -> Result<String, Error> {
+    crate::presets::security_clean(text).map_err(Error::from)
+}
+
+/// ML/NLP text normalization: NFKC → emoji→text → transliterate → strip accents →
+/// case fold → collapse whitespace.
+///
+/// `lang` selects the transliteration table (`None` skips transliteration).
+/// `emoji_style` is `"cldr"` (expand emoji to CLDR short names) or `"none"`
+/// (leave emoji as-is). Fails ([`ErrorKind::InvalidArgument`](crate::ErrorKind))
+/// on an unknown `lang` or an unsupported `emoji_style`.
+pub fn ml_normalize(text: &str, lang: Option<&str>, emoji_style: &str) -> Result<String, Error> {
+    crate::presets::ml_normalize(text, lang, emoji_style).map_err(Error::from)
+}
+
+/// Library catalog deduplication key: NFKC → strip bidi → transliterate →
+/// confusables → strip accents → case fold → collapse whitespace.
+///
+/// `strict_iso9` selects the ISO 9:1995 Cyrillic scheme. Fails
+/// ([`ErrorKind::InvalidArgument`](crate::ErrorKind)) on an unknown `lang`.
+pub fn catalog_key(text: &str, lang: Option<&str>, strict_iso9: bool) -> Result<String, Error> {
+    crate::presets::catalog_key(text, lang, strict_iso9).map_err(Error::from)
+}
+
+/// Case/accent/script-insensitive search lookup key (like [`catalog_key`] without
+/// confusable folding). Fails ([`ErrorKind::InvalidArgument`](crate::ErrorKind))
+/// on an unknown `lang`.
+pub fn search_key(text: &str, lang: Option<&str>) -> Result<String, Error> {
+    crate::presets::search_key(text, lang).map_err(Error::from)
+}
+
+/// Collation sort key (like [`search_key`] but preserves base accented characters
+/// for correct ordering). Fails ([`ErrorKind::InvalidArgument`](crate::ErrorKind))
+/// on an unknown `lang`.
+pub fn sort_key(text: &str, lang: Option<&str>) -> Result<String, Error> {
+    crate::presets::sort_key(text, lang).map_err(Error::from)
+}
+
+/// Display-safe cleanup for rendered user content: strip bidi/format → collapse
+/// whitespace (also stripping control + zero-width). Infallible.
+pub fn display_clean(text: &str) -> String {
+    crate::presets::display_clean(text)
+}
+
+/// Strip bidirectional override and formatting characters (UAX #9 §3.3.2 plus the
+/// soft hyphen and deprecated/interlinear format controls). A composable primitive
+/// shared by the security/key presets. Infallible.
+pub fn strip_bidi(text: &str) -> String {
+    crate::presets::strip_bidi(text)
+}
+
+/// Normalize user-submitted input — Unicode hygiene that **preserves the original
+/// script** (no transliteration): NFKC → strip bidi/zero-width/control →
+/// strip zalgo → confusables → collapse whitespace → path-separator
+/// neutralization.
+///
+/// Not an output sanitizer (no HTML/JS/SQL escaping). Fallible only through the
+/// fixed-target confusables stage; the [`Result`] keeps the surface uniform.
+pub fn normalize_user_input(text: &str) -> Result<String, Error> {
+    crate::presets::normalize_user_input(text).map_err(Error::from)
+}
+
+/// Maximum-strength deobfuscation: NFKC → strip all combining marks → strip bidi →
+/// strip zero-width → demojize → confusables → strip accents → collapse
+/// whitespace. Preserves case; does not transliterate.
+///
+/// Fallible only through the fixed-target confusables stage; the [`Result`] keeps
+/// the surface uniform.
+pub fn strip_obfuscation(text: &str) -> Result<String, Error> {
+    crate::presets::strip_obfuscation(text).map_err(Error::from)
+}
+
+// ── Named policy profiles ─────────────────────────────────────────────────────
+
+/// Sorted names of the available named policy profiles (the registry that the
+/// `get_pipeline` Python entrypoint builds from).
+///
+/// The stateful pipeline builder itself (`_TextPipeline`) stays binding-only for
+/// now — exposing it as a pure crates.io type is deferred (see the module-level
+/// `src/pipeline.rs` `Pipeline` core), so this read-only registry view is the
+/// pipeline surface Layer 2 exposes. Infallible.
+pub fn list_profiles() -> Vec<String> {
+    crate::pipeline::profile_names()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -647,5 +797,56 @@ mod tests {
         assert!(list_langs().iter().any(|l| l == "ru"));
         // ASCII has nothing untranslatable.
         assert!(find_untranslatable("hello", None, false, false, false).is_empty());
+    }
+
+    #[test]
+    fn preset_pipelines_surface() {
+        // security_clean folds Cyrillic homoglyphs (р а → p a) and strips bidi.
+        assert_eq!(security_clean("\u{0440}\u{0430}ypal").unwrap(), "paypal");
+        // Key presets are case/accent/script insensitive.
+        assert_eq!(search_key("CAFÉ", None).unwrap(), "cafe");
+        assert_eq!(sort_key("Москва", None).unwrap(), "moskva");
+        assert_eq!(catalog_key("Café", None, false).unwrap(), "cafe");
+        // ml_normalize lowercases, strips accents.
+        assert_eq!(ml_normalize("Café", None, "cldr").unwrap(), "cafe");
+        // Infallible presets.
+        assert_eq!(display_clean("hello   world"), "hello world");
+        assert_eq!(strip_bidi("pass\u{00AD}word"), "password");
+        // normalize_user_input preserves script/accents; strip_obfuscation runs.
+        assert_eq!(normalize_user_input("café").unwrap(), "café");
+        assert!(!strip_obfuscation("p\u{0430}ypal").unwrap().is_empty());
+        // Bad lang / emoji_style surface InvalidArgument.
+        assert_eq!(
+            search_key("x", Some("zzz")).unwrap_err().kind(),
+            crate::ErrorKind::InvalidArgument
+        );
+        assert_eq!(
+            ml_normalize("x", None, "bogus").unwrap_err().kind(),
+            crate::ErrorKind::InvalidArgument
+        );
+    }
+
+    #[test]
+    fn list_profiles_surface() {
+        let profiles = list_profiles();
+        // Known profiles are present, and the list is sorted (stable contract).
+        assert!(profiles.iter().any(|p| p == "llm_guardrail"));
+        assert!(profiles.iter().any(|p| p == "search_index"));
+        let mut sorted = profiles.clone();
+        sorted.sort();
+        assert_eq!(profiles, sorted);
+    }
+
+    #[test]
+    fn is_suspicious_hostname_surface() {
+        // Plain ASCII hostname: not suspicious, single-script, canonical == input.
+        let (susp, a) = is_suspicious_hostname("example.com");
+        assert!(!susp && !a.suspicious && !a.mixed_script);
+        assert_eq!(a.canonical, "example.com");
+        // A label mixing Cyrillic 'а' (U+0430) into Latin "paypal" is a homoglyph
+        // spoof — flagged, with the mixed-script / confusable findings set.
+        let (susp2, a2) = is_suspicious_hostname("p\u{0430}ypal.com");
+        assert!(susp2);
+        assert!(a2.mixed_script || a2.has_confusables);
     }
 }

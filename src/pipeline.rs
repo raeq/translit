@@ -1,14 +1,21 @@
-use std::borrow::Cow;
+//! Layer 1: the pure, pyo3-free text-cleaning pipeline engine (#38).
+//!
+//! Holds the step bitflags, the single [`STEP_ORDER`] source of truth, the
+//! [`Pipeline`] config + executor, and the named [`ProfileSpec`] registry. No
+//! `pyo3` here: the `#[pyclass] _TextPipeline` and the `#[pyfunction]`
+//! `_get_pipeline` / `_list_profiles` shims live in `src/py/pipeline.rs` and wrap
+//! these pure cores.
 
-use pyo3::prelude::*;
+use std::borrow::Cow;
 
 use bitflags::bitflags;
 
 use crate::{case_fold, confusables, emoji, normalize, transliterate, whitespace, zalgo};
+use crate::{ErrorMode, ErrorRepr};
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct PipelineSteps: u16 {
+    pub(crate) struct PipelineSteps: u16 {
         const NORMALIZE        = 0b0000_0001;
         const TRANSLITERATE    = 0b0000_0010;
         const CONFUSABLES      = 0b0000_0100;
@@ -50,10 +57,11 @@ const STEP_ORDER: &[(PipelineSteps, &str)] = &[
     (PipelineSteps::COLLAPSE_WS, "collapse_whitespace"),
 ];
 
-/// Composable, pre-compiled text cleaning pipeline.
-#[pyclass]
-#[pyo3(name = "_TextPipeline")]
-pub struct _TextPipeline {
+/// Composable, pre-compiled text cleaning pipeline (pure core).
+///
+/// Built via [`Pipeline::new`]; the PyO3 `_TextPipeline` shim (`src/py/pipeline.rs`)
+/// owns one of these and forwards `process` / `steps` / `__repr__`.
+pub(crate) struct Pipeline {
     steps: PipelineSteps,
     normalize_form: Option<String>,
     zalgo_max_marks: Option<usize>,
@@ -62,28 +70,15 @@ pub struct _TextPipeline {
     gost7034: bool,
 }
 
-#[pymethods]
-impl _TextPipeline {
-    #[new]
-    #[pyo3(signature = (
-        *,
-        normalize=None,
-        transliterate=false,
-        lang=None,
-        strict_iso9=false,
-        gost7034=false,
-        confusables=false,
-        strip_accents=false,
-        fold_case=false,
-        collapse_whitespace=false,
-        strip_control=None,
-        strip_zero_width=None,
-        demojize=false,
-        strip_bidi=false,
-        strip_zalgo=None,
-    ))]
+impl Pipeline {
+    /// Build a pipeline from the (already-typed) configuration flags.
+    ///
+    /// `zalgo_max_marks` is `Some(n)` to enable strip-zalgo with cap `n`, `None`
+    /// to skip it — the binding layer is responsible for rejecting a negative
+    /// signed value before calling here. Fails ([`ErrorRepr`]) on an unknown
+    /// `normalize` form or a `strict_iso9`/`gost7034` conflict.
     #[allow(clippy::too_many_arguments)]
-    fn new(
+    pub(crate) fn new(
         normalize: Option<&str>,
         transliterate: bool,
         lang: Option<&str>,
@@ -97,17 +92,16 @@ impl _TextPipeline {
         strip_zero_width: Option<bool>,
         demojize: bool,
         strip_bidi: bool,
-        strip_zalgo: Option<i64>,
-    ) -> PyResult<Self> {
+        zalgo_max_marks: Option<usize>,
+    ) -> Result<Self, ErrorRepr> {
         let mut steps = PipelineSteps::empty();
 
         if let Some(form) = normalize {
             // Validate the form
             if !matches!(form, "NFC" | "NFD" | "NFKC" | "NFKD") {
-                return Err(crate::ErrorRepr::InvalidPipelineNormForm {
+                return Err(ErrorRepr::InvalidPipelineNormForm {
                     got: form.to_owned(),
-                }
-                .into());
+                });
             }
             steps |= PipelineSteps::NORMALIZE;
         }
@@ -133,23 +127,9 @@ impl _TextPipeline {
             steps |= PipelineSteps::STRIP_BIDI;
         }
 
-        // strip_zalgo's value is `max_marks`, which must be >= 0. Validate here
-        // in the core — `new()` is the construction boundary for every caller,
-        // not just the Python wrapper — so a negative can never reach the
-        // `as usize` cast below, where it would silently wrap into an enormous
-        // cap (effectively disabling the step) instead of being rejected.
-        let zalgo_max_marks = match strip_zalgo {
-            Some(n) if n < 0 => {
-                return Err(crate::InvalidArgumentError::new_err(format!(
-                    "strip_zalgo (max_marks) must be non-negative, got {n}"
-                )));
-            }
-            Some(n) => {
-                steps |= PipelineSteps::STRIP_ZALGO;
-                Some(n as usize)
-            }
-            None => None,
-        };
+        if zalgo_max_marks.is_some() {
+            steps |= PipelineSteps::STRIP_ZALGO;
+        }
 
         // strip_control: defaults to True when collapse_whitespace is True,
         // False otherwise. Can be independently set to True for standalone use.
@@ -165,7 +145,7 @@ impl _TextPipeline {
         }
 
         if strict_iso9 && gost7034 {
-            return Err(crate::ErrorRepr::MutuallyExclusivePipeline.into());
+            return Err(ErrorRepr::MutuallyExclusivePipeline);
         }
 
         let pipeline = Self {
@@ -191,7 +171,7 @@ impl _TextPipeline {
     ///
     /// Iterates the shared [`STEP_ORDER`] source, so the reported order is by
     /// construction the same order `process()` executes (#174).
-    fn steps(&self) -> Vec<(String, Option<String>)> {
+    pub(crate) fn steps(&self) -> Vec<(String, Option<String>)> {
         STEP_ORDER
             .iter()
             .filter(|(flag, _)| self.steps.contains(*flag))
@@ -199,7 +179,7 @@ impl _TextPipeline {
             .collect()
     }
 
-    fn __repr__(&self) -> String {
+    pub(crate) fn repr(&self) -> String {
         let parts: Vec<String> = self
             .steps()
             .iter()
@@ -229,7 +209,7 @@ impl _TextPipeline {
     /// usually short, ASCII) tail. Correctness of the single source of truth is
     /// worth more than that micro-optimization; the fused `_collapse_whitespace`
     /// remains available to direct callers.
-    fn process(&self, text: &str) -> PyResult<String> {
+    pub(crate) fn process(&self, text: &str) -> Result<String, ErrorRepr> {
         // #236 item 7: ping-pong two reusable buffers across the active steps
         // instead of allocating a fresh String per step. `cur` holds the current
         // text; each step writes its output into `scratch` (reusing its
@@ -248,9 +228,7 @@ impl _TextPipeline {
         }
         Ok(cur)
     }
-}
 
-impl _TextPipeline {
     /// Apply one pipeline step, writing the transformed text into `out` (the
     /// reused scratch buffer). Returns `true` when `out` holds the result (the
     /// caller swaps it in) or `false` for a no-op (input unchanged, `out` left
@@ -266,7 +244,7 @@ impl _TextPipeline {
         step: PipelineSteps,
         input: &str,
         out: &mut String,
-    ) -> PyResult<bool> {
+    ) -> Result<bool, ErrorRepr> {
         if step == PipelineSteps::NORMALIZE {
             match self.normalize_form {
                 Some(ref form) => {
@@ -295,7 +273,7 @@ impl _TextPipeline {
             match transliterate::transliterate_impl(
                 input,
                 self.lang.as_deref(),
-                crate::ErrorMode::Ignore,
+                ErrorMode::Ignore,
                 "",
                 self.strict_iso9,
                 self.gost7034,
@@ -354,8 +332,8 @@ impl _TextPipeline {
 // duplicating pipeline knowledge that only the Rust core executes; defining it
 // here means every binding shares one definition (#179).
 
-/// A named profile's `_TextPipeline` configuration. Field names and defaults
-/// mirror `_TextPipeline::new`.
+/// A named profile's [`Pipeline`] configuration. Field names and defaults
+/// mirror [`Pipeline::new`].
 #[derive(Default)]
 struct ProfileSpec {
     normalize: Option<&'static str>,
@@ -369,12 +347,12 @@ struct ProfileSpec {
     strip_zero_width: Option<bool>,
     demojize: bool,
     strip_bidi: bool,
-    strip_zalgo: Option<i64>,
+    strip_zalgo: Option<usize>,
 }
 
 impl ProfileSpec {
-    fn build(&self) -> PyResult<_TextPipeline> {
-        _TextPipeline::new(
+    fn build(&self) -> Result<Pipeline, ErrorRepr> {
+        Pipeline::new(
             self.normalize,
             self.transliterate,
             None, // lang
@@ -481,21 +459,19 @@ fn profile_spec(name: &str) -> Option<ProfileSpec> {
     })
 }
 
-/// Build the `_TextPipeline` for a named policy profile (`get_pipeline`).
-#[pyfunction]
-pub fn _get_pipeline(profile: &str) -> PyResult<_TextPipeline> {
+/// Build the [`Pipeline`] for a named policy profile (`get_pipeline`).
+///
+/// Returns `None` for an unknown profile name; the binding layer formats the
+/// "available profiles" error message from [`profile_names`].
+pub(crate) fn get_pipeline(profile: &str) -> Result<Option<Pipeline>, ErrorRepr> {
     match profile_spec(profile) {
-        Some(spec) => spec.build(),
-        None => Err(crate::InvalidArgumentError::new_err(format!(
-            "Unknown profile {profile:?}; available: {}",
-            PROFILE_NAMES.join(", ")
-        ))),
+        Some(spec) => spec.build().map(Some),
+        None => Ok(None),
     }
 }
 
 /// Sorted names of the available named policy profiles (`list_profiles`).
-#[pyfunction]
-pub fn _list_profiles() -> Vec<String> {
+pub(crate) fn profile_names() -> Vec<String> {
     PROFILE_NAMES.iter().map(|s| (*s).to_owned()).collect()
 }
 
@@ -504,8 +480,8 @@ mod tests {
     use super::*;
 
     // ── Helper to build a pipeline from bitflags ────────────────────
-    fn pipeline(steps: PipelineSteps, normalize_form: Option<&str>) -> _TextPipeline {
-        _TextPipeline {
+    fn pipeline(steps: PipelineSteps, normalize_form: Option<&str>) -> Pipeline {
+        Pipeline {
             steps,
             normalize_form: normalize_form.map(ToOwned::to_owned),
             zalgo_max_marks: None,
@@ -574,7 +550,12 @@ mod tests {
                     "no witness for new step '{name}'; add one so apply_step coverage stays gated"
                 );
             };
-            let out = pipeline(*flag, form).process(input).unwrap();
+            // strip_zalgo needs its cap set for the witness to fire.
+            let mut p = pipeline(*flag, form);
+            if *flag == PipelineSteps::STRIP_ZALGO {
+                p.zalgo_max_marks = Some(0);
+            }
+            let out = p.process(input).unwrap();
             assert_ne!(
                 out, input,
                 "step '{name}' left its witness unchanged — apply_step may be missing a branch"
@@ -585,7 +566,7 @@ mod tests {
     /// Independent oracle: apply each active step via the public *returning*
     /// functions (the pre-#236-item-7 strategy), used to prove the new
     /// double-buffered `process()` produces byte-identical output.
-    fn process_via_returning_fns(p: &_TextPipeline, text: &str) -> PyResult<String> {
+    fn process_via_returning_fns(p: &Pipeline, text: &str) -> Result<String, ErrorRepr> {
         let mut s = text.to_owned();
         for (flag, _name) in STEP_ORDER {
             if !p.steps.contains(*flag) {
@@ -599,7 +580,7 @@ mod tests {
             } else if *flag == PipelineSteps::STRIP_ZALGO {
                 zalgo::strip_zalgo(&s, p.zalgo_max_marks.unwrap_or(0))
             } else if *flag == PipelineSteps::STRIP_BIDI {
-                crate::presets::_strip_bidi(&s)
+                crate::presets::strip_bidi(&s)
             } else if *flag == PipelineSteps::DEMOJIZE {
                 emoji::demojize_rust(&s, false)
             } else if *flag == PipelineSteps::STRIP_ACCENTS {
@@ -608,7 +589,7 @@ mod tests {
                 transliterate::transliterate_impl(
                     &s,
                     p.lang.as_deref(),
-                    crate::ErrorMode::Ignore,
+                    ErrorMode::Ignore,
                     "",
                     p.strict_iso9,
                     p.gost7034,
@@ -653,6 +634,7 @@ mod tests {
 
         let mut all = pipeline(PipelineSteps::all(), Some("NFKC"));
         all.lang = Some("ru".to_owned());
+        all.zalgo_max_marks = Some(0);
 
         let mut disarm = pipeline(
             PipelineSteps::NORMALIZE
@@ -923,19 +905,19 @@ mod tests {
             PipelineSteps::NORMALIZE | PipelineSteps::FOLD_CASE,
             Some("NFC"),
         );
-        let repr = p.__repr__();
+        let repr = p.repr();
         assert!(repr.starts_with("TextPipeline("), "repr: {repr:?}");
         assert!(repr.contains("normalize"), "repr: {repr:?}");
         assert!(repr.contains("fold_case"), "repr: {repr:?}");
     }
 
-    // ── Constructor tests (via PyO3 signature semantics) ─────────────
+    // ── Constructor tests (via Pipeline::new signature semantics) ─────
 
     #[test]
     fn test_constructor_collapse_ws_implies_strip() {
         // collapse_whitespace=True with default strip_control/strip_zero_width (None)
         // should auto-enable both strip flags
-        let p = _TextPipeline::new(
+        let p = Pipeline::new(
             None, false, None, false, false, false, false, false, true,  // collapse_whitespace
             None,  // strip_control (defaults to collapse_whitespace=true)
             None,  // strip_zero_width (defaults to collapse_whitespace=true)
@@ -952,7 +934,7 @@ mod tests {
     #[test]
     fn test_constructor_collapse_ws_with_explicit_false() {
         // collapse_whitespace=True but strip_control=False explicitly
-        let p = _TextPipeline::new(
+        let p = Pipeline::new(
             None,
             false,
             None,
@@ -977,7 +959,7 @@ mod tests {
     #[test]
     fn test_constructor_standalone_strip_control() {
         // strip_control=True without collapse_whitespace
-        let p = _TextPipeline::new(
+        let p = Pipeline::new(
             None,
             false,
             None,
@@ -1002,12 +984,81 @@ mod tests {
     #[test]
     fn test_constructor_empty() {
         // Default constructor — no steps
-        let p = _TextPipeline::new(
+        let p = Pipeline::new(
             None, false, None, false, false, false, false, false, false, None, None, false, false,
             None,
         )
         .unwrap();
         assert!(p.steps.is_empty());
+    }
+
+    #[test]
+    fn test_constructor_invalid_norm_form() {
+        // `Pipeline` is not `Debug` (no need across the binding boundary), so
+        // match on the Result rather than using `.unwrap_err()`.
+        let res = Pipeline::new(
+            Some("BOGUS"),
+            false,
+            None,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            None,
+            None,
+            false,
+            false,
+            None,
+        );
+        assert!(matches!(
+            res,
+            Err(ErrorRepr::InvalidPipelineNormForm { .. })
+        ));
+    }
+
+    #[test]
+    fn test_constructor_mutually_exclusive_schemes() {
+        let res = Pipeline::new(
+            Some("NFKC"),
+            true,
+            None,
+            true, // strict_iso9
+            true, // gost7034
+            false,
+            false,
+            false,
+            false,
+            None,
+            None,
+            false,
+            false,
+            None,
+        );
+        assert!(matches!(res, Err(ErrorRepr::MutuallyExclusivePipeline)));
+    }
+
+    // ── Profiles ─────────────────────────────────────────────────────
+
+    #[test]
+    fn profile_names_are_sorted_and_match_specs() {
+        let names = profile_names();
+        let mut sorted = names.clone();
+        sorted.sort();
+        assert_eq!(names, sorted, "profile_names must be sorted");
+        // Every listed name resolves to a buildable pipeline.
+        for name in &names {
+            assert!(
+                get_pipeline(name).unwrap().is_some(),
+                "profile {name:?} did not build"
+            );
+        }
+    }
+
+    #[test]
+    fn unknown_profile_is_none() {
+        assert!(get_pipeline("does_not_exist").unwrap().is_none());
     }
 
     // ── Edge cases ───────────────────────────────────────────────────
@@ -1030,8 +1081,10 @@ mod tests {
         use super::*;
         use proptest::prelude::*;
 
-        fn all_steps_pipeline() -> _TextPipeline {
-            pipeline(PipelineSteps::all(), Some("NFKC"))
+        fn all_steps_pipeline() -> Pipeline {
+            let mut p = pipeline(PipelineSteps::all(), Some("NFKC"));
+            p.zalgo_max_marks = Some(0);
+            p
         }
 
         /// Pipeline without confusables — used for idempotency testing.
@@ -1040,11 +1093,13 @@ mod tests {
         /// pipeline stabilises in one pass but is not idempotent in the
         /// mathematical sense.  All other steps are individually
         /// idempotent and their composition must be too.
-        fn idempotent_steps_pipeline() -> _TextPipeline {
-            pipeline(
+        fn idempotent_steps_pipeline() -> Pipeline {
+            let mut p = pipeline(
                 PipelineSteps::all() & !PipelineSteps::CONFUSABLES,
                 Some("NFKC"),
-            )
+            );
+            p.zalgo_max_marks = Some(0);
+            p
         }
 
         proptest! {

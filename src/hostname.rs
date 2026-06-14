@@ -1,4 +1,3 @@
-use pyo3::prelude::*;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{confusables, scripts};
@@ -30,6 +29,25 @@ fn is_ipv6_literal(normalized: &str) -> bool {
         .all(|&b| b.is_ascii_hexdigit() || b == b':' || b == b'.' || b == b'%')
 }
 
+/// Findings from a hostname homoglyph analysis.
+///
+/// Reports factual findings; it claims nothing about absolute safety. A
+/// `suspicious == false` result is not a safety certificate (see
+/// [`is_suspicious_hostname`]).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct HostnameAnalysis {
+    /// Whether the hostname is flagged suspicious overall.
+    pub(crate) suspicious: bool,
+    /// Scripts detected across all labels, in order of first appearance.
+    pub(crate) scripts: Vec<String>,
+    /// Whether any single label mixes characters from more than one script.
+    pub(crate) mixed_script: bool,
+    /// Whether any label contains a confusable mapping to a Latin character.
+    pub(crate) has_confusables: bool,
+    /// The Latin-normalized (canonical) form of the hostname.
+    pub(crate) canonical: String,
+}
+
 /// Detect whether a hostname is *suspicious* for Unicode homoglyph spoofing.
 ///
 /// `xn--` (ACE) labels are decoded to their Unicode form via UTS#46 before
@@ -47,14 +65,9 @@ fn is_ipv6_literal(normalized: &str) -> bool {
 /// - It contains confusable characters that map to different Latin characters
 /// - An ACE label fails to decode, or a confusable check errors (fail closed)
 ///
-/// Returns a tuple of (is_suspicious, analysis) where analysis has:
-/// - "suspicious": bool
-/// - "scripts": list of detected scripts
-/// - "mixed_script": bool
-/// - "has_confusables": bool
-/// - "canonical": the Latin-normalized form
+/// Returns a tuple of (is_suspicious, analysis).
 ///
-/// **A `False` (not-suspicious) result is NOT a safety guarantee.** It means
+/// **A `false` (not-suspicious) result is NOT a safety guarantee.** It means
 /// only that no mixed-script label and no confusable *from the bundled TR39
 /// table* was found. Per the THREAT_MODEL *Out of scope* section, whole-script
 /// spoofs that use no bundled-table confusable, and any confusable outside the
@@ -62,9 +75,7 @@ fn is_ipv6_literal(normalized: &str) -> bool {
 /// deny decisions on the granular `scripts` / `mixed_script` / `has_confusables`
 /// fields plus your own policy — a detector can attest the *presence* of a
 /// problem, never the *absence* of all problems.
-#[pyfunction]
-#[pyo3(signature = (hostname,))]
-pub fn _is_suspicious_hostname(hostname: &str) -> PyResult<(bool, HostnameAnalysis)> {
+pub(crate) fn is_suspicious_hostname(hostname: &str) -> (bool, HostnameAnalysis) {
     // 1. NFKC normalize
     let normalized: String = hostname.nfkc().collect();
 
@@ -72,7 +83,7 @@ pub fn _is_suspicious_hostname(hostname: &str) -> PyResult<(bool, HostnameAnalys
     // cannot be visually spoofed via homoglyph attacks. Report them as
     // not-suspicious without running the script/confusable analysis.
     if is_ipv6_literal(&normalized) {
-        return Ok((
+        return (
             false,
             HostnameAnalysis {
                 suspicious: false,
@@ -81,7 +92,7 @@ pub fn _is_suspicious_hostname(hostname: &str) -> PyResult<(bool, HostnameAnalys
                 has_confusables: false,
                 canonical: normalized,
             },
-        ));
+        );
     }
 
     // 2. Split on dots to check each label
@@ -152,7 +163,9 @@ pub fn _is_suspicious_hostname(hostname: &str) -> PyResult<(bool, HostnameAnalys
 
         // Check confusables in this label. Fail CLOSED (#67.1): if the check
         // errors we cannot prove the label clean, so flag it as suspicious
-        // rather than silently degrading to "not confusable".
+        // rather than silently degrading to "not confusable". The target
+        // ("latin") is a fixed, always-supported script, so the underlying
+        // Result is in practice always `Ok`; the `Err` arm is defensive.
         match confusables::is_confusable(&label, "latin") {
             Ok(true) => {
                 has_confusables = true;
@@ -170,7 +183,7 @@ pub fn _is_suspicious_hostname(hostname: &str) -> PyResult<(bool, HostnameAnalys
     let canonical =
         confusables::normalize_confusables(&decoded_hostname, "latin").unwrap_or(decoded_hostname);
 
-    Ok((
+    (
         suspicious,
         HostnameAnalysis {
             suspicious,
@@ -179,32 +192,7 @@ pub fn _is_suspicious_hostname(hostname: &str) -> PyResult<(bool, HostnameAnalys
             has_confusables,
             canonical,
         },
-    ))
-}
-
-/// Findings from a hostname homoglyph analysis.
-///
-/// Reports factual findings; it claims nothing about absolute safety. A
-/// `suspicious == false` result is not a safety certificate (see
-/// `_is_suspicious_hostname`).
-//
-// `skip_from_py_object`: this is a return-only struct (it is never extracted
-// from a Python object as a `#[pyfunction]` argument), so we opt out of the
-// `FromPyObject` derive that pyo3 0.29 makes opt-in for `Clone` pyclasses.
-#[pyclass(skip_from_py_object)]
-#[pyo3(name = "HostnameAnalysis")]
-#[derive(Clone)]
-pub struct HostnameAnalysis {
-    #[pyo3(get)]
-    pub suspicious: bool,
-    #[pyo3(get)]
-    pub scripts: Vec<String>,
-    #[pyo3(get)]
-    pub mixed_script: bool,
-    #[pyo3(get)]
-    pub has_confusables: bool,
-    #[pyo3(get)]
-    pub canonical: String,
+    )
 }
 
 #[cfg(test)]
@@ -213,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_clean_hostname_not_suspicious() {
-        let (suspicious, details) = _is_suspicious_hostname("paypal.com").unwrap();
+        let (suspicious, details) = is_suspicious_hostname("paypal.com");
         assert!(!suspicious);
         assert!(!details.has_confusables);
         assert!(!details.mixed_script);
@@ -222,7 +210,7 @@ mod tests {
     #[test]
     fn test_cyrillic_spoof() {
         // Cyrillic а and р mixed with Latin
-        let (suspicious, details) = _is_suspicious_hostname("\u{0440}\u{0430}ypal.com").unwrap();
+        let (suspicious, details) = is_suspicious_hostname("\u{0440}\u{0430}ypal.com");
         assert!(suspicious);
         assert!(details.has_confusables);
         assert!(details.mixed_script);
@@ -232,7 +220,7 @@ mod tests {
     #[test]
     fn test_full_cyrillic_domain() {
         // Fully Cyrillic domain — not mixed script, might have confusables
-        let (_, details) = _is_suspicious_hostname("яндекс.ру").unwrap();
+        let (_, details) = is_suspicious_hostname("яндекс.ру");
         assert!(!details.mixed_script);
     }
 
@@ -243,7 +231,7 @@ mod tests {
         // report not-suspicious, because the old rule only flagged Latin-paired
         // high-risk combinations. The conservative policy now flags any
         // mixed-script label as suspicious.
-        let (suspicious, details) = _is_suspicious_hostname("\u{044F}\u{03C8}.com").unwrap();
+        let (suspicious, details) = is_suspicious_hostname("\u{044F}\u{03C8}.com");
         assert!(suspicious, "mixed Cyrillic+Greek label must be suspicious");
         assert!(details.mixed_script);
         // The mixed-script rule — not the confusable check — is what catches
@@ -263,7 +251,7 @@ mod tests {
         // label, not a homoglyph spoof, so it is correctly reported
         // not-suspicious. The point of #63 is that the label is now *decoded and
         // analysed*, not that every xn-- label is flagged.
-        let (suspicious, _) = _is_suspicious_hostname("xn--n3h.com").unwrap();
+        let (suspicious, _) = is_suspicious_hostname("xn--n3h.com");
         assert!(!suspicious);
     }
 
@@ -271,7 +259,7 @@ mod tests {
     fn test_punycode_homograph_suspicious() {
         // #63: the on-the-wire ACE form of a Cyrillic homograph must be decoded
         // and flagged. Build the xn-- form of a Cyrillic "apple" spoof, then
-        // assert _is_suspicious_hostname flags it (it used to pass as safe ASCII).
+        // assert is_suspicious_hostname flags it (it used to pass as safe ASCII).
         let spoof = "\u{0430}\u{0440}\u{0440}\u{04CF}\u{0435}"; // аррӏе (Cyrillic)
         let ace = idna::domain_to_ascii(spoof).expect("encode Cyrillic spoof to ACE");
         assert!(
@@ -279,7 +267,7 @@ mod tests {
             "expected an xn-- label, got {ace:?}"
         );
         let hostname = format!("{ace}.com");
-        let (suspicious, details) = _is_suspicious_hostname(&hostname).unwrap();
+        let (suspicious, details) = is_suspicious_hostname(&hostname);
         assert!(
             suspicious,
             "Cyrillic homograph in ACE form {hostname:?} must be suspicious"
@@ -289,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_ipv6_loopback_not_suspicious() {
-        let (suspicious, details) = _is_suspicious_hostname("[::1]").unwrap();
+        let (suspicious, details) = is_suspicious_hostname("[::1]");
         assert!(!suspicious);
         assert!(!details.mixed_script);
         assert!(!details.has_confusables);
@@ -297,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_ipv6_full_not_suspicious() {
-        let (suspicious, details) = _is_suspicious_hostname("[2001:db8::1]").unwrap();
+        let (suspicious, details) = is_suspicious_hostname("[2001:db8::1]");
         assert!(!suspicious);
         assert!(details.scripts.is_empty());
     }
