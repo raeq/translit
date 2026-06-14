@@ -1,6 +1,6 @@
 //! Integration tests for whitespace, control char, and zero-width stripping.
 
-use _disarm::api;
+use disarm::api;
 
 #[test]
 fn collapse_basic() {

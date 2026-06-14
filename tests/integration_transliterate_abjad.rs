@@ -7,9 +7,9 @@
 
 mod common;
 
-use _disarm::api;
-use _disarm::ErrorMode;
 use common::*;
+use disarm::api;
+use disarm::ErrorMode;
 use proptest::prelude::*;
 
 // --- Hebrew ---

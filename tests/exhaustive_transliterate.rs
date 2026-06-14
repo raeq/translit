@@ -7,13 +7,13 @@
 //! All tests are `#[ignore = "exhaustive: slow, run with --ignored"]` by default so they don't slow everyday development.
 //! Run before release with: `cargo test --test exhaustive_transliterate -- --ignored`
 
-use _disarm::api;
-use _disarm::tables::hangul::{lookup_compat_jamo, romanize_hangul};
-use _disarm::transliterate::{
+use disarm::api;
+use disarm::tables::hangul::{lookup_compat_jamo, romanize_hangul};
+use disarm::transliterate::{
     balinese_char_role, indic_char_role, javanese_char_role, khmer_char_role, myanmar_char_role,
     sinhala_char_role, tibetan_char_role, IndicRole,
 };
-use _disarm::ErrorMode;
+use disarm::ErrorMode;
 
 // ── Hangul syllables (U+AC00–U+D7A3): all 11,172 ──────────────────────
 

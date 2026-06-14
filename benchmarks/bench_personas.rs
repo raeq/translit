@@ -14,12 +14,12 @@ use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
-use _disarm::api::fold_case;
-use _disarm::api::strip_accents;
-use _disarm::api::{find_untranslatable, transliterate};
-use _disarm::api::{search_key, security_clean};
-use _disarm::api::{slugify, SlugConfig};
-use _disarm::ErrorMode;
+use disarm::api::fold_case;
+use disarm::api::strip_accents;
+use disarm::api::{find_untranslatable, transliterate};
+use disarm::api::{search_key, security_clean};
+use disarm::api::{slugify, SlugConfig};
+use disarm::ErrorMode;
 
 #[path = "persona_corpus.rs"]
 mod persona_corpus;
@@ -83,7 +83,7 @@ fn bench_lang_dispatch(c: &mut Criterion) {
     mappings.insert("м".to_owned(), "m*".to_owned());
     mappings.insert("а".to_owned(), "a*".to_owned());
     mappings.insert("о".to_owned(), "o*".to_owned());
-    _disarm::tables::register_lang("x-bench", mappings).expect("valid single-char keys");
+    disarm::tables::register_lang("x-bench", mappings).expect("valid single-char keys");
     group.throughput(text_throughput(&cyr));
     group.bench_function("registered_lang_clone_path", |b| {
         b.iter(|| engine(black_box(&cyr), Some("x-bench")));
@@ -214,21 +214,21 @@ fn bench_replacements(c: &mut Criterion) {
     reps.insert("©".to_owned(), "(c)".to_owned());
     reps.insert("™".to_owned(), "(tm)".to_owned());
     reps.insert("€".to_owned(), "EUR".to_owned());
-    _disarm::tables::register_replacements(reps).expect("under MAX_REPLACEMENTS");
+    disarm::tables::register_replacements(reps).expect("under MAX_REPLACEMENTS");
 
     // No key occurs in ascii_doc: measures the scan + per-call length-sort
     // overhead on the borrowed (no-match) path.
     let ascii = persona_corpus::doc("ascii_doc").expect("persona exists");
     group.throughput(text_throughput(&ascii));
     group.bench_function("registered_no_match", |b| {
-        b.iter(|| _disarm::tables::apply_replacements(black_box(&ascii), REPLACEMENT_CAP));
+        b.iter(|| disarm::tables::apply_replacements(black_box(&ascii), REPLACEMENT_CAP));
     });
 
     // mixed_web contains ©/™/€: measures the matching + rebuild path.
     let mixed = persona_corpus::doc("mixed_web").expect("persona exists");
     group.throughput(text_throughput(&mixed));
     group.bench_function("registered_with_matches", |b| {
-        b.iter(|| _disarm::tables::apply_replacements(black_box(&mixed), REPLACEMENT_CAP));
+        b.iter(|| disarm::tables::apply_replacements(black_box(&mixed), REPLACEMENT_CAP));
     });
 
     group.finish();

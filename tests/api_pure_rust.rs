@@ -9,8 +9,8 @@
 //! Build/run it with the default features (`cargo test`); it must NOT require
 //! `extension-module`.
 
-use _disarm::api;
-use _disarm::ErrorMode;
+use disarm::api;
+use disarm::ErrorMode;
 
 #[test]
 fn confusables() {
@@ -82,7 +82,7 @@ fn filename_fallible() {
     // The lang argument is the one fallible input — an unknown code is rejected.
     let err = api::sanitize_filename("x", "_", 255, api::Platform::Universal, Some("zzz"), true)
         .unwrap_err();
-    assert_eq!(err.kind(), _disarm::ErrorKind::InvalidArgument);
+    assert_eq!(err.kind(), disarm::ErrorKind::InvalidArgument);
 }
 
 #[test]

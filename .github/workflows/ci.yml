@@ -84,6 +84,23 @@ jobs:
           fi
           echo "OK: no pyo3 in the default dependency tree"
 
+      - name: Cargo package — crates.io publish dry-run (#42)
+        # Build the crate from a packaged tarball with the default (pure) feature
+        # set, exactly as a `cargo add disarm` consumer receives it. Catches
+        # missing files (readme/license), bad metadata, or pure-build breakage
+        # before a release ever reaches crates.io.
+        run: cargo package --no-default-features
+
+      - name: Rust API semver check (#42, advisory)
+        # The semver-governed Rust surface is `disarm::api` + the error types
+        # (see docs/RUST_API.md). Advisory for now: the only prior crates.io
+        # version is a 0.0.0 placeholder with no API to diff against. Once 0.10.0
+        # is the published baseline this becomes a hard gate (drop continue-on-error).
+        continue-on-error: true
+        run: |
+          cargo install cargo-semver-checks --locked || true
+          cargo semver-checks check-release --default-features
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"

@@ -3,8 +3,8 @@
 //! Covers Chinese / Hanzi, Japanese (kana / katakana / kanji), Korean (Hangul),
 //! and CJK spacing / boundary behaviour.
 
-use _disarm::api;
-use _disarm::ErrorMode;
+use disarm::api;
+use disarm::ErrorMode;
 
 #[test]
 fn chinese_cjk() {

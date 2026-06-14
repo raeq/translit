@@ -137,18 +137,36 @@ fn slug_replace_with_automaton(text: &str, automaton: &SlugReplacementAutomaton)
 /// or only to leading/trailing tokens (`true` — python-slugify semantics that
 /// preserves relative word order). (#118)
 pub struct SlugConfig {
+    /// String inserted between words (default `"-"`).
     pub separator: String,
+    /// Lowercase the result (default `true`).
     pub lowercase: bool,
+    /// Truncate the slug to at most this many bytes on a word boundary; `0`
+    /// (default) means no limit.
     pub max_length: usize,
+    /// When truncating, cut only at a word boundary rather than mid-word.
     pub word_boundary: bool,
+    /// Preserve relative word order when removing stopwords (see the type-level
+    /// docs); `false` (default) removes all matching tokens.
     pub save_order: bool,
+    /// Words removed from the slug (case-insensitive).
     pub stopwords: Vec<String>,
+    /// Custom regex of characters to treat as separators; `None` uses the
+    /// built-in non-word pattern.
     pub regex_pattern: Option<regex::Regex>,
+    /// Literal `(from, to)` substitutions applied before transliteration
+    /// (e.g. `("&", "and")`).
     pub replacements: Vec<(String, String)>,
+    /// Keep Unicode word characters instead of transliterating to ASCII.
     pub allow_unicode: bool,
+    /// Transliteration language hint; `None` uses the default tables. Not
+    /// validated by the infallible Rust API (best-effort).
     pub lang: Option<String>,
+    /// Decode HTML named entities (e.g. `&amp;`) before slugifying.
     pub entities: bool,
+    /// Decode HTML decimal numeric entities (e.g. `&#38;`).
     pub decimal: bool,
+    /// Decode HTML hexadecimal numeric entities (e.g. `&#x26;`).
     pub hexadecimal: bool,
     /// Characters preserved through slugification instead of becoming the
     /// separator (awesome-slugify `safe_chars`). They act as word characters,

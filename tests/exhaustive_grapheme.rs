@@ -17,13 +17,13 @@
 //! `tests/exhaustive_transliterate.rs`. Run before release with:
 //! `cargo test --no-default-features --test exhaustive_grapheme -- --ignored`
 //!
-//! Normalization entry point: we call `_disarm::api::normalize`, the pyo3-free
+//! Normalization entry point: we call `disarm::api::normalize`, the pyo3-free
 //! Layer-2 surface over the SAME Layer-1 core (`crate::normalize::normalize`)
 //! that the shipped `#[pyfunction]` shim calls. It is infallible for a typed
 //! [`NormalizationForm`] and touches no Python objects, so it runs from a plain
 //! `#[test]` with no GIL while exercising the identical code path users get.
 
-use _disarm::api::{normalize, NormalizationForm};
+use disarm::api::{normalize, NormalizationForm};
 use unicode_segmentation::UnicodeSegmentation;
 
 const FORMS: [NormalizationForm; 4] = [

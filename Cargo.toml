@@ -1,19 +1,50 @@
 [package]
 name = "disarm"
-version = "0.9.1"
+version = "0.10.0"
 edition = "2021"
 rust-version = "1.81"
 license = "MIT"
 description = "Unicode canonicalization and TR39 confusable analysis: building blocks for text-security pipelines (homoglyph/bidi/zalgo handling) plus standards-based transliteration"
 repository = "https://github.com/raeq/disarm"
 homepage = "https://disarm.dev"
-documentation = "https://docs.disarm.dev"
+documentation = "https://docs.rs/disarm"
+readme = "README.md"
 keywords = ["unicode-security", "homoglyph", "confusable", "transliteration", "normalization"]
 categories = ["text-processing", "internationalization", "encoding"]
+# Ship the Rust crate (#42): sources + build inputs (src/tables/data/*.tsv), the
+# integration tests and Rust benches (so the published crate is verifiable, as is
+# the cargo default), examples, manifest, license, README, and the Rust-API doc
+# the README links to. Anchored (leading `/`) so the globs match only the package
+# root. Excludes the Python package, CI config, the docs site, and the Python
+# benchmark/eval tooling (the `*.rs` globs skip the `.py` files under benchmarks/).
+include = [
+    "/src/**/*",
+    "/tests/*.rs",
+    "/tests/common/*.rs",
+    "/benchmarks/*.rs",
+    "/examples/*.rs",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE",
+    "/docs/RUST_API.md",
+]
 
 [lib]
-name = "_disarm"
+# The Rust crate exposes the pure `disarm::api` surface (#42). The Python
+# extension module is still imported as `disarm._disarm` — maturin pins that via
+# `module-name` in pyproject.toml and the `#[pymodule] fn _disarm`, both of which
+# are independent of this lib name.
+name = "disarm"
 crate-type = ["cdylib", "lib"]
+
+# docs.rs builds the default (pure, pyo3-free) feature set — no libpython needed
+# on the docs.rs builders. The documented surface is `disarm::api` plus the error
+# types; everything else is `#[doc(hidden)]` or `pub(crate)`.
+[package.metadata.docs.rs]
+all-features = false
+no-default-features = false
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 # Default is the PURE Rust core: no pyo3, no libpython — the idiomatic crates.io

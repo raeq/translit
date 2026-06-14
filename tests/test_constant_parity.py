@@ -15,7 +15,7 @@ import pytest
 
 import disarm
 from disarm import _api
-from disarm._disarm import _MAX_BATCH_SIZE as _RUST_MAX_BATCH_SIZE
+from disarm._core import _MAX_BATCH_SIZE as _RUST_MAX_BATCH_SIZE
 
 # Canonical sets, defined once in the Rust core. Listed here only so this test
 # can assert the core accepts every one of them (not as a wrapper-side copy).

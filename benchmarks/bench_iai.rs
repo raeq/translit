@@ -17,11 +17,11 @@
 
 use std::hint::black_box;
 
-use _disarm::api::strip_log_injection;
-use _disarm::api::transliterate;
-use _disarm::api::{escape_html, percent_encode, UrlComponent};
-use _disarm::api::{slugify, SlugConfig};
-use _disarm::ErrorMode;
+use disarm::api::strip_log_injection;
+use disarm::api::transliterate;
+use disarm::api::{escape_html, percent_encode, UrlComponent};
+use disarm::api::{slugify, SlugConfig};
+use disarm::ErrorMode;
 
 use iai_callgrind::{
     library_benchmark, library_benchmark_group, main, Callgrind, LibraryBenchmarkConfig,

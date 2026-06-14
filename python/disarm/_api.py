@@ -12,7 +12,7 @@ from collections.abc import Iterable
 from functools import lru_cache, wraps
 from typing import TYPE_CHECKING, Any, Protocol, cast, overload
 
-from disarm._disarm import (
+from disarm._core import (
     # Resource limit — read from the Rust single source of truth, never
     # re-declared, to prevent silent drift (#200).
     _MAX_BATCH_SIZE,

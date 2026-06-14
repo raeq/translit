@@ -1,4 +1,4 @@
-"""Type stubs for the _disarm Rust extension module (PyO3)."""
+"""Type stubs for the _core Rust extension module (PyO3)."""
 
 from __future__ import annotations
 

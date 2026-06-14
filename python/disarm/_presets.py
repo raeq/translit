@@ -8,7 +8,7 @@ backend) into ready-made canonicalization pipelines.  Re-exported from the
 from __future__ import annotations
 
 from disarm._api import TextPipeline
-from disarm._disarm import (
+from disarm._core import (
     _catalog_key,
     _display_clean,
     _get_pipeline,

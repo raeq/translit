@@ -1,6 +1,6 @@
 //! Integration tests for slugification.
 
-use _disarm::api::{slugify, SlugConfig};
+use disarm::api::{slugify, SlugConfig};
 
 #[test]
 fn basic_slugify() {

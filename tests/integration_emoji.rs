@@ -1,6 +1,6 @@
 //! Integration tests for emoji processing (demojize_rust).
 
-use _disarm::emoji::demojize_rust;
+use disarm::emoji::demojize_rust;
 
 // --- Basic demojize ---
 
